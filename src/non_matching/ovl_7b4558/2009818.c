@@ -187,6 +187,56 @@
  * Park stands at 3 pin-free; the 0 at two pins (scratch body recorded above) is
  * the pass-3 landing and needs no further search.  Do not re-open this as a
  * pass-2 spelling question.
+
+ * ========== BATCH 336 (brief H): A RUNG-BY-RUNG AUDIT, AND THE VERDICT SURVIVES ==========
+ *
+ * RE-DERIVED AS FOUND: 3 differing ENCODINGS of a 38-ENTRY STREAM (ref 38,
+ * ours 38), first differing index 29, ref 2011 ours 0449, instructions
+ * 24 = 24, relocations clean, PIN COUNT 0.  The 0 at two pins stands and is
+ * still the pass-3 landing.  NO NEW SPELLINGS WERE TRIED: the park's 22 live
+ * subsets plus batch 329's ten bodies cover that space, and the brief's rule
+ * against re-running a recorded negative applies.
+ *
+ * WHAT IS NEW is that this park's "the free variable is the LUID" is now
+ * verified AT EVERY RUNG of rank_for_schedule, including the two the park does
+ * not name.  At t=2, last_scheduled_insn = 93 (`mov r2,#0xf0') and the ready
+ * set is {92 `lsl r1', 94 `lsl r2', 72 `mov r0,#0x11'}:
+ *
+ *   priority          haifa-sched.c:4039-4042  all 65, and necessarily so --
+ *                     all three carry the IDENTICAL dependent set {98,79,77},
+ *                     so priority() sums the same chain for each.
+ *   register pressure :4044-4047               DEAD, `! reload_completed', and
+ *                     there is no sched1 in this build (the park's own point).
+ *   interblock        :4049-4066               same bb, so skipped entirely.
+ *   CLASS             :4068-4095               THE RUNG THIS PARK NEVER NAMED.
+ *                     92 has NO edge to 93 -> class 3; 94 has a data edge to 93
+ *                     of cost 1 (arm.md:254, every `core_cycles single' insn)
+ *                     -> class 3; 72 has no edge -> class 3.  For 72 to win
+ *                     here BOTH 92 and 94 would have to be demoted, and 92's
+ *                     demotion needs an edge to the last-scheduled insn that it
+ *                     structurally cannot have -- whichever of 91/93 is issued
+ *                     at t=1, 92's only predecessor is 91 and that edge is
+ *                     unit-latency.  The only non-unit latencies on this target
+ *                     are arm.md:260-294 (load/store1 2, mult 16, store2/3/4
+ *                     3/4/5, with arm_ld_sched == 0 -- arm.c:165, :568) and
+ *                     arm_adjust_cost's 0 for anti/output (arm.c:2414-2452),
+ *                     and nothing in this window is a load, a store or a
+ *                     multiply.
+ *   dependent count   :4096-4110               3 each, for the same reason the
+ *                     priorities tie: one identical dependent set.
+ *   INSN_LUID         :4113-4115               decides.
+ *
+ * So the three-way tie is closed ABOVE LUID BY CONSTRUCTION, not by a cost that
+ * might be re-spelt, and the corpus refutation (0 pin-free against 83 pinned
+ * for this shape in a function with no branch) is the right reading of it.
+ * Recorded also so it is not re-asked: SCHED_SORT (haifa-sched.c:4017-4021)
+ * calls qsort(rank_for_schedule) only when n_ready > 2, but swap_sort
+ * (:4120-4134) calls rank_for_schedule itself, so the comparator is reached at
+ * n_ready == 2 as well -- "rank_for_schedule only ranks READY insns" is about
+ * MEMBERSHIP of the ready list, never about whether it is called.
+ *
+ * STILL 3 of 38 pin-free.  CLOSED FOR PASS 2, confirmed a second time and now
+ * at every rung.  Do not re-open as a spelling question.
  */
 extern void __CutsceneStart(void);
 extern void __CutsceneEnd(void);

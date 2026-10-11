@@ -206,6 +206,111 @@
  * in this tree) and "the offset as a named local" is a recorded lever that EARNS
  * that form; what this park needs is its INVERSE, and the two must not be
  * confused.
+ *
+ * ============ BATCH 336, BRIEF F: 27 of 37 HELD.  THE PARK'S ONE NAMED
+ * ============ UNTRIED LEVER IS NOW REFUTED BY A 15-ROW CROSS, AND THE
+ * ============ ADDRESSING MODE IS A CONSEQUENCE, NOT A SECOND LEVER.
+ *
+ * RE-DERIVED FIRST, in stream terms: 27 of 37 (ref 37 encodings, ours 35),
+ * instructions 34/32, SIZE ref 80 bytes against ours 76, relocations differing
+ * only by the 4-byte shift the deficit causes (same two symbols,
+ * ewram_2020000 and gBuffer, same order).  COUNT DIFFERS, so the 27 measures
+ * MISALIGNMENT and the honest figure is STILL "two 16-bit instructions short".
+ * tools/aligncmp.py puts the real residue at 18 of 37 aligned-equal (48.6%),
+ * 25 differing/ins/del in 9 hunks.  Everything in this header reproduced;
+ * nothing needed correcting.
+ *
+ * THE DECOMPOSITION ALSO REPRODUCES, re-counted off both streams with the loop
+ * entry taken from the branch target (ROM 0x1c, ours 0x1e):
+ *     head (prologue + both pointer setups + i = 0)   ROM 14   ours 15   +1
+ *     loop body                                       ROM 17   ours 14   -3
+ *     tail (pop / bx)                                 ROM  3   ours  3    0
+ *                                                     ROM 34   ours 32   -2
+ * and the head's +1 is specifically a THIRD POOL LOAD: the ROM takes two in the
+ * head (pool 0x44, 0x48) and one INSIDE the loop (0x4c); we take all three in
+ * the head.  `push {r5,r6,lr}` / `pop {r5,r6}` against `push {r5,lr}` /
+ * `pop {r5}` are same-count REPLACEMENTS, not extra instructions -- worth
+ * saying because index 0 is one of them and it reads like a length defect.
+ *
+ * ** ONE FACT NOT PREVIOUSLY RECORDED, AND IT IS THE SHARPEST EVIDENCE HERE.
+ * The ROM's r5 is REUSED FOR TWO UNRELATED VALUES: it holds 0x6004000 in the
+ * head (idx 9 `ldr r5,=...`, idx 12 `adds r1,r3,r5`) and gBuffer inside the
+ * loop (idx 15 `ldr r5,=gBuffer`, idx 19 `adds r5,#2`).  The ROM touches
+ * r0-r5 ONLY and never mentions r6 or r7 in any of its 34 instructions.  So in
+ * the original build the gBuffer constant held NO REGISTER OF ITS OWN AT ALL --
+ * it borrowed a dead one each iteration.  That is stronger than "it was
+ * spilled", and it is consistent with BOUND 2 above: the ROM has FEWER live
+ * values than we do, so pressure remains refuted. **
+ *
+ * ======== REFUTED: "the in-loop difference is also an addressing-mode
+ * ======== difference", i.e. the batch-334 section's second lever ========
+ *
+ * That section proposes the addressing mode as a SECOND, INDEPENDENT lever
+ * (ROM materialises each address then uses immediate-offset; we use Thumb's
+ * register-offset form), cites src/non_matching/rom_a1000/80a3354.c as a
+ * precedent, and says what was never tried is that lever CROSSED with the
+ * pointer walk.  CROSSED THIS BATCH -- 15 rows, 5 address spellings x 3
+ * g-forms -- AND EVERY ONE COMPILES TO A BIT-IDENTICAL OBJECT:
+ *
+ *   g-form:   g = gBuffer; + g += 2 in loop (this body)
+ *           | g = gBuffer; BEFORE the loop, then g and g + 2
+ *           | g = gBuffer; in loop, no bump, then g and g + 2
+ *   address:  inline (this body)
+ *           | one named `unsigned char *a`, reused for both accesses
+ *           | one named `unsigned short *q`, reused
+ *           | two distinct `a0`, `a1`
+ *           | `a` plus a named `d2 = dst + 0x40` for the second store
+ *
+ * All 15: ndiff 27 of 37, 34/32 instructions, first index 0, aligned-equal 18
+ * (48.6%), 25 diffs in 9 hunks -- THE SAME NUMBERS AS THE BASE IN EVERY COLUMN.
+ * A second 24-row cross (3 g-forms x 2 operand orders `t+g` / `g+t` x 3 t-forms
+ * `int` / `unsigned int` / `<< 2`) is also inert: 18 of the 24 BIT-IDENTICAL to
+ * this body, and the 6 two-base rows (`g2 = g + 2`) WORSE at 29 / aligned 17.
+ *
+ *   >> SO THE ADDRESSING MODE IS NOT AN INDEPENDENT LEVER -- IT IS A
+ *      CONSEQUENCE OF THE ALLOCATION.  cse2 canonicalises every one of these
+ *      spellings to the same RTL before reload ever sees them, which is why the
+ *      objects are BYTE-EQUAL rather than merely equal-scoring.  The batch-334
+ *      "second description" is a true description and a FALSE LEVER.  This
+ *      function has exactly ONE free variable: whether the gBuffer pool
+ *      constant gets a hard register.  Everything else measured here or above
+ *      is downstream of it, and no further spelling work is worthwhile. <<
+ *
+ * NOT RETRIED AND RECORDED SO NOBODY RETRIES THEM: every row in the inert list
+ * above, plus all 39 rows of this batch's two crosses.
+ *
+ * INSTRUMENT WARNING, measured on the piece-mate Func_80114a0 and applying to
+ * this park's own -ffixed probes: -ffixed-rN IS NOT A USABLE INSTRUMENT on
+ * these bodies.  Denying a high register makes the body SHORTER, because the
+ * unused register drops out of the prologue's mov/push save-restore block -- so
+ * the flag changes the very region the measurement is about.  This park's own
+ * note that -ffixed-r7 produces an `ip` park rather than a rematerialisation
+ * already says the figures are not the ROM's mechanism; this is why.
+ *
+ * ==== PIECE STATUS RE-VERIFIED FROM THE TREE, AND THE "PAIR" FRAMING IS WRONG
+ *
+ * asm/rom_9000/rom_108e4_c.s holds SEVEN .thumb_func_start and ALL SEVEN ARE
+ * STILL PARKED (Func_8010e14 136/201, Func_8010ff0 101/112, Func_80110e0
+ * 52/63, this one 27/37, Func_80111b4 151/248 with 3 pins, Func_80113e4 73/91,
+ * Func_80114a0 55/97).  Verified against src/non_matching/rom_9000/ and
+ * docs/directory/01-parked.md; none of the seven has a landed .c.  The
+ * batch-334 section above is CORRECT about that.
+ *
+ * BUT ITS SCHEDULING ADVICE IS NOT.  The piece is ALREADY sub-split into
+ * _a / _b / _c -- stage1.ld:228-230 lists rom_108e4_{a,b,c}.o(.text) and
+ * :299-301 the same three for .rodata.  This function is member 4 of 7 and
+ * Func_80114a0 is member 7 (LAST).  Once _c is cut, EACH TARGET IS ITS OWN TU
+ * and matches or fails INDEPENDENTLY, so:
+ *     Func_80114a0 needs ONE cut   (_c = members 1-6, plus 80114a0 alone)
+ *     this function needs TWO cuts (it is interior)
+ *     both together need THREE cuts, not the "two" stated above
+ * and neither cut's cost depends on the other target.
+ *
+ *   >> CORRECTED SCHEDULING STATEMENT: these are TWO INDEPENDENT SINGLES whose
+ *      landing cost is a byte-neutral tools/split_s.py cut plus a stage1.ld
+ *      edit -- one cut for Func_80114a0, two for this one.  They should NOT be
+ *      gated on each other.  What they are not is landable without touching
+ *      stage1.ld. <<
  */
 extern unsigned char ewram_2020000[];
 extern unsigned char gBuffer[];

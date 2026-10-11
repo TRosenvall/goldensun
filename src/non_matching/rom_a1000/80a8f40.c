@@ -1,4 +1,51 @@
-/* ============ BATCH 328, BRIEF F -- THE LAYER IS NOW PINNED DOWN ============
+/*
+ * ========= BATCH 336, BRIEF B: FOUR MORE DEVICE-FREE ROUTES CLOSED, =========
+ * ========= INCLUDING THE BARRIER AND THE ONE-MEMBER CARRIER         =========
+ *
+ * FIGURE RE-DERIVED: 6 differing encodings of 167 -- a STREAM length of 167 (143
+ * instructions plus 24 32-bit entries) both sides, no SIZE line, no INSTRUCTION
+ * COUNT line, first at index 139 (ref 9b01 = `ldr r3,[sp,#4]`, ours 9901 =
+ * `ldr r1,[sp,#4]`).  PINS: the file's one `.equ _MSG_333` shim, which is
+ * MEASUREMENT-AND-IDIOM only and predates this round.  **The device-free figure
+ * is 6 and it has not moved.**  Nothing was added to any `.sym` file.
+ *
+ * `grep -rn '0x741\|1857' --include='*.sym' .` returns NOTHING, so the symbol
+ * route still needs a new entry and that remains the owner's call.
+ *
+ * FOUR ROUTES NOT IN THE PARK'S SEVEN, ALL MEASURED AND ALL CLOSED:
+ *     a bare `__asm__ volatile ("")` AFTER the call ................ 6  inert
+ *     a one-member `union MsgBase { int v; }` carrier for 0x741 .... 6  inert
+ *     a bare `__asm__ volatile ("")` BEFORE the call ............... 8  WORSE
+ *     `int base = 0x741;` with a BARRIER between it and the use .... 8  WORSE
+ *     a barrier before the earlier `_Func_801e7c0(0xaed, ...)` ..... 13 WORSE
+ *     `int k = 0x129;` to drop the INDEX reload instead ............ 65 of 167 at
+ *                      142 instructions of 143, SIZE 376 vs 380, RELOCATIONS
+ *                      differ -- a length defect, so not a figure at all
+ *
+ * The two 8s are the useful ones.  The one-member union was batch 335's winning
+ * carrier for an HImode pool entry and it is inert here, and `base = 0x741` with
+ * a volatile asm wedged between the name and the use is WORSE rather than
+ * unfolded -- **confirming, from the other side of the same batch, that a
+ * volatile asm does not stop gcse's cprop folding a named integer constant back
+ * to an immediate.**  That was the last plausible way to keep 0x741 out of the
+ * `add` immediate without a symbol, so the park's "nothing that is a compile-time
+ * integer constant can avoid reload" is now closed against the barrier class too.
+ *
+ * Also recorded against this park's third closed route ("make r1 AND r2
+ * unavailable at insn 322 -- two more live values in the tail is not byte-
+ * neutral"): a barrier IS byte-neutral in a straight-line block but is NOT free
+ * in a loop body, because it lengthens every live range crossing it by one insn
+ * and re-sorts `allocno_compare` (`global.c:598-620`).  See the Func_80ab21c
+ * landing in this batch, where that cost four instructions and had to be paid
+ * back with a second barrier.  So "add a live value for free" has no route here
+ * either.
+ *
+ * Blocker class unchanged: `allocate_reload_reg` round-robin position
+ * (`reload1.c:5003`) at insn 322, set by the COUNT of reload-register
+ * allocations in the window.  PARK HELD AT 6 DEVICE-FREE; 0 of 167 at one
+ * message.sym entry, which is still an owner decision and still not taken.
+ *
+ ============ BATCH 328, BRIEF F -- THE LAYER IS NOW PINNED DOWN ============
  *
  * FIGURE RE-DERIVED, NOT INHERITED: 6 differing encodings of 167 (ref 167, ours
  * 167).  No objcmp SIZE line, no INSTRUCTION COUNT line, relocations identical.

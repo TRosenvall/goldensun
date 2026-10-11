@@ -180,6 +180,107 @@
  *
  * STILL AT 3 pin-free, device-free, flag-free.  Declining to close, with the
  * cause now named to the line and the next test made cheap.
+
+ * ========== BATCH 336 (brief H): THREE ENCODINGS, ONE CAUSE -- AND THE ACTION IS SCREENED ==========
+ *
+ * RE-DERIVED AS FOUND: 3 differing ENCODINGS of an 85-ENTRY STREAM (ref 85,
+ * ours 85), first differing index 6, ref 2000 ours 2200, instructions 70 = 70,
+ * relocations clean, PIN COUNT 0 (tools/shimcount.py).
+ *
+ * ----- THE PARK'S "TWO CAUSES" IS NOW ONE CAUSE -----
+ *
+ * The park, writing before the barrier was found, says indices 5-8 "are TWO
+ * causes, and one of them is a scheduling hoist".  On the 3-differing base
+ * there is only ONE.  The windows are
+ *     ref   mov sl,r0 | mov r0,#0  | mov r8,r0  | mov r0,#22
+ *     ours  mov sl,r0 | mov r2,#0  | mov r0,#22 | mov r8,r2
+ * and the wedge is a CONSEQUENCE of the register, not an independent defect:
+ * with r0 as the reload scratch, `mov r0,#22' WRITES a register that
+ * `mov r8,r0' READS, so sched_analyze_insn records an ANTI dependence and
+ * sched2 is FORBIDDEN to place the CreateActor argument fill between the pair.
+ * With the scratch at r2 all three insns are mutually independent, every rung
+ * of rank_for_schedule ties, and the argument fill -- which has the lower LUID,
+ * being an ordinary statement rather than a reload insn -- issues first.
+ * SO INDEX 7 IS NOT A SECOND QUESTION.  There is exactly one: get r0 as the
+ * reload scratch at insn 30, and all three encodings follow.
+ *
+ * ----- THE PARK'S STATED ACTION IS NOW SCREENED, SIXTEEN VARIANTS, ZERO HITS -----
+ *
+ * The action: "make SOME insn anywhere in this function need a reload while r1,
+ * r2 and r3 are all live across or set at that insn", with the screen "compile
+ * with -da and grep the .18.greg dump for a line reading Using reg 0".  Run on
+ * the base and fifteen variants, printing the WHOLE picked set rather than a
+ * boolean:
+ *
+ *   base                                                        2, 3
+ *   named locals for all three __UploadSpriteGFX arguments          3
+ *   byte stores through a named `unsigned char *q = o + 0x26'   2, 3
+ *   word stores through a named `int *b = (int *)(act + 0x28)'  (NONE)
+ *   `m' and `g1' assigned late instead of at the top            2, 3
+ *   a third call-crossing value `extra = who + has'             (NONE)
+ *   `0x80' and `0x80 << 3' in locals assigned at the top            3
+ *   fresh locals w2/h2 for the last call pair, assigned early    (NONE)
+ *   a second zero variable `z2' for the two byte stores             3
+ *   `m' as a literal at the use        (the park's 58 row)      2, 3
+ *   `z = 0' before the byte stores     (the park's 75 row)          3
+ *   `z' plus a properly typed `buf'    (the park's 78 row)      2, 3
+ *   the r0 pin INSTRUMENT feeding `z'  (the park's 76 row)          3
+ *   `g1' as a literal at the use                                   3
+ *   no barrier at all                  (the park's 4 row)       2, 3
+ *   `item' saved into a named local `it' first                  2, 3
+ *   `has' carried to the end in a second local `hh'             (NONE)
+ *
+ * The picked set is a SUBSET OF {2,3} in every single case, and FOUR variants
+ * collapse it to the EMPTY SET -- naming a value makes global allocation keep
+ * it instead of reloading it, so the reload disappears rather than the pressure
+ * rising.  THE PARK'S DIRECTION MEASURABLY RUNS THE WRONG WAY.  Screening the
+ * park's own three regressing rows (58, 75, 78) was the cheapest test available
+ * and none of them reaches r0 either, so NONE OF THEM IS A PREREQUISITE waiting
+ * on a second lever.
+ *
+ * ----- A SECOND, CHEAPER SUFFICIENT CONDITION THE PARK DID NOT CITE -----
+ *
+ * find_reg (reload1.c:1596-1700) scores each candidate with spill_cost[regno]
+ * and applies TWO DISCOUNTS before the inv_reg_alloc_order tie-break, at
+ * reload1.c:1641-1646:
+ *     if (rl->in  && GET_CODE (rl->in)  == REG && REGNO (rl->in)  == regno)
+ *       this_cost--;
+ *     if (rl->out && GET_CODE (rl->out) == REG && REGNO (rl->out) == regno)
+ *       this_cost--;
+ * A reload whose IN or OUT is literally hard register r0 therefore scores -1
+ * and beats r3's 0 OUTRIGHT -- no pressure, no tie-break, no need for r1, r2
+ * and r3 to be busy at all.  That is a DIFFERENT search from the park's: not
+ * "add pressure" but "find an insn in this function whose reload operand IS
+ * r0".  Insn 30's own reload cannot self-discount (`rl->in' is
+ * `(const_int 0)', `rl->out' is null -- it is an input reload for the
+ * `l' alternative of *thumb_movsi_insn with an `h' destination), and it does
+ * not need to: membership in the FUNCTION-GLOBAL set is all it needs, by the
+ * chain this batch read and confirmed --
+ *     used_spill_regs_local  reload1.c:1686
+ *  -> used_spill_regs        reload1.c:1754
+ *  -> spill_regs[] rebuilt ASCENDING           reload1.c:3529-3532
+ *  -> allocate_reload_reg's round robin from last_spill_reg + 1 = 0
+ *                                              reload1.c:5003-5013, :821
+ * so r0 picked at ANY insn makes spill_regs[0] == 0 and hands insn 30 the ROM's
+ * register.  The park's step (4) is confirmed verbatim against the source,
+ * including that pass 0 of allocate_reload_reg's two-pass loop finds nothing
+ * for the function's first reload (it requires reload_reg_used_at_all) so pass
+ * 1 does the pick.
+ *
+ * ----- AND ONE PRECONDITION CHECKED AND CLEARED, so it is not a dead end -----
+ *
+ * find_reg also ORs bad_spill_regs_global into `not_usable' (reload1.c:1604),
+ * which would be a HARD precondition -- r0 unpickable anywhere in the function
+ * -- if r0 were in it.  It is set in only two places: spill_hard_reg's
+ * `cant_eliminate' path at reload1.c:3474 (frame-pointer elimination failures,
+ * none here) and a scan_paradoxical_subregs branch at reload1.c:3671 that sits
+ * inside `#if 0'.  So the condition IS reachable in principle and the search is
+ * not futile -- it is just not reachable by adding locals.
+ *
+ * STILL 3 of 85 pin-free, device-free, flag-free.  Declining to close.  The
+ * next round's question, replacing "add pressure": find an insn in this
+ * function whose RELOAD OPERAND is hard register r0, which buys the -1 discount
+ * at reload1.c:1641-1646 and needs no pressure at all.
  */
 extern unsigned char gScript_881__0200cbe4[];
 extern unsigned char *__CreateActor(int a);

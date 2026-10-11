@@ -1,4 +1,56 @@
-/* ========= BATCH 328, BRIEF F -- VERDICT HOLDS; RESIDUE LOCATED; =========
+/*
+ * ========= BATCH 336, BRIEF B: RUNG 5's LUID BOUND NOW HAS A REASON, =========
+ * ========= AND THE PASS-3 QUESTION IS ANSWERED IN THE NEGATIVE       =========
+ *
+ * FIGURE RE-DERIVED: 2 differing encodings of 319 -- a STREAM length of 319 (273
+ * instructions plus 46 32-bit entries) both sides, no SIZE line, no INSTRUCTION
+ * COUNT line, relocations identical, first at index 44 (ref 2618, ours 4d99).
+ * PINS 0 (one empty asm, which this tree does not treat as a fakematch).
+ *
+ * I was asked to check the READINESS precondition, which batch 335 showed can
+ * invalidate an otherwise correct ranking bound.  **It does not apply here, and
+ * the reason is worth recording because it is the mirror of the Func_80ab21c
+ * landing in this same batch.**  Insn 107 (`ldr r5,=0xb06`) has dep 1 -- the asm
+ * barrier -- so it is already NOT a dep-0 insn; it is ready from t=4 and the
+ * 30-cycle call stall then holds the core until t=34.  Removing it from the ready
+ * list at t=34 would need a predecessor scheduled AT t=34, and the only candidate
+ * is insn 1133 itself.  A barrier between them would supply exactly that --
+ * except that `.19.flow2` has the chain order 104, 107, 110, 1133, 1134, so a
+ * barrier placed between 107 and 1133 forces 107 BEFORE 1133, which is the wrong
+ * direction.  **The readiness lever has the wrong sign on this target.**
+ *
+ * SO THE LIVE QUESTION IS RUNG 5, AND IT IS NOW EXPLAINED RATHER THAN OBSERVED.
+ * Both previous rounds recorded "the chain lists 107 before 1133, so the lower
+ * LUID wins".  The REASON is that insns 1133/1134 are RELOAD OUTPUT, and reload
+ * materialises a constant immediately before the insn that needs it -- here the
+ * first `_Func_801e7c0` call's fourth argument, which is necessarily after
+ * `msg = 0xb06`.  **LUID(1133) > LUID(107) is therefore not a coincidence of this
+ * spelling; it is where reload puts the insn.**  The only way to move it is to
+ * make the value 0x18 needed EARLIER, and cprop folds every such spelling back:
+ *     `int y;  y = 0x18;` before StopTask, `-y` at both calls ...... 2  inert
+ *     the same, set before the `c = 0xf0` loop ..................... 2  inert
+ *     the same, set before `_GetUnit(s->arr[t])` .................. 2  inert
+ *     the same + a SECOND barrier before StopTask ................. 2  inert
+ *     `y = -0x18;` before StopTask, `y` at both calls .............. 6  WORSE
+ *                                 (RELOCATIONS differ: StopTask moves)
+ *     `y = -0x18;` before the `c = 0xf0` loop ..................... 52 WORSE
+ *                                 (RELOCATIONS differ)
+ * The three inert rows are the informative ones: the value is named BEFORE the
+ * barrier and still materialises AFTER it, so **a volatile asm does not stop
+ * gcse's cprop from folding a named integer constant back to an immediate.**
+ * That also answers the pass-3 question this park left open -- the barrier's
+ * predecessor cannot be replaced by a genuine MEM dependence here, because insn
+ * 107 is a CONSTANT-POOL load and `CONSTANT_POOL_ADDRESS_P` makes its MEM
+ * unchanging, so no store can be made to conflict with it.
+ *
+ * Nothing refuted.  Rungs 1, 3, 4 and 5 all reproduce as previously recorded, and
+ * readiness is now closed too, with its sign.
+ *
+ * Blocker class unchanged: sched2 `rank_for_schedule` rung 4 (3 against 2, both
+ * capped) and rung 5 (LUID, now with reload placement as its reason).
+ * Park terminal at 2.
+ *
+ ========= BATCH 328, BRIEF F -- VERDICT HOLDS; RESIDUE LOCATED; =========
  * ========= AND THE BARRIER IS PROVED LOAD-BEARING BY ITS CONTROL =========
  *
  * FIGURE RE-DERIVED: 2 differing encodings of 319 (ref 319, ours 319).  No

@@ -7,9 +7,9 @@
  * Verify with:
  *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
  *     goldensun-build python3 tools/objcmp.py src/non_matching/rom_a1000/80aafb8.c \
- *     asm/rom_a1000/rom_aa538_c_c_a_c_c.s --func Func_80aafb8
+ *     asm/rom_a1000/rom_aa538_c_c_a_c_c_a.s --func Func_80aafb8
  *
- * THE SPLIT.  asm/rom_a1000/rom_aa538_c_c_a_c_c.s holds THREE functions
+ * THE SPLIT.  asm/rom_a1000/rom_aa538_c_c_a_c_c_a.s holds THREE functions
  * (Func_80aafb8, Func_80ab1f4 at 0x080ab1f4, Func_80ab21c at 0x080ab21c -- the
  * last already parked as src/non_matching/rom_a1000/80ab21c.c) and NO data
  * section; datacheck is clean, so the split is text-only and needs NO `.global`.

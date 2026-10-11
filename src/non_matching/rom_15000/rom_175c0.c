@@ -195,6 +195,107 @@
  *      local is still the only construct that produces the 16, and every such
  *      construct is a DEVICE by docs/owner-decisions.md item 4.
  *      PARK HOLDS AT 2 of 44, device-free and pin-free.
+ *
+ * ============ BATCH 336, BRIEF F: 2 of 44 HELD, DEVICE-FREE AND PIN-FREE.
+ * ============ THE BOUND IS NOW CLOSED BY EXHAUSTION OF THE WHOLE TREE, AND
+ * ============ THE ONE PRECEDENT THAT EXISTS IS AN UNBOOKED SHIPPED DEVICE.
+ *
+ * RE-DERIVED FIRST, in stream terms: 2 of 44 (ref 44 encodings, ours 44),
+ * instructions 40/40, first differing index 13 (ref b084 `sub sp,#0x10`
+ * against ours b082 `sub sp,#8`).  objcmp prints no SIZE, no INSTRUCTION
+ * COUNT and no RELOCATIONS line, so the figure IS a distance.  CONFIRMED for
+ * the fourth batch running.  Body UNCHANGED.
+ *
+ * TWO CORRECTIONS TO THE BRIEF THAT SENT ME HERE, both checked before
+ * measuring, because the next reader will be told the same two things:
+ *
+ *  1. ** THIS BODY IS BARRIER-FREE. **  The brief said this park "ships with
+ *     barriers today" and gives "two figures each (with and without)".  It does
+ *     not.  `grep __asm__` on this file returns ONE hit and that hit is INSIDE
+ *     THIS COMMENT BLOCK, in the batch-329 section below -- exactly the
+ *     comment-stripping trap the shared brief warns about two sections later.
+ *     The 2 of 44 is the barrier-free figure and there is no second figure.
+ *
+ *  2. The brief also said this park was "improved in batch 329 by the same
+ *     lever, 8 -> 3 and 6 -> 5".  It was not.  Batch 329 HELD it at 2 and
+ *     measured the barrier at ALL TEN statement boundaries at 13, 15 (RELOCDIFF),
+ *     12, 12, 10, 9, 9, 7, 5 and 6 against a CONTROL OF 2 -- inert-to-harmful
+ *     everywhere, with `sub sp,#8` unmoved on every row.  The 8 -> 3 belongs to
+ *     Func_801c34c, this park's batch-329 sibling.  The barrier is
+ *     STRUCTURALLY unable to touch this park (it is not a DECL, so
+ *     assign_stack_local is never called for it and thumb_expand_prologue's
+ *     `amount` cannot see it), which the batch-329 section below already says.
+ *
+ * ==== THE ONE ASSUMPTION UNDER THE BOUND THAT NOBODY HAD TESTED ====
+ *
+ * Every round here has asked WHICH 5-to-8-byte never-read BLKmode local
+ * produces the 16.  None has asked the prior question: IS A DECL THE ONLY ROUTE
+ * INTO get_frame_size() AT ALL?  asm/ is a LABELLED CORPUS -- every generated
+ * .s is byte-matching by construction -- so if ANY landed function allocates
+ * frame bytes it never touches, the .c beside it names the construct, whatever
+ * that construct is.
+ *
+ * scratch_elev/b336/F/frameslack_f.py scans all 5,228 .s files, keeps only the
+ * COMPILER-GENERATED ones (gcc's own banner), strips comments first, and
+ * reports any function whose prologue `sub sp,#N` exceeds the highest [sp,#k]
+ * it ever references by >= 4 bytes WITH NO ESCAPING FRAME ADDRESS -- the class
+ * this park already ruled out, since the ROM contains no `add rX,sp,#N`.
+ *
+ *     generated-file functions with ANY frame slack ................  9
+ *     of those, with a real [sp,#k] ref and no escaping frame address  1
+ *
+ * ** A SCANNER BUG WORTH THE ROW, BECAUSE IT MANUFACTURED A FALSE PRECEDENT
+ * FIRST: an escaping frame address has THREE encodings in this backend, not
+ * one.  Matching only `add rX, sp` reported Func_80217a4
+ * (asm/rom_15000/rom_20198_c_c_c_a_a_c_c_a.s, `sub sp,#8`, only [sp] touched)
+ * as a never-addressed frame -- it computes `mov r0, sp`.  Adding `mov rX, sp`
+ * and `adds rX, rY, sp` cut the hit list from 233 to 9.  Any future frame-slack
+ * query must match all three. **
+ *
+ * ==== THE ONE SURVIVING HIT IS THE DEVICE, ALREADY SHIPPED AND LANDED ====
+ *
+ * OvlFunc_973_2008768 -- asm/overlays/rom_7fc720/ovl_30_c_a_c_c_c_b.s, 41 lines,
+ * four calls, `sub sp,#36`, and `str r3,[sp]` as its ONLY frame reference.  One
+ * outgoing stack word means current_function_outgoing_args_size is 4, so its
+ * get_frame_size() is 32 AND ENTIRELY UNTOUCHED.  The .c beside it,
+ * src/overlays/rom_7fc720/ovl_30_c_a_c_c_c_b.c, opens its body with
+ *
+ *     unsigned char unused[32];
+ *
+ * -- a never-read array local: EXACTLY the construct this park needs, at 32
+ * bytes instead of 8, in a LANDED BYTE-MATCHING FILE.
+ *
+ *   >> CONSEQUENCE 1 -- THE BOUND IS CONFIRMED AND SHARPENED BY EXHAUSTION.
+ *      A never-read BLKmode local is not merely the best construct anyone has
+ *      thought of; across 5,228 generated files it is THE ONLY THING IN THIS
+ *      ENTIRE TREE that puts untouched bytes in a frame.  There is no second
+ *      mechanism left to find, so NO FURTHER SPELLING SEARCH OF THIS FUNCTION
+ *      IS WORTHWHILE and this park should stop being scheduled for one. <<
+ *
+ *   >> CONSEQUENCE 2 -- A QUESTION FOR THE OWNER, NOT FOR AN AGENT.  The
+ *      project has ALREADY SHIPPED this device once and it is NOT BOOKED:
+ *      grep for `ovl_30_c_a_c_c_c_b` or `2008768` in docs/directory/02-depin.md
+ *      returns nothing, and 02-depin.md's artifact taxonomy (pins, +r, empty
+ *      asm, volatile, symbol, do-while) HAS NO COLUMN FOR A NEVER-READ LOCAL
+ *      AT ALL.  So either that landing is undeclared pass-3 debt, or the
+ *      standard is being applied more narrowly in practice than this park has
+ *      been reading it.  ** IF THE ANSWER IS "ADMISSIBLE", THIS PARK CLOSES IN
+ *      ONE LINE at 0 of 44 -- `char pad[8];` is already measured
+ *      byte-identical above. **  Either way 02-depin.md needs a never-read-local
+ *      column.  I am NOT shipping the 0 on the strength of an unbooked
+ *      precedent: the device-free body ships at 2 and the 0 stays a figure
+ *      ABOUT THE BLOCKER. <<
+ *
+ * ONE CITATION FIX, because a reader greps the phrase and lands on the wrong
+ * ruling: the sections above cite "docs/owner-decisions.md item 4" for "a
+ * never-read local is a device".  That is STANDING STANDARD 4 ("A device is
+ * permitted as an instrument and forbidden as a result"), under "Standing
+ * standards these decisions rest on".  DECISION 4 is Func_8078870's volatile
+ * cast, a different question.  The substance of the park's reading is right;
+ * only the pointer is wrong.
+ *
+ * NOT RETRIED: every spelling row above, and the ten barrier positions, both
+ * for the reasons given.  PARK HOLDS AT 2 of 44, DEVICE-FREE AND PIN-FREE.
 */
 
 /* Func_80175c0 -- 0x080175c0  (asm/rom_15000/rom_15e8c_c_a_c_c_c.s)

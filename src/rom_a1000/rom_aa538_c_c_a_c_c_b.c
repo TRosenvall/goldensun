@@ -1,4 +1,113 @@
-/* Func_80ab21c (FillTilemapRect, 0x080ab21c) -- NON-MATCHING, 2 of 101 encodings.
+/* Func_80ab21c (FillTilemapRect) @ 0x080ab21c, split out of
+ * asm/rom_a1000/rom_aa538_c_c_a_c_c.s.
+ *
+ * MATCHING, 101 of 101 encodings -- a STREAM length of 101 (98 instructions plus
+ * three 32-bit entries), 208 bytes, 1 relocation, all identical.  Landed in
+ * batch 336 from a park that had stood at TWO differing encodings of 101 since
+ * batch 276 and had its bound reproduced three times.
+ *
+ * Verify with -- NAMES THE INSTALLED PATH, ONE LINE:
+ *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work goldensun-build python3 tools/objcmp.py src/rom_a1000/rom_aa538_c_c_a_c_c_b.c asm/rom_a1000/rom_aa538_c_c_a_c_c_b.s --whole
+ *     -> ok Func_80ab21c                 101 encodings
+ *        OK whole file -- 208 bytes, 101 encodings and 1 relocations identical
+ *
+ * SPLIT TAKEN (text only, no exports, datacheck.py clean):
+ *   python3 tools/split_s.py asm/rom_a1000/rom_aa538_c_c_a_c_c.s Func_80ab21c
+ *     -> asm/rom_a1000/rom_aa538_c_c_a_c_c_a.s  (2 functions, 309 lines:
+ *        Func_80aafb8 and Func_80ab1f4, both still hand-written)
+ *        asm/rom_a1000/rom_aa538_c_c_a_c_c_b.s  (1 function, 114 lines) <- this
+ *   The piece holds THREE functions, not two; Func_80ab21c is the last of them,
+ *   so it cuts out alone and this landing does not wait on either neighbour.
+ *
+ * Pins: 0.  Devices: none.  Production flags.  TWO bare `__asm__ volatile ("")`
+ * barriers, which tools/shimcount.py reports separately and this tree does not
+ * treat as a fakematch (docs/elevation.md, "AN EMPTY `__asm__ volatile ("")`
+ * BEATS PRIORITY ARITHMETIC, AND IS NOT A FAKEMATCH HERE").
+ *
+ * ===================================================================
+ * WHAT CLOSED IT: ONE BARRIER FOR READINESS, A SECOND TO PAY FOR IT
+ * ===================================================================
+ *
+ * The park's residue was one adjacent transposition at the outer-loop tail,
+ *     rom   strb r2,[r1] / sub r5,#1   / ldr r3,[sp]
+ *     ours  strb r2,[r1] / ldr r3,[sp] / sub r5,#1
+ * i.e. insn 167 (`h--`) against insn 291 (reload's load of the spilled `off`),
+ * and three batches closed it on `rank_for_schedule` RUNG 1: prio(167) = 2
+ * against prio(291) = 4, and `haifa-sched.c:4041-4044` returns on priority
+ * before class, dependent count or LUID is consulted.  **Every arithmetic
+ * statement in that bound reproduces in my own `.23.sched2`.**  The
+ * PRECONDITION does not:
+ *
+ *     ;;  167   5   0   dep 0   prio 2  ...  core : 177
+ *     ;;  291 173   0   dep 3   prio 4  ...  core : 177 294 170
+ *     t=7  173 167 164  -> 164     t=8  173 167 291   (ready; core busy)
+ *     t=9  173 167 291  -> 291
+ *
+ * **insn 167 has dep 0 -- no predecessors at all -- and insn 291's three
+ * predecessors (157, 161, 164) are all scheduled by t=7.**  The priority
+ * contest at t=9 exists only because 291 is IN the ready list, and
+ * `rank_for_schedule` ranks READY insns only.  A bare `__asm__ volatile ("")`
+ * between `h--;` and `off += 0x40;` takes it out: an ASM_INPUT depends on every
+ * earlier insn and `reg_pending_sets_all` makes every later insn depend on it
+ * (`haifa-sched.c:3567-3598` with `:3780-3789`), and insn 291 is reload-inserted
+ * immediately before insn 170, i.e. after the barrier.
+ *
+ * ------------------------------------------------------------------
+ * AND A NEW BLOCKER CLASS, because that one barrier alone LOSES FOUR
+ * INSTRUCTIONS: a barrier in a loop body moves the spill.
+ * ------------------------------------------------------------------
+ * Alone it measures 90 of 101 at 94 instructions against 98 -- a length defect.
+ * Not scheduling: the two `.18.greg` conflict graphs are BYTE-IDENTICAL and only
+ * the allocation ORDER changes,
+ *     without  ;; 14 regs to allocate: 42 38 41 33 35 32 39 34 54 52 40 36 37 58
+ *     with     ;; 14 regs to allocate: 42 38 41 33 35 32 39 54 34 52 40 36 37 58
+ * allocnos 34 (`w`) and 54 (the 0xffff0fff mask) swapping.  `allocno_compare`
+ * (`global.c:598-620`) is
+ *     pri = (int)(((double)(floor_log2(n_refs) * n_refs) / live_length)
+ *                 * 10000 * size)
+ * so **a barrier that emits nothing still lengthens every live range crossing it
+ * by one insn**, which lowers `w` past the mask.  The results then read
+ *     without: 34 in r7, 54 in r12, 39 (`off`) SPILLED
+ *     with:    34 in r12, 39 (`off`) in r6, 54 spilled (it has a REG_EQUIV
+ *              constant, so it rematerialises as a pool load instead)
+ * and `sub sp,#4`, `add sp,#4`, the slot store and the reload load -- the four
+ * missing instructions -- are exactly what stops being needed.  The ROM spills
+ * `off`; it carries the same load/update/store, which is why only two encodings
+ * ever differed.
+ *
+ * >>> A READINESS BARRIER IS FREE IN A STRAIGHT-LINE BLOCK AND IS NOT FREE IN A
+ * >>> LOOP BODY.  Batch 335's landing (Func_80063bc) was straight-line, which is
+ * >>> why the cost did not show up there.
+ *
+ * THE PAYBACK IS A SECOND BARRIER INSIDE THE INNER LOOP.  The mask pseudo is set
+ * outside the inner loop and used inside it, so a barrier anywhere in the inner
+ * loop lies in BOTH live ranges: with L(w) -> L(w)+2 and L(mask) -> L(mask)+1,
+ * `6*(L(mask)+1) >= L(w)+2` holds where `6*L(mask) < L(w)+1` did not, and the
+ * original order is restored.  Four placements of the second barrier were
+ * measured and ALL FOUR are byte-identical:
+ *     at the top of the inner loop body (shipped here) ... OK 101/101, 208 bytes
+ *     at the top of the `if` body ........................ OK 101/101, 208 bytes
+ *     both of those ...................................... OK 101/101, 208 bytes
+ *     immediately before `n--;` .......................... OK 101/101, 208 bytes
+ *
+ * MEASURED, and why no cheaper payback exists.  No outer-loop-only lever pays the
+ * live_length back -- all of these stay at 94 instructions of 98:
+ *   barrier + the park's `struct Map` dividend; barrier + an unused `int spare`;
+ *   barrier + the mask in a local; barrier + `(v & 0xffff0fff) | fill` as one
+ *   expression; barrier + `off = off + 0x40`; the barrier DOUBLED around `h--`;
+ *   the barrier placed BEFORE `h--` instead.
+ * And from 2, without any barrier: the one-expression mask is 3 (WORSE) and the
+ * mask in a local is 27 (WORSE), while a barrier at the top of the inner loop or
+ * of the `if` body is exactly inert at 2 -- it is only load-bearing in company.
+ *
+ * ===================================================================
+ * CARRIED FORWARD -- THE PARK HEADER THIS LANDING REPLACES.  Its figure of
+ * two of 101 is SUPERSEDED by the 101 of 101 above; its four levers
+ * (a reassigned parameter is a global allocno; an SImode local for the mask
+ * because a HImode store target truncates it; `unsigned` for `lsr`; naming the
+ * dirty pointer BEFORE the offset) are all still load-bearing in the body below.
+ * ===================================================================
+ Func_80ab21c (FillTilemapRect, 0x080ab21c) -- NON-MATCHING, 2 of 101 encodings.
  *
  * FIGURE RE-DERIVED batch 327 brief E.  107 instructions against the ROM's 107,
  * every register identical, SIZE equal, no objcmp INSTRUCTION COUNT line.
@@ -184,6 +293,7 @@ void Func_80ab21c(int x, int y, int w, int h, int fill)
             p = (u16 *)(base + off);
             n = w;
             while (n != 0) {
+                __asm__ volatile ("");
                 v = *p;
                 if (((v >> 12) & 0xf) == 0xf) {
                     v = v & 0xffff0fff;
@@ -195,6 +305,7 @@ void Func_80ab21c(int x, int y, int w, int h, int fill)
             }
             *d |= 2 << ((unsigned)y >> 2);
             h--;
+            __asm__ volatile ("");
             off += 0x40;
             y++;
         } while (h != 0);

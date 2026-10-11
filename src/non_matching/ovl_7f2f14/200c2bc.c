@@ -174,6 +174,108 @@
  * is exactly what OvlFunc_968_200c610 shows is possible.
  *
  * NOTHING IN THE BODY BELOW IS CHANGED BY THIS BATCH.
+
+ * ========== BATCH 336 (brief H): THE RESIDUE IS THE ACC INIT'S LUID, NOT THE COPY'S ==========
+ *
+ * RE-DERIVED AS FOUND: 2 differing ENCODINGS of a 271-ENTRY STREAM (ref 271,
+ * ours 271), first differing index 163, ref 46ca ours 4693, instructions
+ * 236 = 236, pool words 35 = 35, relocations clean, PIN COUNT 0.
+ *
+ * ----- THE REFERENCE'S REGISTER ROLES, READ OUT RATHER THAN ASSUMED -----
+ *
+ * Read directly off asm/overlays/rom_7f2f14/ovl_30_c_c_a_c_c_c_a.s, loop 2:
+ *     r8   = i          (`mov r3,r8' then `cmp r3,#7', and `mov r1,r8' at the
+ *                        CopyMapTiles tail)
+ *     r9   = the struct pointer for the STACK argument
+ *                       (`mov r2,r9' / `str r2,[sp,#0xc]')
+ *     r10  = the struct pointer for the THREE FIELD STORES
+ *                       (`mov r2,r10' / `str r3,[r2,#8]', `[r2,#0xc]', `[r2,#0x22]')
+ *     r11  = acc        (`add r5,r11' in the inner loop's preheader)
+ * and the reference ALSO holds a hoisted zero in r7 for the fifth and sixth
+ * arguments (`mov r7,#0' then `str r7,[sp]' / `str r7,[sp,#4]'), which the base
+ * body ALREADY reproduces.  So BOTH register assignments in the contested
+ * quartet are already the ROM's, both pointer roles are already the ROM's, and
+ * the residue is PURELY the issue order of `mov r11,r2' against `mov r10,r9'.
+ *
+ * ----- THE BARRIER FAMILY, NOW MEASURED WITH THE BARE ASM IN ALL THREE PLACES -----
+ *
+ * The park measured `do { } while (0)' between the two inits.  The batch-335
+ * readiness lever is a BARE `__asm__ volatile ("")', which plants no loop notes
+ * and is a different object.  MEASURED, THREE NEW ROWS:
+ *   __asm__ volatile ("") between `i = 0' and `acc = 0'   5 of 271 (first 154)
+ *   __asm__ volatile ("") AFTER `acc = 0'                 5 of 271 (first 154)
+ *   __asm__ volatile ("") BEFORE `i = 0'                  5 of 271 (first 154)
+ * All three are the park's recorded `do { } while (0)' row, and all three are
+ * identical to EACH OTHER.  POSITION IS NOT A LEVER HERE, and the reason is
+ * structural rather than accidental: all three positions are UPSTREAM of the
+ * hoist, so the anchor becomes a predecessor of BOTH contested insns instead of
+ * one.  The batch-335 lever needs a position BETWEEN them, and there is none,
+ * because the hoist is emitted at loop_start and every source statement
+ * precedes it.  In this position a bare asm and a do-while-zero are not
+ * distinguishable.
+ *
+ * ----- RUNG BY RUNG, SO NO FUTURE ROUND RE-DERIVES IT -----
+ *
+ * Block 10's contested pair is 355 (`mov fp,r2') against 647 (`mov sl,r9'),
+ * with last_scheduled_insn = 352 (`mov r8,r2'):
+ *   priority            haifa-sched.c:4039-4042   both 1.  647 can have no
+ *                       dependent (the loop's top label opens the next block)
+ *                       and 355 cannot go below 1.
+ *   register pressure   :4044-4047                DEAD, `! reload_completed'.
+ *   interblock          :4049-4066                same bb.
+ *   CLASS               :4068-4095                647 is class 3, which is the
+ *                       MAXIMUM, so 355 must be DEMOTED.  Demotion needs either
+ *                       an anti/output edge to 352 -- impossible, 355 writes fp
+ *                       and reads r2 while 352 writes r8 and reads r2, no
+ *                       overlap in either direction -- or a data edge of
+ *                       non-unit latency, and 352 is a single-cycle ALU mov
+ *                       (arm.md:254; the non-unit types are arm.md:260-294,
+ *                       load/store1 2, mult 16, store2/3/4 3/4/5, and
+ *                       arm_adjust_cost at arm.c:2414-2452 returns 0 only for
+ *                       anti/output).
+ *   dependent count     :4096-4110                both 0.
+ *   INSN_LUID           :4113-4115                decides, and LUID is stream
+ *                                                 order.
+ *
+ * SO THE QUESTION IS NOT "STOP THE COPY BEING A HOIST".  The copy may stay a
+ * hoist; what has to move is THE ACC INIT, which must acquire a HIGHER stream
+ * position than the hoist.  That narrows the search to one mechanism.
+ *
+ * ----- AND THAT MECHANISM EXISTS, IS NAMED, AND IS MEASURED CLOSED -----
+ *
+ * Every hoist emit site in loop.c is `emit_insn_before (..., loop_start)'
+ * (:1825, :1890, :1991, :2024, :2055), so a movable lands IMMEDIATELY before
+ * NOTE_INSN_LOOP_BEG -- last in the preheader, highest LUID, exactly as the
+ * park says.  BUT scan_loop calls move_movables at loop.c:1110 and
+ * strength_reduce at loop.c:1135, IN THAT ORDER, and strength reduction emits
+ * before the SAME loop_start (emit_iv_add_mult's `emit_insn_before (seq,
+ * insert_before)' at :7636, and check_dbra_loop's `emit_insn_before
+ * (gen_move_insn (reg, start_value), loop_start)' at :8154).  An insn emitted
+ * there therefore lands BETWEEN the movable hoist and loop_start -- which is
+ * EXACTLY where the ROM has `mov r11,r2'.  `acc' can be put there by making it
+ * a GIV of `i' rather than an explicit accumulator, and since
+ * `0x80 << 13 == 1 << 20' every such rewrite is program-equivalent.
+ * MEASURED, FIVE SPELLINGS, ALL WORSE:
+ *   loop 2's `acc' replaced by `(i << 20)', init and increment deleted
+ *                                      68 of 269, 3 INSNS SHORT, relocs dirty
+ *   the same but keeping `acc = 0'      68 of 269, byte-identical to the above
+ *   `acc = i << 20;' as loop 2's first statement
+ *                                     108 of 271, 1 insn short, relocs dirty
+ *   `acc = i * (0x80 << 13);' likewise 108 of 271, identical bytes
+ *   `acc = (i + 1) << 20;' replacing the increment
+ *                                      32 of 271, 1 insn short, relocs dirty
+ * In every case gcc FOLDS the giv into the inner loop's address arithmetic and
+ * LOSES an instruction instead of relocating the init, so strength reduction
+ * never gets a separate init insn to emit.  The one pass that can reach the
+ * LUID is therefore measured shut.
+ *
+ * STILL 2 of 271 pin-free, device-free, flag-free.  Declining to close.  The
+ * open dimension, stated so it is testable: get loop.c to emit the ACC INIT
+ * (not the pointer copy) before loop_start AFTER move_movables has run, WITHOUT
+ * letting fold absorb the accumulator into the inner loop's addressing.  The
+ * park's "STOP THE COPY BEING A HOIST" is superseded -- the copy is a hoist in
+ * the ROM too, since the ROM's own `mov r10,r9' is a preheader copy of a
+ * live-in value with the same roles.
  */
 /* BODY REPLACED IN BATCH 300.  parkcheck caught this park's header lying about its
  * own body: the header claimed 2 of 271 while the body measured 271.  The 2-of-271

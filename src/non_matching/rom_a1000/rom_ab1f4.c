@@ -1,4 +1,75 @@
-/* Func_80ab1f4 @ 0x080ab1f4 -- NON-MATCHING, 4 differing encodings of 19.
+/*
+ * ========= BATCH 336, BRIEF B: THE READINESS PRECONDITION IS CHECKED ========
+ * ========= AND CLOSED STRUCTURALLY.  NO BARRIER PLACEMENT CAN FIT.  =========
+ *
+ * FIGURE RE-DERIVED: 4 differing encodings of 19 -- a STREAM length of 19 (18
+ * instructions plus one 32-bit entry) both sides, no SIZE line, no INSTRUCTION
+ * COUNT line, first at index 9 (ref 3001, ours 9b04).  PINS 0 (shimcount reports
+ * nothing of either class).  Superseded figures: none; it has been four since
+ * batch 326.
+ *
+ * I was sent to re-check ONE thing: the previous round's readiness closure, on
+ * the ground that readiness is the rung that was wrong on Func_80063bc in batch
+ * 335.  **The previous round's CONCLUSION survives and its REASON does not.**
+ *
+ * (1) THE REASON WAS WRONG.  Batch 329 wrote: "delaying 12 past t=11 needs a
+ *     producer finishing at t >= 10 with cost >= 2.  Its only producers are 61
+ *     (sp, true) and 10 (ANTI, which arm_adjust_cost prices 0)."  That treats the
+ *     anti-dependence as irrelevant because its COST is zero.  It is not: an insn
+ *     is not ready until every predecessor has been SCHEDULED, whatever the cost.
+ *     My own `.23.sched2` says so in one line --
+ *         ;;  Ready list (t = 9): 33 25 29 10
+ *         ;;      --> scheduling insn <<<10>>> on unit core
+ *         ;;      dependences resolved: insn 12 into ready
+ *     -- so insn 12's readiness at t=10 is set ENTIRELY by the zero-cost anti-dep
+ *     on insn 10, and `arm.c:2414-2418` (REG_DEP_ANTI / REG_DEP_OUTPUT -> 0) only
+ *     says it adds no queue delay on top.  **readiness(12) = max(sched(61) + 1,
+ *     sched(10) + 1)**, and the ROM pins both: insn 61 (`sub sp,#4`) is its index
+ *     5 and insn 10 (`mov r6,r3`) its index 7, both already matching.
+ *
+ * (2) AND THE CONCLUSION IS NOW STRONGER THAN "no producer is available": THE
+ *     BARRIER LEVER IS EXCLUDED BY A COUNTING ARGUMENT, not by a search.
+ *     A bare `__asm__ volatile ("")` is a TWO-SIDED barrier -- ASM_INPUT depends
+ *     on every earlier insn and `reg_pending_sets_all` makes every later insn
+ *     depend on it (`haifa-sched.c:3567-3598`, `:3780-3789`).  So a barrier
+ *     PARTITIONS the block: the schedule must place every chain-predecessor of
+ *     the barrier before every chain-successor.  **The ROM's order therefore has
+ *     to be a PREFIX CUT of the `.19.flow2` chain order, and it is not, at any
+ *     position.**
+ *         chain order  61  4 10 12 14 21 23 25 27 29 31 33 39 42
+ *         ROM order     4 21 23 27 61 14 10 29 25 31 39 12 33 42
+ *     Every non-empty chain prefix contains insn 61, which sits at ROM position
+ *     5, so a viable cut would have to be a ROM prefix of length >= 5; the chain
+ *     prefix of length 5 is {61,4,10,12,14} and the ROM prefix of length 5 is
+ *     {4,21,23,27,61}.  No two prefixes of equal length agree, at any length.
+ *     Measured, which is the point:
+ *         barrier at the top of the body ........................ 12 of 19
+ *         barrier after the first sum (`cx` named) .............. 7 of 19
+ *         barrier after both sums (`cx`, `cy` named) ............ 4 of 19, but
+ *                                 FIRST AT INDEX 6, not 9 -- a different residue
+ *         `void` + each of those three ......................... 12 / 9 / 6
+ *         `void` + `s32 p = a5;` named + barrier ............... 12
+ *     The one that keeps the figure at 4 moves the first difference EARLIER, so
+ *     it is not a near miss; nothing here is a prerequisite either.
+ *
+ * (3) `void` ON PROTOTYPE AND DEFINITION REPRODUCES AS EXACTLY INERT at 4 of 19,
+ *     19 of 19, confirming batch 327's banked prerequisite and batch 329's proof
+ *     that it is insufficient (it raises deps(25) from 2 to 3 against the bar of
+ *     4 and loses the 4-4 tie on LUID anyway).
+ *
+ * SO THE WHOLE OF `rank_for_schedule` IS NOW CLOSED WITH READINESS INCLUDED, and
+ * the readiness rung is closed by the SHAPE OF THE CHAIN rather than by a list of
+ * things that did not work.  Any future attempt needs a lever that changes the
+ * `.19.flow2` CHAIN ORDER itself -- insns 4, 10, 12, 14 are the parameter copies
+ * `assign_parms` emits ahead of NOTE_INSN_FUNCTION_BEG, so nothing written in the
+ * body can precede the a5 load, which is also why LUID(12) < LUID(25) is not
+ * addressable from the source.
+ *
+ * Blocker class unchanged: sched2 `rank_for_schedule` rung 4 with a structural cap
+ * on the quantity -- now plus a structural exclusion of the readiness escape.
+ * Park terminal at 4.
+ *
+ Func_80ab1f4 @ 0x080ab1f4 -- NON-MATCHING, 4 differing encodings of 19.
  *
  * FIGURE RE-DERIVED batch 327 brief E.  19 instructions both sides, SIZE equal,
  * no objcmp INSTRUCTION COUNT line -- the 4 IS a distance.  PIN COUNT 0.

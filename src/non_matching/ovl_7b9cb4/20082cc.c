@@ -139,6 +139,94 @@
  *   park's own "asm BETWEEN the two halves" row re-derived, not a new family.
  *
  * NOTHING IN THE BODY BELOW IS CHANGED BY THIS BATCH.
+
+ * ========== BATCH 336 (brief H): THE SCHEDULER'S CLASS RUNG, AND THE ADDEND ORDER ==========
+ *
+ * RE-DERIVED AS FOUND: 2 differing ENCODINGS of a 74-ENTRY STREAM (ref 74,
+ * ours 74), first differing index 29, ref 039b ours 02d2, instructions 53 = 53,
+ * pool words 20 = 20, relocations clean, PIN COUNT 0 (tools/shimcount.py).
+ * The park's figure, its residue and its sched2 reading all stand.
+ *
+ * ----- A RUNG ABOVE DEPENDENT COUNT THAT THIS PARK NEVER CHECKED -----
+ *
+ * This park reasons from rank_for_schedule's DEPENDENT-COUNT rung.  There is a
+ * rung ABOVE it that it does not name, and it is live on this target even
+ * though it happens to tie here.  haifa-sched.c:4068-4095 classifies every
+ * ready insn against last_scheduled_insn:
+ *     class 3  no edge to it, OR insn_cost (last, link, cand) == 1
+ *     class 2  anti/output edge
+ *     class 1  data edge
+ * and `if ((val = tmp2_class - tmp_class)) return val;` takes the HIGHEST
+ * class, BEFORE the dependent count at :4096-4110 and before INSN_LUID at
+ * :4113-4115.  Why it ties is a TARGET fact, not a structural one:
+ *   * arm_adjust_cost (config/arm/arm.c:2414-2452) returns 0 for REG_DEP_ANTI
+ *     and REG_DEP_OUTPUT, so an anti/output edge gives class 2;
+ *   * for a data edge it returns the function-unit cost, and arm.md:254 gives
+ *     every `core_cycles single' insn latency 1, so an ALU edge gives class 3;
+ *   * the ONLY non-unit latencies are arm.md:260-294 -- `load' and `store1' 2
+ *     (ldsched is "no" here: arm_ld_sched = (tune_flags & FL_LDSCHED) != 0,
+ *     arm.c:165 and :568, and arm7tdmi carries no FL_LDSCHED), `mult' 16,
+ *     `store2/3/4' 3/4/5.
+ * SO, GENERALLY: a candidate that depends on the last-scheduled insn through a
+ * LOAD, a MULTIPLY or a MULTI-REGISTER STORE falls to class 1 and loses to any
+ * independent candidate, above the dependent count.  Here every insn in the
+ * contested window is a single-cycle ALU op, so at t=2 (last_scheduled_insn =
+ * 216, `mov r2,#0x80') insn 73 is class 3 by having no edge and insn 217 is
+ * class 3 by having a unit-latency data edge.  THE CLASS RUNG CANNOT BE MADE
+ * TO DISCRIMINATE HERE, and the fall-through to dependent count is real.
+ * (Also recorded so it is not re-asked: SCHED_SORT at haifa-sched.c:4017-4021
+ * calls qsort(rank_for_schedule) only when n_ready > 2 and swap_sort otherwise,
+ * but swap_sort at :4120-4134 calls rank_for_schedule itself, so the comparator
+ * IS reached at n_ready == 2 -- which is this function's ready set at t=2.)
+ *
+ * PRIORITY, the top rung, is closed for the same reason: priority() adds
+ * insn_cost along the chain, 73's only consumer is the add (insn 77) and
+ * insn_cost (73, link, 77) is 1 by arm.md:254, so prio 73 = 15 = prio 217.
+ * Register pressure is dead (`! reload_completed'), interblock is same-bb.
+ * So the free variables are EXACTLY TWO: the dependent count (which needs the
+ * region end this park already measured unavailable) and WHICH REGISTER THE
+ * ADD RE-SETS.  The second one is new, and this batch closes it.
+ *
+ * ----- THE ADDEND ORDER IS NOT A LEVER: fold CANONICALISES IT -----
+ *
+ * The park's structural cap is "73 is capped at TWO because insn 77
+ * (`add r3,r3,r2') re-sets r3 immediately".  That cap is SYMMETRIC: if the add
+ * re-set r2 instead, then 217 would be capped at one real dependent and 73
+ * would collect the SetAnim call's r3 clobber, and the dependent-count rung
+ * would INVERT in the ROM's favour with no region end needed at all.  Nobody
+ * had varied the addend order.  MEASURED, SEVEN NEW ROWS, ALL AGAINST 2:
+ *
+ *   `*(a+0x28) = (0x80 << 11) + ((d >> 14) << 14);'        2 (idx 29, unmoved)
+ *   the same + bare __asm__ volatile ("") AFTER the store   2 (idx 29)
+ *   the same + bare __asm__ volatile ("") BEFORE the store  2 (idx 29)
+ *   the same with `(d >> 14) << 14' in a named local `e'    2 (idx 29)
+ *   `goto L1; L1: ;' immediately after the store            2 (idx 29)
+ *   addends reversed + that goto/label                      2 (idx 29)
+ *   `|' instead of `+' (same value, 0x40000 disjoint)       3  WORSE
+ *
+ * The reversal is INERT because fold canonicalises a PLUS_EXPR to put the
+ * constant on the RIGHT, so `(0x80 << 11) + X' and `X + (0x80 << 11)' reach
+ * expand as the same tree and the add's destination is still the shifted
+ * value's register.  THE ADD'S DESTINATION IS THEREFORE NOT REACHABLE FROM
+ * SOURCE, and with it the symmetric escape from the dependent-count cap.
+ *
+ * ----- AND THE REGION-END PROBE, TAKEN DIRECTLY -----
+ *
+ * `goto L1; L1: ;' right after the store is the cheapest possible region end:
+ * a label with nothing between it and the jump.  It is byte-inert, which
+ * re-derives on THIS function the control OvlFunc_927_2009818 recorded on its
+ * own -- `jump' (pass 02) deletes the unconditional jump and then the
+ * unreferenced label, so NOTHING reaches pass 23.  A sched2 region end needs a
+ * CODE_LABEL alive at pass 23, and no zero-instruction source construct leaves
+ * one: jump removes unreferenced labels at pass 02 and cleanup_cfg merges
+ * fall-through blocks before .10.cfg.  THAT is the shape of the remaining
+ * blocker, and it is not a spelling of the store.
+ *
+ * STILL 2 of 74 pin-free, device-free, flag-free.  Declining to close, with
+ * both free variables now closed by measurement rather than by argument: the
+ * region end (no surviving label) and the add's destination (fold's
+ * canonicalisation).  What is left is the park's own open possibility that the
+ * ROM object was not built from this spelling.
  */
 extern unsigned char *__MapActor_GetActor(int slot);
 extern void __Func_808e118(void);
