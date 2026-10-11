@@ -360,7 +360,7 @@ _MSG_50  = 0x0050;
 _MSG_51  = 0x0051;
 
 _MSG_75  = 0x0075;
-_MSG_182 = 0x0182;
+/* _MSG_182 was defined here as a bare duplicate of its documented definition below (same value); removed in batch 335. */
 /* _MSG_af7 -- Func_80a9598 (batch 287) uses it as `m`, then `m + 1`, beside the
  * already-admitted _MSG_182 in the same function. As a CONST_INT the `ldr r5,=0xaf7`
  * is hoisted above the preceding call by sched2 (a constant set after reload has no

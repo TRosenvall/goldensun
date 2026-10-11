@@ -119,6 +119,54 @@
  * n_calls_crossed for the constant or lower n_refs, neither of which any of the
  * nine spellings above reaches.  A `-ffixed-r5`-style flag does not exist in
  * this tree's groups.  Do not re-measure the inert list.
+ *
+ * ============================================================
+ * BATCH 335: THE LENGTH GAP IS NOT ONE ERROR, IT IS A SURPLUS OF TWO MASKING A
+ * DEFICIT OF ONE -- AND THE DEFICIT IS REACHABLE.
+ *
+ * The figure and the lengths above reproduce exactly.  Read against the
+ * alignment-tolerant view, the body is 209 aligned-equal of 243 in 28 hunks,
+ * and all but a handful of those hunks are the pool-offset cascade.  Taking the
+ * hunks in stream order, the running length error is:
+ *
+ *   +2  the allocation race this header already describes.  Where the
+ *       reference rematerialises the copy source and keeps the function
+ *       pointer callee-saved, ours parks the constant in the callee-saved
+ *       register and copies it out at each use, and pushes the function
+ *       pointer one register higher -- which is also why the two early
+ *       indirect calls relocate against the wrong `_call_via` helper.  Those
+ *       two instructions are entirely before the mid-function pool, which is
+ *       exactly why that pool and everything after it sits four bytes late.
+ *   -1  THE LAST FLAG CLEAR.  The reference forms the address in a register
+ *       with a two-address add and then stores at offset zero
+ *       (`mov r0,#0 / add r3,r6 / strb r0,[r3]`); ours takes the
+ *       register-offset store form (`strb r2,[r3,r6]`) and is one short.  The
+ *       FIRST flag set, written the same way in the body below, already
+ *       matches -- so the two sites genuinely differ in the reference and only
+ *       the last one needs the pointer advanced in place.
+ *
+ * MEASURED: writing that last store as a named byte pointer advanced in place
+ * -- `t = *g; t += ofs; *t = 0;` -- and as `t = &(*g)[ofs]; *t = 0;` BOTH emit
+ * the reference's add-then-store.  The instruction count goes from one long to
+ * two long, exactly as the arithmetic above predicts, and the
+ * alignment-tolerant reading improves from 209 aligned-equal in 28 hunks to 215
+ * in 25.  Neither spelling is kept in the body below, because with the
+ * allocation race still open it makes the positional figure worse; it is
+ * recorded here as a located, reproduced deficit so the next agent does not
+ * spend a round rediscovering it.
+ *
+ * SO THE WHOLE REMAINING PROBLEM IS THE TWO-INSTRUCTION SURPLUS, i.e. the
+ * callee-saved-register race this header already analyses, and nothing else of
+ * substance: the rest of the 178 is the pool offsets moving four bytes, plus a
+ * handful of register-role exchanges in the tail and two single-position sched2
+ * reorders.  Do not read the figure as a count of wrong decisions.
+ *
+ * AND THE PIECE STILL CANNOT CONVERT.  The piece holds this function and
+ * Func_80a7440, so one `.c` is one TU and both must match together.  Closing
+ * this one completely would not land the piece: the other is four encodings
+ * away on pure post-reload scheduling order, with its only remaining handle --
+ * alias set zero as a priority lever -- measured inert in batch 335.  See that
+ * park's header.
  */
 #include "dma.h"
 

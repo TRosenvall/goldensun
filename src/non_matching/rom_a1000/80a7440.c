@@ -123,6 +123,48 @@
  * dependence chain would do it, and nothing semantics-preserving reaches it:
  * the base has exactly one in-block use.  Treat the four as a scheduling bound
  * with the evidence above attached, not as an expression-level question.
+ *
+ * ============================================================
+ * BATCH 335, AND THE ONE DIMENSION THE OLD "NEXT" SECTION HAD NOT VARIED.
+ *
+ * The figure, the stream lengths, the size and the clean relocations above all
+ * reproduce exactly.  The scheduling account above also reproduces: the residue
+ * is still four encodings of pure post-reload ORDER at stream positions two
+ * through five, and everything else in the body is identical.
+ *
+ * THE ALIAS-SET-0 LEVER IS INERT HERE, AND THAT WAS WORTH CHECKING.  The old
+ * "NEXT" section said the only handle left was to lengthen the base pointer's
+ * in-block dependence chain and that "nothing semantics-preserving reaches it".
+ * One thing does, in principle: a ONE-MEMBER UNION round an access gives it
+ * MEM_ALIAS_SET 0 (c-common.c:3334-3345 permits type-punning through a union
+ * and the member list is irrelevant), and alias.c:237-238 then makes it
+ * conflict with EVERY other memory reference -- which is a documented sched2
+ * PRIORITY lever in this tree, not only a load-form lever: see the landed
+ * src/overlays/rom_780898/ovl_30_a_a_a_c_c_a.c, whose whole header is about
+ * raising an insn's priority that way.
+ *
+ * Measured, all four crossings, every one at stream length twenty-five and
+ * every one identical to the body below:
+ *   a union round the global pointer, so its load is alias set 0 ..... inert
+ *   a union round the stored halfword ................................ inert
+ *   both ............................................................. inert
+ *   both, plus a union round the byte read in the else arm ........... inert
+ * The reason is visible in the dependence graph rather than in the alias sets:
+ * the pointer load's only in-block dependent is the address add, and every
+ * conflict alias set zero can add is on an insn that ALREADY sits behind that
+ * add, so the longest path from the load to the end of the block does not grow
+ * and the tie at rank_for_schedule stands.  So the bound is now stated against
+ * a lever that could have broken it and did not.
+ *
+ * THE PIECE CANNOT CONVERT, AND THIS FUNCTION IS WHY.  The piece
+ * asm/rom_a1000/rom_a7380_a_c_a_a.s holds this function and Func_80a7478 and
+ * nothing else, so one `.c` would be one TU and both must match together.  The
+ * old note above declines the two-for-one on the grounds that the OTHER one is
+ * not close.  The gate is the other way round as well, and more firmly: this
+ * one is four encodings away with its only remaining handle measured inert,
+ * and combining the two translation units cannot change it, because post-reload
+ * scheduling is per-function.  Closing Func_80a7478 completely would still not
+ * land the piece.
  */
 extern unsigned char *iwram_3001f2c;
 extern int Func_80a77a4(int a);
