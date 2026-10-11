@@ -36,6 +36,14 @@ figures, their park paths, what each park claims) goes on top of this.
   landed two of three targets that way after spelling-level search had failed on
   both. Count hits in the generated half against the hand-written half for a
   reachability bound; partition by `shimcount` for a pin-free bound.
+- **THE TWO CHEAPEST AXES MAY ALREADY BE CLOSED — check the brief.**
+  `tools/autosweep.py` runs the judgment-free half of a park from bash at zero
+  token cost: the **flag axis** (the unchanged body under each per-file flag
+  group) and the **anchor axis** (`do { } while (0);` at every top-level
+  statement boundary). When a brief says a park has been autoswept, those are
+  recorded negatives — **do not re-screen them**, and spend your round on the
+  axes a script cannot reach: reading the disassembly, forming a hypothesis, and
+  naming the pass from the dumps.
 - **Two environment facts that have each cost an agent a detour.** The
   container's gcc driver is **`/opt/gcc296/xgcc`** — there is no `bin/`
   subdirectory, so `/opt/gcc296/bin/gcc` does not exist (verified: the directory
