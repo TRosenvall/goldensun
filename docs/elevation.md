@@ -34802,3 +34802,56 @@ expander and produce different instructions.** That was the second of three
 levers on a batch-332 landing, and the park's open question — *"what makes gcc
 materialise a boolean instead of branching when the other arm is a constant"* —
 had nothing to do with the other arm.
+
+## A PRIORITY BOUND IS ONLY VALID IF THE INSN'S READINESS IS FIXED
+
+Batch 334 bounded `Func_80063bc`'s residue structurally, and the arithmetic was
+right. From sched2's own table: `arm_adjust_cost` (`arm.c:2425-2427`) returns 0
+for every anti/output dependence, so `prio(volatile read) = prio(first store
+after the IME write)` while `prio(mov imm) = prio(its store) + 1` — a gap fixed
+at exactly **one** — and priority falls monotonically along the store chain, so
+no reordering closes it. A tie would not help either, because
+`rank_for_schedule`'s class test (`haifa-sched.c:4068-4095`) prefers the insn
+independent of the last-scheduled one, which is the constant. That is why the
+park's own 120-ordering sweep bottomed out.
+
+**Every one of those statements reproduces, and the bound is still wrong.**
+
+Batch 335 brief A found why in one sentence: **`rank_for_schedule` only ranks
+READY insns**, and the `mov r3,#0x80` was ready at t=0 *solely because it had no
+predecessor*. Give it one and it is not in the ready list at t=0 at all, so the
+priority comparison never happens. A bare `__asm__ volatile ("")` after the IME
+disable does exactly that — `haifa-sched.c:3567-3597` plus `:3780-3789` make an
+`ASM_INPUT` a two-sided barrier that emits nothing — and the park went **3 → 0
+on one line.**
+
+> **So a bound of the form "I have proved the ranking cannot come out the other
+> way" is incomplete until it also says why the insn is in the ready list.**
+> Ranking is the *second* question. The first is membership, and membership is
+> decided by predecessors — which source can create.
+
+That pair of functions had been bounded, re-bounded and swept for four batches,
+and the whole time the escape was one rung below where everyone was looking.
+It also landed the function's TU partner, which could not ship alone.
+
+### The same shape, stated generally
+
+The project's standing rule is *"when a park's negatives all vary one dimension,
+the answer is usually in a dimension nobody varied."* This is its sharper
+cousin, for bounds rather than sweeps:
+
+**When a park proves an ordering, a priority, a cost or a tie-break cannot be
+won, check the PRECONDITION of the comparison rather than its arithmetic.** The
+arithmetic is usually right and usually irrelevant. Candidate preconditions,
+each with a source lever:
+
+- **readiness** — is the insn in the ready list at that cycle? Predecessors
+  decide, and a barrier manufactures one.
+- **allocno membership** — is the pseudo in `.18.greg`'s list at all? A
+  block-local one is absent and `allocno_compare` never sees it.
+- **pass applicability** — does the pass even run? There is no `sched1` in this
+  build, and `rank_for_schedule`'s register-pressure rung is gated on
+  `! reload_completed`.
+- **pattern matching** — a `define_peephole` matches only CONSECUTIVE insns, so
+  a satisfied condition still loses if scheduling wedged something between them
+  (batch 335 brief H).

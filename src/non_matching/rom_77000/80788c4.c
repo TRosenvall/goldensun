@@ -9,10 +9,10 @@
  *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
  *     goldensun-build python3 tools/objcmp.py \
  *     src/non_matching/rom_77000/80788c4.c \
- *     asm/rom_77000/rom_78414_c_c_a_c_a_c_c.s --func Func_80788c4
+ *     asm/rom_77000/rom_78414_c_c_a_c_a_c_c_c.s --func Func_80788c4
  *
  * PINS: 0.  No shim, no fakematch row, no flag group.  No device.
- * PIECE: shares asm/rom_77000/rom_78414_c_c_a_c_a_c_c.s with Func_8078870,
+ * PIECE: shares asm/rom_77000/rom_78414_c_c_a_c_a_c_c_c.s with Func_8078870,
  * which is held at five.  Both have to land before the piece can convert, and
  * at these two figures a split is not worth taking.
  *
@@ -133,6 +133,46 @@
  * src/non_matching/rom_77000/8079664.c -- see that park's note on
  * global.c:598-621, which is the sort that decides both.  Do not spend a round
  * on declaration order; that product is exhausted above.
+ *
+ * ---------------------------------------------------------------------------
+ * BATCH 335 A.  FIGURE RE-DERIVED AND UNCHANGED AT THE CLAIM ABOVE, BODY
+ * UNTOUCHED -- BUT THE PIECE HAS BEEN SPLIT AND THIS IS NOW THE ONLY PARK IN IT.
+ *
+ * TWO THINGS A READER NEEDS BEFORE ANYTHING ELSE.
+ *
+ * (1) THE PIECE-MATE Func_8078870 MATCHES.  Its park's "language-level bound"
+ * -- that no C spelling of its 0x200 mask can be both narrow enough to keep
+ * three `ldrh` and durable enough as a pseudo to fix the prologue order -- was
+ * refuted this batch by the one-member-aggregate escape that park itself had
+ * written down as an untried dimension, which is the same construct THIS body
+ * already uses for `struct Held w`.  So the first function in
+ * asm/rom_77000/rom_78414_c_c_a_c_a_c_c_c.s landed on its own and the file was
+ * split: _b.s carried Func_8078870 away (now src/rom_77000/
+ * rom_78414_c_c_a_c_a_c_c_b.c) and _c.s holds Func_80788c4 alone.  The recipe
+ * above names the pre-split path, so it is repointed by tools/repoint_parks.py.
+ * THE "both functions must land for this piece to convert" COUPLING IS GONE:
+ * this park is now a single function in its own piece and lands the moment its
+ * residue closes.
+ *
+ * (2) THE BATCH-335 BRIEF HANDED THIS OUT AS THIRTY-NINE ON STREAMS ONE
+ * INSTRUCTION APART.  It is not; the claim at the top of this header is right
+ * and measures exactly, lengths equal and instruction counts equal both sides.
+ * That stale pair presumably predates the batch-332 re-pricing.  Measure before
+ * believing any figure quoted for this function outside this file.
+ *
+ * NOTHING ELSE HERE IS NEW AND NOTHING IS REFUTED.  The declaration-order
+ * product really is exhausted -- the two sweeps in this header are the reason
+ * not to re-run it -- and the residue is still what (a) says: the whole
+ * compaction loop's register assignment is a permutation of the reference's,
+ * with the roles of the source cursor and the loop counter exchanged and the
+ * tail loop's cursor, counter and pooled zero rotated with them.  Every one of
+ * the differing encodings is the same opcode with different register fields,
+ * which is the signature of an allocation question and not a spelling one.
+ * The brief's own general levers were checked against that and none applies:
+ * there is no length gap to find, no missing statement to add, and the
+ * empty-asm barrier that closed three functions in this family and both
+ * functions of the rom_c0 piece this batch cannot help, because a barrier
+ * reorders insns and this residue does not need any insn moved.
  */
 extern unsigned char *GetUnit(int who);
 extern void CalcStats(int who);

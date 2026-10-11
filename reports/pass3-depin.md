@@ -290,3 +290,30 @@ A distinction worth keeping when paying these down: a bare asm's pattern code is
 `("" : : "r"(x))` is both kinds of barrier and the bare form is only the
 scheduling kind. **A depin attempt that swaps one for the other is changing two
 things**, and these three bodies specifically need cse left alone.
+
+## Batch 335: the empty-asm list reaches 12 files, 18 barriers
+
+`src/rom_c0/rom_5cf8_a_a_c_a_c.c` — the `Func_80063bc` + `Func_8006408` TU pair
+— ships **four** bare `__asm__ volatile ("")` barriers, the most in any single
+landed file. Two are load-bearing in a way worth recording for whoever depins
+them, because they do two different jobs:
+
+- **an OPENING barrier after the IME disable**, which works by *readiness* not
+  ranking: it gives `mov r3,#0x80` a predecessor so it is not in the ready list
+  at t=0, and the priority comparison that batch 334 proved unwinnable never
+  happens. See `docs/elevation.md`, *"a priority bound is only valid if the
+  insn's readiness is fixed"*.
+- **a CLOSING barrier**, needed because the IME restore floated into the pooled
+  zero's load-delay slot once an alias-set change stopped it aliasing.
+
+So a depin here is not one removal but a re-solve of the scheduling question in
+both directions, and the alias-set lever it is coupled to
+(`c-common.c:3347-3351`: a `'r'`-class char reference gets set **0** while a
+bare `VAR_DECL` is class `'d'`, falls to `return -1`, and gets the type's
+non-zero set) has to come with it. **Post-reload `base_alias_check` cannot
+disambiguate these** — `init_alias_analysis` fills `reg_base_value` from
+`REG_EQUIV` only for *pseudos* — so the alias set is the only separator.
+
+Current totals: **12 files, 18 barriers.** Still not a fakematch in this tree
+per `shimcount`, still pass-3 debt, and still cheaper to pay down than the
+heavily-pinned files — but this one is the most expensive of the twelve.
