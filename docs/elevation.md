@@ -34995,12 +34995,37 @@ want stopped — and then pick the spelling for *that* pass:
 
 | to stop | needs | citation |
 |---|---|---|
-| a ready-list membership | bare `__asm__ volatile ("")` | `haifa-sched.c:3567-3597` |
+| a ready-list membership | **`do { } while (0)` — try this FIRST**, see below | `haifa-sched.c:3744-3757` |
+| …or the same, as a device | bare `__asm__ volatile ("")` | `haifa-sched.c:3567-3597` |
 | a `combine` substitution | an `ASM_OPERANDS` — clobber form is enough | `rtlanal.c` `volatile_insn_p` |
 | a `cse` equivalence | `:: "i"(0)` — **a bare `ASM_OPERANDS` pattern only** | `cse.c:5742-5745` |
 | a `gcse` cprop of a named constant | **nothing — a volatile asm does not block it** | measured, batch 336 brief B |
 | an if-conversion | a **MEM** in the arm | `ifcvt.c:1911-1925` |
 | a loop hoist | not reachable by a barrier at all | `loop.c` `emit_insn_before (..., loop_start)` |
+
+> **CORRECTION (batch 337 brief A): for a purely SCHEDULING residue, reach for
+> `do { } while (0)` before any `__asm__` form.** The first version of this table
+> listed only the asm spellings, which points agents at the one option that costs
+> a pass-3 artifact. The anchor is strictly better on every axis that matters:
+>
+> - **same reach**, and in the compiler it is *stronger* — `haifa-sched.c:3744-3757`
+>   adds a dependence on every register's last uses (`REG_DEP_ANTI`), last sets
+>   and last clobbers, **and then calls `flush_pending_lists`**, so it orders
+>   memory too, which a bare `ASM_INPUT` does not;
+> - it **emits nothing**, like the barrier;
+> - **`shimcount` does not count it**, so it is not fakematch-class and carries no
+>   depin debt.
+>
+> Brief A landed `Func_801fd34` on one anchor (barrier-free floor 9, two asm
+> barriers 2, one asm barrier 3, **one anchor 0**) and separately *removed* an
+> existing barrier from `DisplayMenuArrowCursor` by swapping it for an anchor at
+> the same figure of 5 — the park's `shimcount` row went from `empty asm : 1` to
+> nothing. **This is the rare lever that pays a figure and reduces pass-3 debt at
+> the same time**, so prefer it, and consider retrofitting it wherever a park
+> already ships a bare barrier.
+>
+> Use an `__asm__` form only when you need a reach the anchor lacks — the `cse`
+> flush or the `combine` fence, which need an `ASM_OPERANDS` pattern.
 
 The operand-carrying forms that reach 0 on brief A's function are recorded as
 **devices rather than shipped**; that landing came from deleting the carrier

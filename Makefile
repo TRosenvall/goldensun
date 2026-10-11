@@ -408,6 +408,32 @@ SCHED2_CFLAGS := $(GCC296_CFLAGS) -fno-schedule-insns2
 # when a live-range reading has been done and has come back empty.
 FIXEDR7_CFLAGS := $(GCC296_CFLAGS) -ffixed-r7
 
+# -O1 FOR OvlFunc_common1_588, batch 337 brief D.  EXPLICIT, NOT A PATTERN --
+# after the split this TU holds one function, and the mis-scoped wildcards
+# documented just below are exactly what a pattern here would repeat.  No
+# existing wildcard touches the common1_a stem.
+#
+# At -O2 gcc if-converts the three-way message-id pick (find_if_case_1,
+# ifcvt.c:1651; the .14.ce dump reports "2 IF blocks converted"), hoisting each
+# pool load above its own compare and losing the two branches to the shared
+# join: 25 of 37, stream two instructions short.  At -O1 the identical body is
+# 27/27 instructions, 37/37 stream, 92/92 bytes, and the only two differing
+# encodings are the _AREA_8f/_AREA_90 pool words -- unresolved extern
+# placeholders against values baked into the reference disassembly, both
+# area.sym entries defined by value, which the landed matching
+# src/overlays/rom_7b4558/ovl_30_c_c_c_a_b.c compares the same way for
+# _AREA_44/45/46.
+#
+# PRECEDENT, same blocker and same remedy: src/overlays/rom_7c460c/
+# ovl_314_a_c_a_c_a_b.c was parked on this same SPECULATIVE LITERAL HOIST and
+# matched at -O1 with no source change.  The inversion worth recording is that
+# the PARKED body is the only one of ten in that corpus group that does NOT
+# improve at -O1, so a flag sweep run on the park alone finds nothing.
+asm/overlays/common/common1_a_a_a_a_c_a_b.o: src/overlays/common/common1_a_a_a_a_c_a_b.c
+	$(GCC296_CC) $(O1_CFLAGS) -S -o $(@:.o=.s) $<
+	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
+	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
+
 # THREE MIS-SCOPED O1 WILDCARDS.  rom_7f2f14/ovl_30_c_a_c_a_c_c% and
 # rom_7ef4f4/ovl_30_a_c_c_c_c_c% each capture TUs that merely share a prefix
 # with their intended members, and -O1 is wrong for those: 5 of 39, 2 of 30 and

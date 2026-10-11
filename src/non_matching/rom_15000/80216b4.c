@@ -1,5 +1,198 @@
 /* Func_80216b4  --  0x080216b4   [rom_15000]
  *
+ * PARK AT **7 of 24 stream encodings**.  WAS 9.  PIN-FREE, DEVICE-FREE.
+ *   ref 24 encodings / ours 24;  **22 instructions against 22** (so the figure
+ *   IS a distance, not phase);  52 bytes against 52;  2 relocations identical;
+ *   first differing index 9.  `--whole` agrees: `XX Func_80216b4  7 of 24
+ *   differ (ours 24), first at index 9`.  PINS 0 (`shimcount.py`: no rows).
+ *
+ * Verify with:
+ *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
+ *     goldensun-build python3 tools/objcmp.py \
+ *     src/non_matching/rom_15000/80216b4.c \
+ *     asm/rom_15000/rom_20198_c_c_c_a_a_c_a_a_c.s --func Func_80216b4
+ *
+ * SPLIT SHAPE: none.  asm/rom_15000/rom_20198_c_c_c_a_a_c_a_a_c.s holds ONE
+ * `.thumb_func_start` (Func_80216b4) and no data; `tools/datacheck.py` exits 0
+ * silently, so when this lands it is a WHOLE-FILE conversion to
+ * src/rom_15000/rom_20198_c_c_c_a_a_c_a_a_c.c with no `split_s.py` step.
+ * One basic block, 24 encodings, no branch: every ordering question is ONE
+ * sched2 run and every register question is LOCAL-ALLOC (`.18.greg` prints
+ * `;; 0 regs to allocate`).  The whole standing header below this batch-337
+ * section remains correct except where this section says otherwise.
+ *
+ * ===========================================================================
+ * BATCH 337 BRIEF A.  9 -> 7.  TWO ENCODINGS CLOSED, AND THE PARK'S CENTRAL
+ * BOUND ("the store is a char lvalue, so alias set 0, so the route is closed")
+ * IS **REFUTED AT THE SOURCE** -- it is true only of the POINTER spelling.
+ * ===========================================================================
+ *
+ * WHAT CLOSED, AND IT IS ONE STATEMENT: *** NAME a[8] IN A LOCAL IN THE FIRST
+ * HALF ONLY. ***
+ *
+ *     v = (*w >> 2) & 7;
+ *     x = a[8];                 <- new
+ *     a[0x14] = x + tb[v];      <- was `a[0x14] = tb[v] + a[8];`
+ *
+ * That makes indices 7 and 8 -- `ldrb r2,[r0,#8]` then `ldrb r3,[r5,r3]` --
+ * EXACT, which is half of the park's "cause 3".  The standing header recorded
+ * this spelling as "worse by five" and as "the table byte named in a local, 9
+ * (inert)"; both of those measurements were taken on earlier layouts and are
+ * dead.  Re-measured here on the 9-body, `x = a[8]` in half 1 is **7**, and
+ * `x + tb[v]` and `tb[v] + x` are byte-identical to each other.
+ *   Naming a[8] in BOTH halves is **17**; naming only the table byte is 11;
+ *   naming the sum (`x = a[8] + tb[v]; a[0x14] = x;`) is 9; accumulating in
+ *   place (`x = a[8]; x += tb[v];`) is **12** and rotates the whole allocation
+ *   (first differing index moves to 2).  The asymmetry the park found -- the
+ *   two halves want different spellings -- is confirmed and sharpened: half 1
+ *   wants the struct byte NAMED, half 2 wants the bare `a[8] + tb[v]`.
+ *
+ * ---------------------------------------------------------------------------
+ * THE REMAINING SEVEN, PER INDEX, AND THEY ARE **ONE COUPLED FACT**, NOT THREE
+ *
+ *   idx  9     ref `adds r2,r2,r3`      ours `adds r3,r3,r2`
+ *   idx 10-13  ref `ldr r3,[r4,#0] / strb / lsrs / ldr r0,[r0,#0]`
+ *              ours `strb / ldr r3,[r4,#0] / ldr r0,[r0,#0] / lsrs`
+ *   idx 15,16  ref `ldrb r2,[r0,#8]` then `ldrb r3,[r5,r3]`  -- ours reversed
+ *
+ * BOTH loads land in the ROM's registers (x in r2, the table byte in r3); what
+ * differs at index 9 is the ADD'S DESTINATION.  Read out of `.17.lreg`
+ * (`;; Register N in M` is `reg_renumber[N]`, i.e. the HARD REGISTER, not a
+ * quantity index -- worth saying because it is easy to misread as a quantity):
+ *
+ *     36 -> r2   x, first half            42 -> r3   the first half's SUM
+ *     40 -> r3   table byte, first half   56 -> r2   the second half's SUM
+ *     38 -> r3   v, first half            51 -> r3   the second `*w` load
+ *
+ * The first half's sum takes r3 because r3 is FREE at the add (both the table
+ * byte and v's first incarnation die there) and `arm.h:989-991` makes r3 the
+ * first entry of REG_ALLOC_ORDER.  In the ROM r3 is NOT free there: the ROM's
+ * second `*w` load sits at index 10, i.e. BETWEEN the add and the store, so its
+ * quantity spans the sum's whole range and `post_mark_life`
+ * (local-alloc.c:2039) excludes r3 -- and the sum falls through to r2.
+ *
+ * *** SO INDEX 9 AND INDICES 10-13 ARE THE SAME FACT, AND THE FACT IS DECIDED
+ * AT LOCAL-ALLOC (pass 17) BY SOURCE ORDER, NOT BY sched2 (pass 23). ***  The
+ * park read indices 10-13 as a priority contest in sched2.  It is not: in our
+ * build insn 50 (the store) has insn 56 (the second `*w` load) in its OWN
+ * dependence list --
+ *
+ *     ;;  50  189  0  2  40  2  core : 97 96 85 67 56 53
+ *
+ * -- and that dependence is partly a REGISTER ANTI-DEPENDENCE, because the load
+ * writes r3 and the store reads r3 (the sum).  sched2 runs after reload, so the
+ * allocation it inherits is what forbids the swap.  A dependent cannot be
+ * hoisted above the insn it depends on at any priority, so no sched2 lever --
+ * including a readiness barrier -- can reach this.  MEASURED: a bare
+ * `__asm__ volatile ("")` between the two byte loads of each half is **18**,
+ * in half 1 only **10**; both worse than the barrier-free 7.
+ *
+ * ---------------------------------------------------------------------------
+ * THE PARK'S ALIAS BOUND IS WRONG, AND THE CORRECTION IS GENERAL
+ * ---------------------------------------------------------------------------
+ *
+ * The standing header says the alias route is closed because "both stores are
+ * BYTE stores through a `char`-typed lvalue, and C guarantees any object may be
+ * accessed through a character lvalue, so gcc gives them alias set 0", and the
+ * batch-330 section concluded that escaping it needs a one-bit-field struct
+ * (a device).  Both halves of that are wrong:
+ *
+ *   *** A BYTE ACCESS THROUGH A STRUCT MEMBER DOES **NOT** GET ALIAS SET 0,
+ *   EVEN WHEN THE MEMBER IS A PLAIN `unsigned char`.  IT GETS THE STRUCT'S OWN
+ *   SET. ***
+ *
+ * Probed, not recalled (the probe is `scratch_elev/b337/A/p1/aliasprobe.c`;
+ * alias sets read out of `.00.rtl`, where the trailing integer of a `(mem...)`
+ * IS the set):
+ *
+ *     unsigned char *a;  a[8] = ...;            (mem:QI   (plus r32 8)  0)   set 0
+ *     struct S *a;       a->f8 = ...;           (mem/s:QI (plus r32 8)  8)   set 8
+ *     struct T *a;       a->f8 = ...  (f8 is
+ *                        `unsigned int f8:8`)   (mem/s:QI (plus r32 8) 13)   set 13
+ *     *(unsigned char *)&a[20] = ...;           (mem:QI   (plus r32 20) 0)   set 0
+ *
+ * So the park's device (a one-bit-field struct) was never needed -- a PLAIN
+ * `unsigned char` member does the same job -- and the quoted rule
+ * (`lang_get_alias_set`, c-common.c:3347-3352, which tests the REFERENCE's
+ * type) fires for an `unsigned char *` ARRAY_REF and does NOT fire for a struct
+ * COMPONENT_REF of identical type.  I did not isolate which arm of
+ * `get_alias_set` (alias.c:342-437) takes the struct case; the MEASUREMENT is
+ * the citable part and it is reproducible in one command.
+ *
+ * WHAT THAT BUYS, AND WHAT IT DOES NOT.  With `a` retyped as a struct pointer
+ * the store leaves alias set 0, `DIFFERENT_ALIAS_SETS_P` fires in
+ * `true_dependence` (alias.c:1572-1573, BEFORE the `mem_mode == QImode` escape
+ * at :1607), the store no longer invalidates `*w` -- and **cse1 immediately
+ * commons the two `*w` reads**, taking the body to 16 instructions against the
+ * reference's 22 (COUNT and MEM, a different program).  Keeping two reads needs
+ * `volatile unsigned int *w`, and then the struct body reads EXACTLY 7, the same
+ * as the pointer body:
+ *
+ *     ptr   + plain + named x          **7**   <- shipped (simplest at the figure)
+ *     ptr   + volatile + named x         7     (volatile exactly inert)
+ *     struct + volatile + named x        7     (exactly inert)
+ *     struct + plain                    24 at 16 insns  COUNT MEM  (commoned)
+ *
+ * ---------------------------------------------------------------------------
+ * THE INSTRUMENT: **4 of 24**, AND IT TAKES A THREE-WAY CROSS
+ * ---------------------------------------------------------------------------
+ *
+ *   struct member store (alias escape)
+ *   + `volatile unsigned int *w` (keeps two reads)
+ *   + `register int x __asm__("r2")` (puts the sum in the ROM's register)
+ *                                                   --> **4 of 24**, 22/22 insns
+ *
+ * and the surviving 4 are indices 7/8 and 15/16, the table-byte-vs-struct-byte
+ * load order in both halves (the park's cause 3, whose dependent-count reading
+ * stands).  Removing ANY ONE of the three regresses it:
+ *     ptr + plain + pin r2            8    (idx 9 exact, 10-13 still wrong --
+ *                                           the MEMORY dependence survives)
+ *     struct + volatile + no pin      7    (10-13 still wrong -- the REGISTER
+ *                                           anti-dependence survives)
+ * *** THE 4 IS A FIGURE ABOUT THE BLOCKER, NOT A PROPOSAL. ***  The r2 pin is a
+ * device; the shipped body is device-free at 7.  What the 4 proves is that
+ * indices 9 and 10-13 are exactly one register decision plus one alias fact,
+ * and that nothing else in the body is wrong.
+ *
+ * WHAT WOULD CLOSE IT, stated as the requirement rather than as a sweep: a
+ * source order in which the second `*w` load is a real insn BETWEEN the first
+ * add and the first store, at no extra quantity.  Measured and all worse,
+ * because every spelling of it costs a pseudo the ROM does not have:
+ *     `u = *w;` hoisted above the store, volatile, + named x    14 / 15 / 16
+ *     the same with `u` declared first                          14
+ *     `v = *w;` reused + a temp for the sum (`s`)               12 - 15
+ *     the sum in a temp with the read fully hoisted             15
+ *     `u = *w;` hoisted above the two byte loads                14 - 23
+ *   (Without `volatile` every hoisted row commons the two reads: 18 instructions
+ *   against 22, COUNT and MEM, not distances.)
+ *
+ * ALSO MEASURED THIS BATCH AND EXACTLY INERT AT 7, so they are candidate
+ * prerequisites rather than dead ends: `volatile unsigned int *w`; `x` declared
+ * first among the locals; `x` as `unsigned int`; `tb[v] + x` instead of
+ * `x + tb[v]`; a struct member store with volatile; `register unsigned int v
+ * __asm__("r3")`; `register unsigned int *w __asm__("r4")`.
+ * WORSE: `x` as `unsigned char` (9); half 2 as `tb[v] + a[8]` (9); naming the
+ * table byte in half 1 (9-11); naming a[8] in both halves (17); accumulating in
+ * place in either half (12 / 14, whole-allocation rotation); both halves
+ * reversed (11); neither reversed (12).
+ *
+ * CORPUS CHECK, for the reachability question: across the **4,527 generated
+ * `.s` files** in `asm/` there is **not one** instance of the ROM's signature
+ * window -- a `ldr rX,[rY]` immediately followed by a `strb` where the loaded
+ * value is consumed later.  So the construct that produces indices 10-13 is not
+ * present anywhere in the landed half of this tree, and the next move is
+ * evidence for the SHAPE (what statement sits between the add and the store),
+ * not another spelling sweep.
+ *
+ * ---------------------------------------------------------------------------
+ * THE PRIOR HEADER FOLLOWS IN FULL, CARRIED FORWARD UNCHANGED (the batch-330
+ * section and the standing header beneath it).  Everything in it still
+ * reproduces EXCEPT the three things the section above names: the
+ * `x = a[8]` negative, the alias-set claim, and the attribution of indices
+ * 10-13 to sched2 priority.
+ */
+/* Func_80216b4  --  0x080216b4   [rom_15000]
+ *
  * NON-MATCHING, 9 of 24 encodings, 24 against 24, 52 bytes against 52,
  * 2 relocations identical.  (Earlier bodies of this park stood at fourteen and
  * then at twelve differing; both of those numbers are dead -- see batch 330's
@@ -269,11 +462,13 @@ void Func_80216b4(unsigned char *a)
     unsigned int *w;
     unsigned char *tb;
     unsigned int v;
+    int x;
 
     w = &iwram_3001800;
     tb = L37226;
     v = (*w >> 2) & 7;
-    a[0x14] = tb[v] + a[8];
+    x = a[8];
+    a[0x14] = x + tb[v];
     a = *(unsigned char **)a;
     v = (*w >> 2) & 7;
     a[0x14] = a[8] + tb[v];

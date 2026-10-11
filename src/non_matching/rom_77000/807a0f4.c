@@ -1,4 +1,20 @@
-/* Func_807a0f4 -- 0x0807a0f4, asm/rom_77000/rom_79460_c_c_c_c_a_c_c_c_a_c_a_a.s
+/*
+ * Func_807a0f4 -- PARK at 7 differing STREAM ENCODINGS of 88; 79 INSTRUCTIONS
+ * against 79 (lengths agree, so a DISTANCE).  SIZE equal, no RELOCATIONS line.
+ * PIN-FREE.
+ *
+ * Verify with: docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work goldensun-build python3 tools/objcmp.py src/non_matching/rom_77000/807a0f4.c asm/rom_77000/rom_79460_c_c_c_c_a_c_c_c_a_c_a_a.s --func Func_807a0f4
+ *
+ * SPLIT SHAPE: unchanged -- one function, no data section, landing needs no split.
+ *
+ * *** BATCH 337, brief E: READ THE BATCH-337 SECTION AT THE BOTTOM BEFORE ANY OF
+ * *** THE ARITHMETIC BELOW.  THE LIVE LENGTHS ARE 46 AND 24, NOT "L+2 AND L WITH
+ * *** L ABOUT THIRTY".  THE GAP IS 36 UNITS OUT OF 5850 AND **ONE INSN** CLOSES
+ * *** IT, SO BATCH 331's "the chain order is worth nothing on its own" AND
+ * *** "(A) alone is not enough" ARE BOTH REFUTED.  Everything those batches wrote
+ * *** about the WEIGHTED REFERENCE COUNTS stands.
+ *
+ * Func_807a0f4 -- 0x0807a0f4, asm/rom_77000/rom_79460_c_c_c_c_a_c_c_c_a_c_a_a.s
  * (1 function, no data section, so landing needs NO split).
  *
  * STILL NON-MATCHING.  PARKED AT 7 differing encodings of 88 -- RE-MEASURED
@@ -316,6 +332,113 @@
  * numerator and the truncation after `* 10000 * size`, higher priority
  * allocated first, and the tie-break `return v1 - v2` on ALLOCNO INDEX at :620.
  * Both corrections stand.
+ 
+ *
+
+ * ===== BATCH 337, BRIEF E: THE CENTRAL ARITHMETIC IS WRONG, AND CORRECTING IT
+ * ===== RE-OPENS THE ONE LEVER TWO BATCHES SPENT THEMSELVES RULING OUT.
+ *
+ * RE-MEASURED: 7 of 88, 79/79 instructions, first diff index 32, ref 189e against
+ * ours 1c06; --whole clean.  (The old header's "92 lines against 92" is a tryc
+ * LINE count, not an instruction count.)
+ *
+ * THE ALLOCATOR INPUTS, READ STRAIGHT OUT OF .17.lreg -- NOT inferred from the
+ * .19.flow2 chain order, which is where the error came from:
+ *   Register 40 used 7 times across 24 insns; set 2 times; dies in 0 places;
+ *                 crosses 1 call; pref LO_REGS.                  <- the counter
+ *   Register 79 used 9 times across 46 insns; set 2 times; dies in 0 places;
+ *                 crosses 1 call; pref BASE_REGS; pointer.       <- the cursor
+ * The WEIGHTED counts 9 and 7 (batch 325's correction 1) are CONFIRMED.  THE
+ * LIVE LENGTHS ARE 46 AND 24: the cursor's range is nearly TWICE the counter's,
+ * not two insns shorter.
+ *
+ * I VERIFIED THESE ARE THE NUMBERS global_alloc ACTUALLY USES by running
+ * allocno_compare over ALL TWELVE allocnos and reproducing the printed order:
+ *   38 11/9 -> 36666 | 37 6/5 -> 24000 | 42 11/14 -> 23571 | 41 12/20 -> 18000
+ *   39 3/4  ->  7500 | 79 9/46 -> 5869 | 40  7/24 ->  5833 | 32  7/47 ->  2978
+ *   36 6/66 ->  1818 | 33 4/47 ->  1702 | 35 7/88 ->  1590 | 34  3/44 ->   681
+ * descending = 38 37 42 41 39 79 40 32 36 33 35 34, which is
+ *   ;; 12 regs to allocate: 38 37 42 41 39 79 40 32 36 33 35 34
+ * TWELVE FOR TWELVE.  The formula at global.c:607-614 and these inputs are the
+ * whole decision.
+ *
+ * CONSEQUENCE -- ONE INSN CLOSES IT.  pri(79) = 5869 against pri(40) = 5833.  In
+ * integer products the counter is allocated first iff 14*L79 > 27*L40, i.e.
+ *     644 against 648 -- SHORT BY FOUR.
+ *   L79=46 L40=24  5869 / 5833   current, cursor first
+ *   L79=47 L40=24  5744 / 5833   FLIP
+ *   L79=46 L40=23  5869 / 6086   FLIP
+ * 46/24 = 1.917 is already within 0.6% of 27/14 = 1.9286, so the park's
+ * "len79 > 1.93 * len40 ... not reachable by moving one init" is wrong by one
+ * instruction, not by a factor.
+ *
+ * **AND THAT MAKES (A) -- TRANSPOSING THE TWO PREHEADER INITS -- SUFFICIENT ON
+ * ITS OWN.**  The counter init (insn 275) sits immediately before the cursor init
+ * (insn 286) in the chain.  Transposing them gives L79 = 47 AND L40 = 23 at the
+ * same time: pri(79) = 5744 against pri(40) = 6086.  Batch 331 devalued exactly
+ * this purchase as "worth at most two of the seven".  On the measured live
+ * lengths it is worth all seven.
+ *
+ * THE LIVE LENGTHS DO MOVE -- MEASURED, so the dial is real.  Screened with
+ * scratch_elev/b337/E/e_screen.sh, which reports the figure, BOTH allocno inputs
+ * and .18.greg's order in one pass (figure | R40 refs/live | R79 refs/live):
+ *   base                                       7 of 88 | 7/24 | 9/46
+ *   drop the `t' temp (`sum += *q; q++;')       9 of 88 | 7/24 | cursor renumbered
+ *   `t = *q++;'                                 7 of 88 | 7/24 | 9/46
+ *   inner loop counted up (k = 0; k < 4)        7 of 88 | 7/24 | renumbered
+ *   inner loop as do {...} while (--k >= 0)     7 of 88 | 7/24 | 9/46
+ *   extra lexical scope round the OUTER body    7 of 88 | 7/24 | 9/46
+ *   extra lexical scope round the INNER loop    7 of 88 | 7/24 | 9/46
+ *   `u[id+o] < 10' for `<= 9'                   7 of 88 | 7/24 | 9/46
+ *   `sum < best' for `best > sum'               9 of 88 | 7/24 | 9/46
+ *   `q = &u[o]'                                 7 of 88 | 7/24 | 9/46
+ *   `*(u + id + o)' for `u[id + o]'            54 of 88 | 7/25 | 9/48  +1 insn
+ *   `o = 0x8c*2' hoisted OUT of the loop       80 of 88 | 7/**23** | -  +6 insns
+ *   `sum = 0' hoisted above the guard          11 of 88 | 7/24 | 9/46
+ *   second biv `j' carrying the subscript       7 of 88 | 7/24 | renumbered 70
+ *   `for (i = size; i != 0; i--)' + base+size-i 12 of 88 | 8/26 | -
+ *   `t = base + i' named, used by both reads   75 of 88 | 7/50 STACK_REG | -  +4
+ *
+ * TWO ROWS ARE POSITIVES, not dead ends:
+ *  - `o' HOISTED OUT OF THE LOOP REACHES L40 = 23, the exact flip value.  It
+ *    costs six instructions so it is not the answer, but it is the first
+ *    measured proof that the counter's live length moves AT ALL, which the old
+ *    arithmetic implied was pointless to try.
+ *  - AN EXTRA LEXICAL SCOPE IS EXACTLY INERT on both inputs, inner and outer.
+ *    So NOTE_INSN_BLOCK_BEG/END do NOT count toward REG_LIVE_LENGTH here and the
+ *    "insert a free note inside one range" idea is closed.  It was the wrong sign
+ *    anyway: adding n to BOTH lengths costs the counter more than the cursor,
+ *    because d(C/L)/dL = -C/L^2 and 14/24^2 > 27/46^2.
+ *
+ * THE CHAIN ORDER, CONFIRMED WITH LINES.  check_dbra_loop is called from inside
+ * strength_reduce at loop.c:4408 and the giv's preheader init is emitted by
+ * emit_iv_add_mult (bl->initial_value, ..., loop_start) at loop.c:4778, inside
+ * the iv-class loop that begins at :4416.  Both use emit_insn_before (...,
+ * loop_start), so whichever is emitted LATER lands later in the chain and WITHIN
+ * ONE LOOP PASS the counter init is unconditionally first.  Ours is.  The ROM's
+ * is not -- so the ROM's build reduced the giv in one loop pass and reversed the
+ * counter in a LATER one.
+ *
+ * THE GATE THAT MAKES THAT REACHABLE is loop.c:7884,
+ *     if (bl->giv_count == 0 && ! loop->exit_count)
+ * -- no_use_except_counting is only ever computed when the biv has NO givs.  On
+ * pass 1 the cursor is still a giv of `i', so giv_count == 1, that branch is
+ * skipped, and the reversal must be justified by the other disjunct the comment
+ * at :7886-7890 names, "there is only one biv".  On pass 2 the cursor has become
+ * its own biv, i's giv_count is 0, the no_use_except_counting branch is available
+ * and satisfied, and the counter init is emitted AFTER the cursor init that pass
+ * 1 already placed.
+ *
+ * ==> SO THE WHOLE PARK IS NOW ONE QUESTION: A SOURCE SHAPE WITH A **SECOND BIV**
+ *     IN THE OUTER LOOP ON PASS 1.  Two bivs plus giv_count != 0 fails
+ *     check_dbra_loop on pass 1; pass 2 then carries it on the
+ *     no_use_except_counting disjunct and emits the init in the ROM's position.
+ *     I tried the obvious spelling -- `j' walking the subscript beside `i' -- and
+ *     it is INERT AT 7, because `i' is then used only for counting on pass 1 as
+ *     well, so the reversal still succeeds on pass 1.  The missing ingredient is
+ *     the SECOND BIV, not the use: this body's `i' already stops being used after
+ *     pass 1's reduction.
+ * -- scratch_elev/b337/E
  */
 typedef struct { unsigned char _b[704]; } GlobalState;
 extern GlobalState gState;

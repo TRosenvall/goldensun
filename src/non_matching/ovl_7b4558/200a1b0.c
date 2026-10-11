@@ -1,6 +1,12 @@
 /* OvlFunc_927_200a1b0 (0x0200a1b0) -- NON-MATCHING.
  *
- * NON-MATCHING, 6 of 110 encodings  (MEASURED, batch 319 recipe backfill).
+ * NON-MATCHING, 6 of 110 encodings PIN-FREE  (RE-MEASURED, batch 337 brief D).
+ *   LENGTHS AGREE: stream 110 against 110, 16-bit instructions 83 against 83,
+ *   no SIZE line.  So this figure IS a distance.
+ *   AT TWO REGISTER PINS IT IS BYTE-IDENTICAL -- re-verified in batch 337.
+ *   This is a PASS-3 DEPIN candidate, parked only on the pin policy.
+ *   (The "108 lines against the ROM's 108" in the batch-319 block below is
+ *   NEITHER of those numbers -- it is a tryc line count.  Corrected here.)
  *
  * Verify with:
  *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
@@ -148,6 +154,58 @@
  *
  * NOT A DUPLICATE.  dupfuncs.py reports seven duplicate groups covering
  * fourteen functions and this is not a member, so landing it is worth one.
+
+ * ================= BATCH 337 BRIEF D =================
+ *
+ * RE-MEASURED AND BOTH FIGURES CONFIRMED.  Pin-free: 6 of 110 encodings, 110/110
+ * stream, 83/83 16-bit instructions, relocations clean, no SIZE line.  Pinned
+ * (the two function-scope pins the batch-331 block describes, rebuilt from that
+ * description): objcmp reports OK, byte-identical.  So the park's headline claim
+ * is now checked by a second agent and stands.
+ *
+ * THE FLAG AXIS IS NOW SWEPT TOO, which it had not been.  This matters because
+ * batch 337 closed a sibling park (ovl_common/common1_588) purely on a flag
+ * after nine source structures had failed, and the landed file that pointed the
+ * way (src/overlays/rom_7c460c/ovl_314_a_c_a_c_a_b.c) says in its own header
+ * that "flags and source forms were swept as two separate axes and the product
+ * was never covered".  Covered here, and it does not pay:
+ *      flag                          park body   named splits   int returns
+ *      -O2 (production)                   6            6             6
+ *      -Os                                6            6             6
+ *      -fno-gcse                          6            6             6
+ *      -fno-rerun-cse-after-loop          6            -             -
+ *      -fno-strength-reduce               6            -             -
+ *      -O1                               52            -             -
+ *      -fno-schedule-insns2              52            -             -
+ * The two-pin body is byte-identical at -O2, -Os AND -fno-gcse, so the pins are
+ * the whole residue and no flag is carrying any part of it.
+ *
+ * THE BOUND, with the precondition stated rather than the arithmetic.  The
+ * residue is three pure reorderings in sched2, each the final tie between
+ * `lsl r1,#16` and `mov r0,#0x12`.  Walking rank_for_schedule's ladder in order
+ * (haifa-sched.c from :4041): INSN_PRIORITY ties, because both insns have the
+ * call as their only dependent and arm.md:254 gives every core_cycles single
+ * insn latency 1; the register-pressure rung is gated on `! reload_completed`
+ * and sched2 runs after reload, so it is DEAD; the interblock rungs are dead
+ * with no interblock scheduling; the CLASS rung (:4069-4094) ties because
+ * neither candidate has any dependence on `lsl r2,#17`, the last scheduled
+ * insn, so both take the link==0 branch -- this is the rung batch 336 called a
+ * first-class lever "wherever the contested window holds a load, multiply or
+ * multi-register store", and THIS WINDOW IS ALL ALU, so it is dead here;
+ * dependent count ties at one each; and INSN_LUID decides, where `lsl r1,#16`
+ * is lower because precompute_register_parameters emitted it.
+ * So the only reachable lever is INSN_LUID, i.e. getting `mov r0,#0x12` emitted
+ * earlier -- and calls.c:849-856 refuses: the copy-to-pseudo gate is a
+ * CONJUNCTION, needing the value not already be a REG/SUBREG, not BLKmode,
+ * `rtx_cost (value, SET) > 2`, AND `SMALL_REGISTER_CLASSES && *reg_parm_seen`.
+ * SMALL_REGISTER_CLASSES is TARGET_THUMB (arm.h:1061) so that last clause holds,
+ * but arm.c returns cost 0 for a const_int below 256, so an INTEGER_CST 0x12 can
+ * never take the pseudo path.  (The batch-331 block lists these as if rtx_cost
+ * were consulted only after BLKmode; it is a single `&&` chain and the rtx_cost
+ * clause is load-bearing.  The conclusion is unchanged.)
+ *
+ * NEXT: nothing pin-free.  Book it in reports/pass3-depin.md beside
+ * ovl_7b4558/2009818.c as the batch-331 block already asks.
  */
 extern unsigned char *__MapActor_GetActor(int slot);
 extern void __CutsceneStart(void);

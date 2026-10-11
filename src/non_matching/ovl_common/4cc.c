@@ -1,4 +1,24 @@
-/* OvlFunc_common1_4cc -- asm/overlays/common/common1_a_a_a_a_c_a.s
+/* OvlFunc_common1_4cc -- asm/overlays/common/common1_a_a_a_a_c_a_a.s
+ *
+ * REFERENCE .s REPOINTED (batch 337).  The split that landed its piece-mate
+ * OvlFunc_common1_588 consumed common1_a_a_a_a_c_a.s; this function is now in
+ * common1_a_a_a_a_c_a_a.s.  install_batch.py flagged this park for manual
+ * handling because it names the .s without a --func, so the automatic repoint
+ * could not act on it.
+ *
+ * THE SUBJECT LINE MUST STAY FIRST.  I originally recorded this note by
+ * PREPENDING a block above it, which moved the subject off line 1 and broke
+ * tools/piece.py's bodyless-park lookup -- this park has no body, so the
+ * subject line is the only thing identifying it.  Notes go UNDER the subject.
+ *
+ * AND IT IS THE OBVIOUS NEXT TARGET.  Brief D landed OvlFunc_common1_588 at
+ * -O1 on the SPECULATIVE LITERAL HOIST blocker (find_if_case_1,
+ * ifcvt.c:1651).  This park carries the SAME blocker with the same message
+ * ids, so -O1 is the indicated remedy here too; see the Makefile rule beside
+ * the mis-scoped-wildcard note, and keep any new rule EXPLICIT, not a pattern.
+ *
+ * The 'Candidate at scratch/N04cc_best.c' below DOES still exist -- checked,
+ * not assumed.
  *
  * 78 lines against the ROM's 76.  Candidate at scratch/N04cc_best.c.
  *

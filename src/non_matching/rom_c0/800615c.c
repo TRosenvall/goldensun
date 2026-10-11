@@ -117,7 +117,7 @@
  * Verify with:
  *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
  *     goldensun-build python3 tools/objcmp.py src/non_matching/rom_c0/800615c.c \
- *     asm/rom_c0/rom_5cf8_a_a_a_c_c_c.s --func Func_800615c
+ *     asm/rom_c0/rom_5cf8_a_a_a_c_c_c_a.s --func Func_800615c
  */
 #include "gba/types.h"
 #include "gba/io.h"

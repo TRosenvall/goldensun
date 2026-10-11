@@ -440,6 +440,104 @@
  * first is unreachable; the second needs a SECOND reaching definition of `ret`
  * at the init, which needs a branch.  Do NOT re-propose cse-era boundaries,
  * do-while(0) wrappers, labels, or the post-reload CSE family.
+ 
+ * ===== BATCH 337 BRIEF B: THE gcse BOUND IS REFUTED FROM THE DUMP AND FROM
+ * ===== gcse.c.  ONLY cse2 IS LEFT ON RESIDUE (1), AND ITS BOUNDARY SET IS TWO
+ * ===== RTX CODES.  RESIDUE (2) UNMOVED BY SIX MORE CELLS.
+ *
+ * FIGURE RE-DERIVED, IN STREAM TERMS: **4 differing stream encodings of 119**,
+ * ref 119 / ours 119 encodings, **109/109 16-bit instructions**, first
+ * differing index 23, SIZE / INSTRUCTION COUNT / RELOCATIONS all silent.  In
+ * phase, so a true distance.  BODY UNCHANGED.  Pins 0.
+ * *** CORRECTION TO THIS HEADER'S OWN FIGURE LINE: it says "118 real
+ * instructions on both sides".  objcmp reports 109/109.  The 4 of 119 is
+ * right; the instruction count written beside it is not, and three batches
+ * have copied it forward. ***
+ *
+ * 1. **THE BATCH-329 BOUND IS WRONG, IN THE COSTLY DIRECTION.**  Point 2 above
+ *    ends: *"gcse's constant propagation is GLOBAL (reaching definitions over
+ *    the CFG), so no basic-block boundary of any kind can stop it."*  Measured
+ *    false, and the park's OWN batch-327 measurement is the counter-example it
+ *    did not recognise.  I rebuilt the batch-327 body (`do { v =
+ *    Func_80c2384(u[0x128]); } while (0);` + the free bottom-tested outer
+ *    loop), reproduced its **7 of 119, 109/109, first index 20**, and read
+ *    every dump:
+ *      `.03.cse`   insn 69 = `(set (reg/v:SI 38) (reg/v:SI 37))`   -- NOT folded
+ *      `.07.gcse`  **ZERO `CONST-PROP:` lines in the whole dump** -- NOT folded
+ *      `.09.cse2`  `(set (reg/v:SI 38) (const_int 0))` + REG_EQUAL  -- FOLDED
+ *    And `.07.gcse`'s own set table CONTAINS both `Index 1 (set (reg/v:SI 37)
+ *    (const_int 0))` and `Index 2 (set (reg/v:SI 38) (reg/v:SI 37))`, so the
+ *    park's `hash_scan_set` reading (gcse.c:1877-1892) is RIGHT and is simply
+ *    not the gate.
+ *
+ * 2. **THE GATE IS IN `cprop_insn`, AND IT IS PER-BASIC-BLOCK.**  Two tests the
+ *    park never named, both ahead of `find_avail_set`:
+ *      * **gcse.c:3826-3828** -- `if (! oprs_not_set_p (reg_used->reg_rtx,
+ *        insn)) continue;` with the comment *"If the register has already been
+ *        set in this block, there's nothing we can do."*  `ret = 0` and
+ *        `j = ret` are in ONE real basic block in every body that keeps them
+ *        there, so gcse cprop **cannot act at all**.  That is why the
+ *        do-while(0) body shows zero CONST-PROP lines.
+ *      * **gcse.c:3792-3797** -- cprop only runs when
+ *        `GET_CODE (PATTERN (insn)) == SET`; a PARALLEL is skipped outright
+ *        (`"??? We might be able to handle PARALLELs. Later."`, :3838).  Not
+ *        reachable from C here, but it is the other half of the gate and
+ *        belongs in the record.
+ *    The one-trip-loop boundary of batch 329 point 1 **creates a real basic
+ *    block**, which is precisely what lets gcse act -- so batch 329 measured
+ *    gcse folding *its own* boundary body and then generalised the wrong way.
+ *
+ * 3. **THE OPEN QUESTION, RESTATED: only cse2 remains, and its boundary set is
+ *    exactly two RTX codes.**  `cse_end_of_basic_block` (cse.c:6534-6600) ends
+ *    a block at a **CODE_LABEL** (:6572, no LABEL_NUSES test) and at
+ *    **NOTE_INSN_SETJMP** (:6593-6595); the NOTE_INSN_LOOP_END arm (:6588-6591)
+ *    is `! after_loop`-gated and cse2 runs with after_loop == 1.  So the only
+ *    device-free boundary for cse2 is a CODE_LABEL between `ret = 0` and
+ *    `j = ret` -- and a CODE_LABEL splits the real basic block, which hands the
+ *    fold back to gcse unless `cprop_avin` is empty at that block's entry.
+ *
+ * 4. **AND THE ONE CONSTRUCTION THAT SATISFIES BOTH, DERIVED AND COSTED.**
+ *    `AVAIL_IN` at a block is the intersection over predecessors, and two
+ *    DISTINCT `(set (reg ret) (const_int 0))` insns kill each other, so
+ *        ret = 0;  do { j = ret; ret = 0; } while (j > 1);
+ *    puts the use at a loop-top CODE_LABEL (cse1 and cse2 both stop; the label
+ *    is reached by FALL-THROUGH so cse.c:6636-6719's `follow_jumps` /
+ *    `skip_blocks` extension is never entered -- batch 329 point 1's structural
+ *    argument) AND leaves `cprop_avin` empty at it, because the preheader's set
+ *    and the in-loop set are different `struct expr`s and each is killed on the
+ *    other's path.  **It is not shippable and the reason is batch 329 point 4's
+ *    own finding**: the one-trip loop's `cmp`/branch is free ONLY because gcse
+ *    propagates the constant so a later pass deletes it.  Block gcse and the
+ *    branch survives (+2 instructions), and the loop condition tests `j`, whose
+ *    set is `j = ret` -- not a constant -- so nothing else can fold it.
+ *    **The lever and the blocker are one pass; this is that identity written as
+ *    a construction rather than as an observation.**
+ *
+ * 5. RESIDUE (2) -- six further cells, all EXACTLY INERT at 4 of 119, 109/109,
+ *    first index 23, none of them in the lists above: the inner-loop bound as
+ *    `i < 6`; the store block with `o` eliminated and `i * 2 + 4` / `i * 2 + 6`
+ *    written twice; `if (flag)` for `if (flag != 0)` at the FIRST site;
+ *    `v | (i << 12)` commuted; `slot` copied into a local that the two stores
+ *    use; `&ewram_2018000[i << 14]` for `ewram_2018000 + (i << 14)`.
+ *    MEASURED WORSE: `s = iwram_3001e74;` moved after either call **18 of 119**
+ *    at 109/109 with RELOCDIFF; `u[0x129]` hoisted into a local before the loop
+ *    **107 of 119 at 111 instructions**; `v + j` hoisted into a temp for the
+ *    `_PreloadSpriteGFX` call **109 of 119 at 116 instructions**.
+ *    The cursor-parity diagnosis is NOT refuted -- nothing here bears on
+ *    reload1.c:4998-5013 -- but the reachable-edit surface for it is now
+ *    sixteen measured cells wider and still flat.
+ *
+ * NEXT, REPLACING THE OLD LIST:
+ *   1. Residue (1) is a cse2 question ONLY.  Either find a CODE_LABEL between
+ *      the two insns that gcse's `cprop_avin` is empty at AND whose branch a
+ *      pass other than gcse deletes, or declare point 4 the bound.  Do NOT
+ *      re-propose cse1 boundaries, gcse boundaries, do-while(0) wrappers, the
+ *      post-reload CSE family, or a volatile-asm barrier (batch 336 brief B
+ *      measured that a volatile asm does not block a gcse cprop at all).
+ *   2. Residue (2) unchanged: one non-inherited reload allocation added or
+ *      removed before insn 200, or r0 into `used_spill_regs`.  Every edit that
+ *      changes the instruction count is disqualified by construction, which is
+ *      what makes this hard -- a reload emits a `mov`.
  */
 extern unsigned char *_GetUnit(int id);
 extern int Func_80c23c0(int a);

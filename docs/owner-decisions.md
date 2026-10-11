@@ -133,6 +133,29 @@ which case all three reads should be.
   the original source plausibly had. The question is whether *our* reason for
   writing it — frame slack, to match — makes it one.
 
+- **A scheduling device inside a SHARED HEADER's inline helper** — new class,
+  raised by batch 337 brief B. `Func_80c0130` reaches **0 of 37** (from 6) with
+  `DMA0_SET_OFS` promoted into `include/dma.h` carrying a bare
+  `__asm__ volatile ("")`. Two separable halves:
+  - *the helper promotion* has **precedent** — `DMA3_CLEAR_OFS` (`dma.h:42-55`),
+    `DMA3_FILL_OFS` (`:172`) and `DMA3_SET_RW` (`:82`) were each promoted in
+    batch 323 for a single function, and the four register pins are that
+    header's house pattern for `stmia r3!, {r0, r1, r2}`, not matching shims;
+  - *the barrier in the header* is **new**: every future caller of
+    `DMA0_SET_OFS` would inherit a scheduling device.
+
+  Ladder, measured: neither barrier 6, call-site only 5, header only 3, both 0 —
+  so no route to 0 avoids the header barrier. Parked at 6 device-free pending
+  the ruling; the candidate is kept and the park header carries the full finding.
+
+  **Possible dissolution, worth measuring before ruling.** Batch 337 brief A
+  established (same batch, after B had finished) that for a purely *scheduling*
+  residue a `do { } while (0)` anchor has the same reach as a bare barrier,
+  emits nothing, flushes memory too (`haifa-sched.c:3744-3757`), and is **not
+  counted by `shimcount`**. If an anchor substitutes for the header barrier, the
+  shared header carries no device and this question goes away. That substitution
+  has not been tried.
+
 ## Standing standards these decisions rest on
 
 1. **A `*.sym` entry needs structural impossibility, not plausibility** — and the

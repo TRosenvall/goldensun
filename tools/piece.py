@@ -81,10 +81,29 @@ def park_index():
         code = re.sub(r"//[^\n]*", " ", code)
         # A DEFINITION starts at column 0, has a return type, and its parameter
         # list is followed by `{` -- not by `;`, which is a declaration.
+        found = False
         for m in re.finditer(
                 r"^[A-Za-z_][A-Za-z0-9_ \t\*]*?\b(\w+)\s*\([^;{]*?\)\s*\{",
                 code, re.M | re.S):
             idx.setdefault(m.group(1), rel)
+            found = True
+        if found:
+            continue
+        # A BODYLESS PARK DEFINES NOTHING, so the loop above finds nothing and the
+        # piece reported "no park found" for a function that IS parked.  144 of
+        # this tree's parks are bodyless (prose/triage/class parks), and batch 337
+        # brief D caught one: src/non_matching/ovl_common/4cc.c, 61 lines of header
+        # with no body, whose filename also breaks the <addr>.c convention so no
+        # name match could rescue it either.
+        #
+        # Fall back to the HEADER SUBJECT -- but only for a file that defines
+        # nothing, and only the first identifier on the first line of the leading
+        # comment, which is the house format:  /* OvlFunc_common1_4cc -- asm/...
+        # Anything looser re-introduces the prose-as-machinery bug this index has
+        # already had once.
+        first = re.match(r"\s*/\*+\s*((?:Ovl)?Func_\w+|[A-Z][A-Za-z0-9_]*)", t)
+        if first:
+            idx.setdefault(first.group(1), rel)
     return idx
 
 

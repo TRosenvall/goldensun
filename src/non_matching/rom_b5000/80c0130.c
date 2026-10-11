@@ -1,3 +1,49 @@
+/* ===== BATCH 337 BRIEF B: REACHES 0 OF 37, HELD ON AN OWNER DECISION =====
+ *
+ * PARK STAYS AT 6 OF 37 device-free (ref 37 / ours 37 stream encodings, 31/31
+ * 16-bit instructions, in phase, so a true distance).  The body below is
+ * UNCHANGED.  A verified 0 exists and is NOT installed; the candidate is
+ * scratch_elev/b337/B/p3_candidate.c with the helper text in that brief's
+ * NOTES.md.
+ *
+ * WHAT IT NEEDS, and why it is the owner's call and not mine:
+ *   (a) `DMA0_SET_OFS` promoted into include/dma.h.  This part has PRECEDENT --
+ *       DMA3_CLEAR_OFS (dma.h:42-55), DMA3_FILL_OFS (:172) and DMA3_SET_RW
+ *       (:82) were each promoted in batch 323 for a single function, and the
+ *       helper's four register pins are this header's house pattern for
+ *       `stmia r3!, {r0, r1, r2}`, not matching shims.
+ *   (b) A bare `__asm__ volatile ("")` INSIDE that shared header's inline
+ *       helper.  THIS IS NEW for include/dma.h, and it is the decision: every
+ *       future caller of DMA0_SET_OFS would inherit a scheduling device.
+ *
+ * The ladder, measured: no header barrier and no call-site barrier 6; call-site
+ * barrier only 5; header barrier only 3; both 0.  So there is no route to 0
+ * that avoids (b).
+ *
+ * WHY THE HELPER AT ALL.  The lever is WHERE the `base + off` add happens.  With
+ * DMA0_SET the caller computes the address, so the add is evaluated with the
+ * call's arguments and lands at a lower INSN_LUID than the body's operand
+ * setups; taking the offset as an argument moves it inside the body.  On its own
+ * that is INERT -- all 24 declaration permutations read the same figure --
+ * because sched2's class rung (haifa-sched.c:4069-4094) sits ABOVE INSN_LUID.
+ * The barrier splits the window so the add is scheduled in a region of its own,
+ * after `_base` and `_cnt`, which is the ROM's order here.
+ *
+ * A FOURTH CLASS-RUNG DECISION THIS PARK NEVER REACHED, and it stands whatever
+ * the owner rules: even granting this park's stated escape 3, the ROM's next
+ * insn is ANTI-DEPENDENT on the `strh`, so `insn_cost` returns 0
+ * (haifa-sched.c:3105-3123 with arm.c:2424-2427) and the candidate is class 2
+ * against class 3 -- unreachable a second time, for a different reason than the
+ * one recorded below.
+ *
+ * NOTE FOR WHOEVER REVISITS: batch 337 brief A established that for a purely
+ * SCHEDULING residue a `do { } while (0)` anchor has the same reach as a bare
+ * barrier, emits nothing, and is NOT counted by shimcount -- and it also flushes
+ * memory (haifa-sched.c:3744-3757).  IF AN ANCHOR WORKS IN PLACE OF THE HEADER
+ * BARRIER, decision (b) may dissolve entirely: a shared header would then carry
+ * no device.  That substitution was NOT tried -- brief A's finding landed after
+ * brief B had finished.  It is the first thing to measure here.
+ */
 /* Func_80c0130 (0x080c0130) -- NON-MATCHING.
  *
  * NON-MATCHING, **6 differing encodings of 37**  (MEASURED batch 323,

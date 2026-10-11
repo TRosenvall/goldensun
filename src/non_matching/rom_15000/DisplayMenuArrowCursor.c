@@ -1,3 +1,113 @@
+/* DisplayMenuArrowCursor (EmitPartySprites)  --  0x0801aeec   [rom_15000]
+ *
+ * PARK AT **5 of 133 stream encodings**, and the 5 is now **SHIM-FREE**:
+ *   ref 133 encodings / ours 133;  **119 instructions against 119**;  size and
+ *   relocations equal;  first differing index 21 (ref 5ab1 `ldrh r1,[r6,r2]`,
+ *   ours 4684 `mov ip,r0`).  So the figure IS a distance.
+ *   PINS 0 and **no inline asm at all** -- `tools/shimcount.py` prints NO ROWS
+ *   for this body, where the batch-329 body reported `empty asm : 1`.
+ *   The ANCHOR-FREE figure is **6**; the two are not comparable.
+ *
+ * Verify with:
+ *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
+ *     goldensun-build python3 tools/objcmp.py \
+ *     src/non_matching/rom_15000/DisplayMenuArrowCursor.c \
+ *     asm/rom_15000/rom_1aeec_a_a_a_a_a.s --func DisplayMenuArrowCursor
+ *
+ * SPLIT SHAPE: none.  `tools/piece.py` -> rom_1aeec_a_a_a_a_a.s, 1 function;
+ * `tools/datacheck.py` exits 0 silently.  The whole batch-329/327/326 reading
+ * below is retained unchanged; it is correct and it is still the map.
+ *
+ * ===========================================================================
+ * BATCH 337 BRIEF A.  THE FIGURE HOLDS AT 5 AND THE BOUND SURVIVES INTACT.
+ * WHAT CHANGED IS THE **DEVICE**: THE BARRIER IS REPLACED BY A `do { } while (0)`
+ * ANCHOR, SO THE 5 NO LONGER CARRIES AN INLINE-ASM SHIM INTO PASS 3.
+ * ===========================================================================
+ *
+ * RE-DERIVED FIRST, as the brief requires, with BOTH instruction counts:
+ * 5 of 133, ref 133 / ours 133 encodings, **119 / 119 instructions**, first at
+ * index 21.  Figure confirmed.  The anchor-free control re-measures at 6.
+ *
+ * THE EDIT:
+ *
+ *     do {
+ *         o = &m->a[i].oam;
+ *         o->x = m->a[i].x;
+ *     } while (0);
+ *     o->y = m->a[i].y;
+ *
+ * in place of the bare `__asm__ volatile ("")` that batch 329 put between the
+ * two stores.  Same figure, no shim.  docs/elevation.md's "`do { } while (0)` IS
+ * A SCHEDULING BARRIER" section gives the mechanism and its batch-329 amendment
+ * gives the reason the two are interchangeable here: the wrapper PLANTS AN
+ * ANCHOR rather than re-regioning, and the anchor's position is the lever.
+ *
+ * SWEPT, 82 bodies: every contiguous statement range of length 1-5 over the
+ * function's ten top-level statements, as an anchor, alone and crossed with the
+ * batch-329 barrier.
+ *     anchor over {`o = &m->a[i].oam;`, `o->x = ...;`}       ** 5 **  <- shipped
+ *     anchor over {`o->y = ...;`, the arms}                     5
+ *     anchor over {`o->y = ...;` .. `if (_GetFlag...)`}         5
+ *     the batch-329 barrier alone (the old body)                5
+ *     anchor + barrier together, 5 placements                   5  (redundant)
+ *     CONTROL, neither                                          6
+ *     anchor over {`o = ...`, `o->x`, `o->y`}                    6  inert
+ *     anchor over {`o->x`} alone / {`o->y`} alone                6  inert
+ *     21 further ranges                                       6-21
+ * So the anchor and the barrier reach the SAME floor from the same place, which
+ * is what the park predicted for any purely-scheduling device.
+ *
+ * AND THE PARK'S OWN "EXACTLY INERT" ROWS CROSSED WITH THE **ANCHOR** -- they
+ * had only ever been crossed with the barrier, and the two devices differ in
+ * the compiler (an `ASM_INPUT` takes `REG_DEP_ANTI` on prior uses and true
+ * dependences on prior sets; a loop note additionally sets
+ * `reg_pending_sets_all` and calls `flush_pending_lists`, so it orders MEMORY
+ * too).  Measured, all at 119/119 instructions:
+ *     `int xv;` declared + `xv = m->a[i].x; o->x = xv;`     5  EXACTLY INERT
+ *     `ar = &m->a[i]; o = &ar->oam;`                        5  EXACTLY INERT
+ *     both together                                         5  EXACTLY INERT
+ *     `f = ...` moved below the early return                22
+ *     the y store moved above the x store, inside the anchor 52  RELOC
+ *     `sl = m->a[i].slot;` hoisted, used at the call        103  at 116 insns,
+ *                                                               COUNT + RELOC
+ *     `sl` hoisted + xv / + the y swap                   77-108  COUNT / RELOC
+ * *** SO THE MEMORY-ORDERING HALF OF THE ANCHOR BUYS NOTHING HERE EITHER, AND
+ * THE PARK'S BOUND IS NOT A BARRIER-SPECIFIC BOUND. ***  That is the one thing
+ * this cross was for and it came back negative, which is a finding: the residue
+ * is not reachable by ANY zero-instruction ordering device.
+ *
+ * THE BOUND IS UNCHANGED AND STILL CORRECT, restated with its evidence so the
+ * next reader does not have to re-derive it:
+ *   >> The three x-load encodings (21, 23, 25) are ONE local-alloc decision:
+ *      pseudo 56 takes r3 because `find_free_reg` (local-alloc.c:1934, :2026)
+ *      walks REG_ALLOC_ORDER (arm.h:989: 3,2,1,0,12,14,...) and r3 is not in
+ *      `first_used`.  Block 1's six quantities price 52/72/74 at 10000, 56 at
+ *      8888, 55 at 2727, 61 at 2500 (QTY_CMP_PRI, local-alloc.c:1496), and the
+ *      three above 56 do not overlap it, so `post_mark_life` (:2039) never
+ *      excludes r3.  Both directions of the only arithmetic that works are held
+ *      by the same fact -- the destination is a BITFIELD, so no intermediate is
+ *      free: pulling an overlapping quantity DOWN to insn 55 costs it its price
+ *      (span in the denominator) and pushing 56's death UP to insn 86 deletes an
+ *      `ldrh` the ROM performs (every such row carries COUNT and MEM).
+ *      The two reload-scratch encodings (35, 37) are independent of all of it
+ *      and survived the batch-329 r1 pin unchanged.
+ *      WHAT WOULD RETIRE IT, unchanged: a block-1 quantity with 4 refs inside 8
+ *      insns (or 5 inside 11) that spans insn 55 and costs no instruction.
+ *      Batches 326, 327, 329 and 337 have failed to produce one. <<
+ *
+ * ONE NEW THING THE NEXT AGENT SHOULD KNOW, from this batch's work on
+ * `Func_80216b4`: *** A BYTE ACCESS THROUGH A STRUCT MEMBER DOES NOT GET ALIAS
+ * SET 0 -- IT GETS THE STRUCT'S OWN SET, even for a plain `unsigned char`
+ * member. ***  (Probed in `.00.rtl`: `unsigned char *a; a[8]` is set 0;
+ * `struct S *a; a->f8` is set 8.)  That does not help here -- the residue is
+ * allocation, not aliasing -- but it retires the general claim, repeated in
+ * several parks, that a `strb` is necessarily in alias set 0.
+ *
+ * ---------------------------------------------------------------------------
+ * THE TWO PRIOR HEADERS FOLLOW IN FULL, CARRIED FORWARD UNCHANGED: batch 329's
+ * (the barrier sweep and the 5/6 pair) and the batch-326/327 one (the
+ * local-alloc reading, the quantity table and the two-sided arithmetic).
+ */
 /* DisplayMenuArrowCursor -- PARK AT 5 differing encodings of 133.
  * Batch 329 brief B.  WAS 6.  ref 133, ours 133; size and relocations equal;
  * first differing index 21 (ref 5ab1 `ldrh r1,[r6,r2]`, ours 4684 `mov ip,r0`).
@@ -444,9 +554,10 @@ void DisplayMenuArrowCursor(struct Menu *m, int i)
     f = (iwram_3001800 >> 2) & 7;
     if (m->a[i].f2 == 0)
         return;
-    o = &m->a[i].oam;
-    o->x = m->a[i].x;
-    __asm__ volatile ("");
+    do {
+        o = &m->a[i].oam;
+        o->x = m->a[i].x;
+    } while (0);
     o->y = m->a[i].y;
     if (i != 0) {
         d = m->a[1].f0;

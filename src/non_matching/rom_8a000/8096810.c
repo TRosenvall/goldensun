@@ -1,4 +1,18 @@
-/* FieldMove_NoTarget -- 7 differing encodings of 122.  PARKED, PIN-FREE.
+/*
+ * FieldMove_NoTarget -- PARK at 7 differing STREAM ENCODINGS of 122; 75
+ * INSTRUCTIONS against 75 (lengths agree, so a DISTANCE).  PIN-FREE.
+ *
+ * Verify with: docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work goldensun-build python3 tools/objcmp.py src/non_matching/rom_8a000/8096810.c asm/rom_8a000/rom_944ec_a_c_c_a_a_a_a_a.s --func FieldMove_NoTarget
+ *
+ * SPLIT SHAPE: unchanged -- one function, no data, so landing converts the whole
+ * file to src/rom_8a000/rom_944ec_a_c_c_a_a_a_a_a.c with no split.
+ *
+ * BATCH 337, brief E -- CORRECTION: the line below says "122 instructions
+ * against 122".  122 is the STREAM ENCODING count; the INSTRUCTION count is 75.
+ * Same transcription error as StartRain's park, so suspect it in any park header
+ * written before objcmp printed the two numbers separately.
+ *
+ * FieldMove_NoTarget -- 7 differing encodings of 122.  PARKED, PIN-FREE.
  *
  * Verify with: docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work goldensun-build python3 tools/objcmp.py src/non_matching/rom_8a000/8096810.c asm/rom_8a000/rom_944ec_a_c_c_a_a_a_a_a.s --func FieldMove_NoTarget
  *
@@ -298,6 +312,81 @@
  * the local is deleted -- but it has never been written down as the symmetric
  * half of the open question, and a future reader should see both halves.
  * -- scratch_elev/b330/B
+ 
+ *
+
+ * ===== BATCH 337, BRIEF E: BOTH RUNGS REPRODUCED.  A THIRD FACTOR IN
+ * ===== allocno_compare THAT NO BATCH HAS NAMED, AND ITS CLOSURE.
+ *
+ * RE-MEASURED: 7 of 122, 75/75 instructions, first diff index 5, ref 221e
+ * against ours 3b74.  --whole adds no SIZE, no INSTRUCTION COUNT and no
+ * RELOCATIONS line.  ord C re-derived at 9 of 122, 75/75, first diff index 6,
+ * ref 5eae against ours 5eaf -- and tryc --full shows its nine differences are
+ * NOTHING BUT an r6/r7 swap (kind to r7, the case-9 slot pointer to r6, style
+ * following slot).  This body already holds the ROM's kind=r6 / style=r7.
+ *
+ * A THIRD FACTOR IN THE COMPARATOR.  Four batches have treated global.c:597-620
+ * as two numerators over one denominator.  Read in full it is
+ *     pri = (((double)(floor_log2 (n_refs) * n_refs) / live_length) * 10000 * size)
+ *     ... if (pri2 - pri1) return pri2 - pri1;  else return v1 - v2;
+ * `size' is PSEUDO_REGNO_SIZE -- the pseudo's size IN WORDS.  size == 2 on kind
+ * would give 1578 * 2 = 3156 against slot's 1600 and win outright with BOTH
+ * numerators and BOTH live lengths untouched.  IT IS CLOSED, and the reason is
+ * recorded so it is not probed: the only route to size 2 is a two-word mode, and
+ * a DImode `kind' changes the dispatch arithmetic and the argument move, i.e.
+ * instructions.  A refuted escape with its mechanism, not an untried lever.
+ *
+ * THE REQUIREMENT, RESTATED EXACTLY.  floor_log2(3)*3 = 3 for kind and
+ * floor_log2(4)*4 = 8 for slot, so kind wins iff 3*L_slot > 8*L_kind, i.e.
+ * L_slot > 2.67 * L_kind:
+ *     this body   kind 3/18   slot 4/50   1666 > 1600   kind takes r6 (ROM)
+ *     ord C       kind 3/19   slot 4/50   1578 < 1600   slot takes r6 (defect)
+ * L_kind = 18 with L_slot = 50 suffices (3*50 = 150 > 8*18 = 144).
+ *
+ * AND THE SINGLE INSN OF DIFFERENCE IS THE STYLE READ.  .17.lreg runs BEFORE
+ * reload, so each ldrsh is ONE insn there carrying (clobber (scratch:SI)) -- the
+ * `mov rX,#0x1a' scratch fill is a reload insn that does not yet exist when
+ * live_length is computed.  In ord C the style read sits after kind's def, so it
+ * falls inside [kind def, kind last use] and adds exactly one.
+ *
+ * SO THE WHOLE PARK IS: GET THE STYLE READ OUT OF kind's LIVE RANGE WHILE
+ * KEEPING IT AFTER kind IN RTL ORDER.  REG_LIVE_LENGTH is summed per basic block
+ * over the blocks where the register is live, and `kind' is live-OUT of the entry
+ * block because case 9 needs it -- so it is live at EVERY entry-block insn after
+ * its def and no block split, bracket or statement ordering helps.  The only
+ * block where kind is dead and style is wanted is case 2, and reading 0x1a there
+ * was already measured at 96.  That is the same geometric closure the park
+ * recorded for live_length and for the CFG, now stated for the one remaining
+ * degree of freedom.
+ *
+ * MEASURED THIS BATCH (objcmp --func, all 75/75 unless marked):
+ *   this body (p, m, style, kind)                             7   base
+ *   ord C     (p, m, kind, style)                             9   re-derived
+ *   p, style, m, kind -- the m LOAD BETWEEN THE TWO READS,
+ *     which is where the ROM stream has it                    7   same figure,
+ *       same first-diff index, same object.  KEEP THIS AS A POSITIVE: the ROM's
+ *       m placement is FREE, so if rung 1 ever breaks it costs nothing.
+ *   p, style, kind, m                                        22
+ *   p, kind,  style, m                                       22
+ *   m before p                                           BROKEN  332 bytes vs
+ *       336, 74 insns vs 75, 102 of 120, RELOCDIFF -- the symbol-minus-offset
+ *       address folds to one pool word and loses an instruction
+ *   inval last in the entry block                            13
+ *   ord C + `k2 = kind' set in BOTH arms of the guard,
+ *     `Func_808df1c(..., k2)'                                  9   EXACTLY INERT
+ *
+ * THE LAST ROW IS THE ONE THAT MATTERED.  The park had the single-arm temp down
+ * as inert; the TWO-ARM form is the version that should have survived copy
+ * propagation, and it does not -- gcse propagates k2 back onto kind, kind's last
+ * use does not move, and L_kind stays 19.  "Push kind's last use earlier" is
+ * therefore closed in its strongest spelling.
+ *
+ * RUNG 1 RE-READ, for the record: allocate_reload_reg's round robin is
+ * reload1.c:5000-5027 -- `i = last_spill_reg;' then `i++' modulo n_spills over
+ * spill_regs[], so the first ldrsh in RTL order takes the first spill reg and the
+ * second takes the next.  Reversing that needs a reload-consuming insn between
+ * the two reads, which is an instruction.
+ * -- scratch_elev/b337/E
  */
 extern char *iwram_3001f30;
 extern unsigned char gState[];

@@ -1,6 +1,12 @@
 /* OvlFunc_970_2008da4 (0x02008da4) -- NON-MATCHING.
  *
- * NON-MATCHING, 6 differing encodings of 175  (MEASURED, batch 331 brief E).
+ * NON-MATCHING, 5 differing encodings of 175  (MEASURED, batch 337 brief D).
+ *   LENGTHS AGREE: stream 175 against 175, 16-bit instructions 152 against
+ *   152, no SIZE line, relocations clean.  So this figure IS a distance.
+ *   The batch-331 figure of SIX is superseded: the mask-build encoding it
+ *   left open is CLOSED below.  Everything in the blocks that follow was
+ *   measured against the older body and keeps its own figure; the body in
+ *   this file is NOT that body.
  *
  * Verify with: docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work goldensun-build python3 tools/objcmp.py src/non_matching/ovl_7fa4ec/2008da4.c asm/overlays/rom_7fa4ec/ovl_30_c_c_c_a_c_c_c_c_a_c.s --func OvlFunc_970_2008da4
  *
@@ -159,7 +165,92 @@
  * block OR DIES MORE THAN ONCE" -- and this program gives each pointer one
  * death. Not closed; the header's "nothing in eight probes" stands, now with
  * the pass named.
-*/
+
+ * ================= BATCH 337 BRIEF D: THE MASK BUILD IS CLOSED,
+ * ================= AND THE WHOLE RESIDUE IS NOW ONE sched2 HOIST
+ *
+ * RE-MEASURED FIRST: the batch-331 figure of 6 reproduces exactly, 175/175
+ * stream and 152/152 instructions.  aligncmp -v resolves it into TWO causes,
+ * not three -- the batch-331 block's residue (b), the three-instruction
+ * `->f50` pointer role, IS GONE, closed by that batch's own "second name in the
+ * last block" lever.  What was left:
+ *      ref[42]           subs r5, #15      vs ours   movs r5, #243
+ *      ref[136:139]      the two BLD pool loads, ours one slot early
+ *      ref[152:154]      the two BLD pool WORDS, swapped as a consequence
+ *
+ * (a) THE MASK BUILD, 1 encoding, CLOSED ON THE DIMENSION THE BATCH-331 BLOCK
+ * NAMED.  That block said the untried dimension was "a spelling in which 2 and
+ * -13 come from one named quantity rather than two constants", and it is right:
+ *
+ *      c = 2;                          -- the value the two `*p = 2` stores write
+ *      ...
+ *      mk = c - 0xf;                   -- -13, DERIVED, not materialised
+ *      s[9] = (s[9] & mk) | 4;         -- ... and the mask for all ten edits
+ *
+ * gives the reference's `mov r5, #2` ... `sub r5, #0xf` and kills the `mov r5,
+ * #0xf3`.  cse does NOT fold `c - 15` to a constant here even though c is a
+ * pseudo holding 2.  6 -> 5.
+ * This also settles the batch-329 block's two refuted cross-park ports: naming
+ * the mask as a literal `-13` at the top of the function is MUCH WORSE (177 of
+ * 175) and remains so; the lever is not "name the mask", it is "derive the mask
+ * from the stored value".
+ *
+ * (b) WHAT IS LEFT IS FIVE ENCODINGS FROM ONE CAUSE, and it is a scheduling
+ * hoist, not a spelling.  The reference and our output differ only here:
+ *      rom    strh r1,[r5] / strh r1,[r2] / ldr r2,=0x2648 / ldr r3,=REG_BLDCNT
+ *      ours   strh r1,[r5] / ldr r3,=REG_BLDCNT / strh r1,[r2] / ldr r2,=0x2648
+ * -- one pool load moved up two slots.  The two differing pool WORDS follow
+ * from it, because the Thumb backend emits its word list in the order the
+ * constants are first referenced in the FINAL stream, which is post-sched2.
+ *
+ * AND THE PRE-SCHEDULE ORDER IS ALREADY THE ROM'S.  `.19.flow2` has
+ * 407, 413, 416 (strh [r5]), 424 (strh [r2]), 427 (r2=0x2648), 430
+ * (r3=0x4000050), 433 -- exactly the reference.  sched2 then hoists insn 430
+ * above 424 and 427.  So nothing about the source ORDER is wrong; the question
+ * is entirely why sched2 moves it.
+ *
+ * THE BOUND, with the precondition checked rather than the arithmetic.  Insn
+ * 430's only predecessor is an anti-dependence on insn 407, so it is READY the
+ * moment 407 issues -- readiness is not the lever without a device.  Then
+ * rank_for_schedule: INSN_PRIORITY ties, because 424's priority is
+ * max(priority(427), priority(433)) over zero-cost anti/output edges
+ * (arm.c:2425-2427 zeroes both) and 427 and 430 are both pool loads feeding
+ * 433, so all three come out equal.  On that tie the CLASS rung
+ * (haifa-sched.c:4069-4094) decides AGAINST us: it classifies each candidate by
+ * its link to the last scheduled insn, 416; insn 430 has no link at all and
+ * takes the preferred class, while 424 carries a memory OUTPUT dependence on
+ * 416 whose cost arm_adjust_cost zeroes, so it lands in a worse class.  This is
+ * the rung batch 336 called a first-class lever where the window holds a load
+ * or a store -- it is live here, and it is working against us.
+ * Raising 424's priority would need a store to feed a long chain, and removing
+ * the 416->424 dependence would need two memory writes not to be
+ * output-dependent, which haifa-sched.c:3370-3385 makes unconditional (and both
+ * stores are volatile besides).  Neither is source-reachable.
+ *
+ * MEASURED INERT OR WORSE at the new figure of 5, all at equal length unless
+ * marked.  SOURCE ORDERINGS of the BLD block:
+ *      a named `vu16 *bld` for BLDCNT only, BLDALPHA via the macro      inert 5
+ *      the value assigned before the pointer, BLDALPHA via `bld++`      inert 5
+ *      the two BLD values in two separate locals                        inert 5
+ *      `bld[0]` / `bld[1]`                                        worse, 26
+ *      the BG1CNT value routed through a second name            worse, 42
+ * FLAGS, the axis this park had never been swept on:
+ *      -Os, -fno-gcse, -fno-rerun-cse-after-loop, -fno-peephole2,
+ *      -fno-delayed-branch                                            all 5
+ *      -fno-schedule-insns2                                      worse, 47
+ *      -O1                                                      worse, 172
+ * The -fno-schedule-insns2 row is worth keeping: sched2 is doing 42 encodings
+ * of RIGHT work here, so it must not be turned off to fix three.
+ * INSTRUMENTS, not shipped: a bare `__asm__ volatile ("")` before the BLD block
+ * reads 22 and one between the two BLD stores reads 23, both with the first
+ * difference at index 1 -- the barrier changes the allocno order, which is
+ * batch 336's "a barrier is not free" finding, so it is not even a clean
+ * instrument for this window.
+ *
+ * NEXT: nothing source-reachable on the load order.  If this is ever taken
+ * further, the question is the CLASS rung's input and not the schedule: what
+ * would put the REG_BG1CNT store into the same class as the pool load.
+ */
 #include "gba/types.h"
 #include "gba/io.h"
 
@@ -180,6 +271,8 @@ int OvlFunc_970_2008da4(void)
     char *u;
     volatile unsigned short t;
     int n;
+    int c;
+    int mk;
     unsigned char *r;
 
     g = gState;
@@ -190,36 +283,38 @@ int OvlFunc_970_2008da4(void)
     *(int *)(q + (0xe0 << 1)) = 0x100;
     p = __MapActor_GetActor(8) + 0x59;
     *p = 0;
+    c = 2;
     p = __MapActor_GetActor(8) + 0x23;
-    *p = 2;
+    *p = c;
     p = __MapActor_GetActor(9) + 0x59;
     *p = 0;
     p = __MapActor_GetActor(9) + 0x23;
-    *p = 2;
+    *p = c;
+    mk = c - 0xf;
     s = *(char **)(__MapActor_GetActor(8) + 0x50);
-    s[9] = (s[9] & ~0xc) | 4;
+    s[9] = (s[9] & mk) | 4;
     s = *(char **)(__MapActor_GetActor(9) + 0x50);
-    s[9] = (s[9] & ~0xc) | 4;
+    s[9] = (s[9] & mk) | 4;
     p = __MapActor_GetActor(0);
     s = *(char **)(p + 0x50);
-    s[9] = (s[9] & ~0xc) | 4;
+    s[9] = (s[9] & mk) | 4;
     s = *(char **)(p + 0x50);
-    s[0x15] = (s[0x15] & ~0xc) | 4;
+    s[0x15] = (s[0x15] & mk) | 4;
     p = __MapActor_GetActor(1);
     s = *(char **)(p + 0x50);
-    s[9] = (s[9] & ~0xc) | 4;
+    s[9] = (s[9] & mk) | 4;
     s = *(char **)(p + 0x50);
-    s[0x15] = (s[0x15] & ~0xc) | 4;
+    s[0x15] = (s[0x15] & mk) | 4;
     p = __MapActor_GetActor(2);
     s = *(char **)(p + 0x50);
-    s[9] = (s[9] & ~0xc) | 4;
+    s[9] = (s[9] & mk) | 4;
     s = *(char **)(p + 0x50);
-    s[0x15] = (s[0x15] & ~0xc) | 4;
+    s[0x15] = (s[0x15] & mk) | 4;
     p = __MapActor_GetActor(3);
     s = *(char **)(p + 0x50);
-    s[9] = (s[9] & ~0xc) | 4;
+    s[9] = (s[9] & mk) | 4;
     u = *(char **)(p + 0x50);
-    u[0x15] = (u[0x15] & ~0xc) | 4;
+    u[0x15] = (u[0x15] & mk) | 4;
     t = (REG_BG3CNT & 0xfffc) | 2;
     REG_BG3CNT = t;
     t = (REG_BG2CNT & 0xfffc) | 3;

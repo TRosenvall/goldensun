@@ -1,4 +1,17 @@
-/* Func_80a1a40 -- PlaceCursor -- 0x080a1a40, asm/rom_a1000/rom_a1814_a_c.s
+/*
+ * Func_80a1a40 -- PlaceCursor -- PARK at 8 differing STREAM ENCODINGS of 57; 48
+ * INSTRUCTIONS against 48 (lengths agree, so a DISTANCE).  SIZE equal.  The
+ * RELOCATIONS line is the pool-order CONSEQUENCE, not a second blocker.  PIN-FREE.
+ *
+ * Verify with: docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work goldensun-build python3 tools/objcmp.py src/non_matching/rom_a1000/80a1a40.c asm/rom_a1000/rom_a1814_a_c.s --func Func_80a1a40
+ *
+ * PIECE, verified with tools/piece.py this batch: asm/rom_a1000/rom_a1814_a_c.s
+ * holds TWO functions -- this one at 8 of 57 and Func_80a1ac0 at 67 of 123
+ * (src/non_matching/rom_a1000/80a1ac0.c).  datacheck.py is silent, so the split
+ * is pure text and THIS FUNCTION CUTS OUT ALONE; nothing here is hostage to the
+ * mate at 67.
+ *
+ * Func_80a1a40 -- PlaceCursor -- 0x080a1a40, asm/rom_a1000/rom_a1814_a_c.s
  *
  * PARK, 8 differing encodings of 57.  RE-MEASURED batch 325, brief F (was
  * measured 8 of 57 in batch 322 and the figure reproduces exactly).  PINS: 0.
@@ -251,6 +264,104 @@
  *   WORSE, the mask forced to the stack: a volatile member (sixty differing,
  *   eight bytes long); the two-member struct (sixty differing, twelve bytes
  *   long).
+ 
+ *
+
+ * ===== BATCH 337, BRIEF E: THE WALL IS NOW STATED AT THE PATTERN LEVEL, AND IT
+ * ===== INVERTS BATCH 330's CONCLUSION.  PLUS THE FIRST FOLD-IMMUNE BASE.
+ *
+ * RE-MEASURED: 8 of 57, 48/48 instructions, size equal, RELOCATIONS differ.  The
+ * .26.mach fix table reproduces the header's verbatim.
+ *
+ * THE REFERENCE'S OWN POOL, which no earlier header quoted and which settles the
+ * target:
+ *     ldr r5, .La1a9c  @ 0xffff      .La1a9c: .word 0xffff
+ *     ldr r3, .La1aa0  @ 0x1ff       .La1aa0: .word 0x1ff      .pool
+ * BOTH numeric words sit AHEAD OF EVERY `=symbol', so in the ROM
+ * key(0xffff) < key(0x1ff) < 1020 and BOTH constants are narrow fixes.  With the
+ * 0xffff reference pinned at addr 36 by an exact instruction stream, its range
+ * must be under 68, and HImode's 64 is the only one.  The park's bound is sound.
+ *
+ * BATCH 330 CONCLUDED "what is missing is a HImode CONSUMER of the mask that is
+ * not an AND."  **THE AND IS THE ONLY THING THAT PROTECTS IT.**  Off the dumps:
+ *
+ *  WHERE THE 0x1ff FIX SURVIVES (this body; .12.life and .13.combine identical):
+ *     (insn 71 (set (reg:HI 60) (const_int 511)) 180 {*thumb_movhi_insn})
+ *     (insn 76 (set (reg:SI 62) (and:SI (reg/v:SI 36) <(subreg:SI (reg:HI 60) 0)>)))
+ *                                                      78 {*thumb_andsi3_insn}
+ *  The HImode register flows DIRECTLY into the AND as an inline paradoxical
+ *  subreg.  Combine's substitution would yield (and:SI (reg) (const_int 511)) and
+ *  *thumb_andsi3_insn IS REGISTER-ONLY -- Thumb's `and' has no immediate
+ *  alternative -- so the substitution fails to match and combine abandons it.
+ *
+ *  WHERE IT DIES, through a widening MOVE (scratch_elev/b337/E/w4/b1_hi_var.c):
+ *     .12.life  (insn 78 (set (reg:HI 63) (const_int 511)) 180 {*thumb_movhi_insn})
+ *               (insn 80 (set (reg:SI 65) (subreg:SI (reg:HI 63) 0)) 173 {*thumb_movsi_insn})
+ *               (insn 81 (set (reg:SI 64) (and:SI (reg:SI 61) (reg:SI 65))))
+ *     .13       insn 78 -> NOTE_INSN_DELETED;  insn 80 -> (set (reg:SI 65) (const_int 511))
+ *  *thumb_movsi_insn ACCEPTS the constant, so 78-into-80 matches and the narrow
+ *  set becomes dead.  Same story when the widening is a shift pair -- the park's
+ *  own "variable mask used twice" row (w4/a7_struct_andeq.c):
+ *     .12.life  (insn 22 (set (reg/v:HI 36) (const_int 65535)) 180 {*thumb_movhi_insn})
+ *               (insn 68 (set (reg:SI 61) (ashift (subreg:SI (reg:HI 36) 0) 16)))
+ *               (insn 69 (set (reg:SI 60) (lshiftrt (reg:SI 61) 16)))  REG_EQUAL 65535
+ *     .13       68 deleted;  69 -> (set (reg:SI 60) (const_int 65535)) {*thumb_movsi_insn}
+ *
+ * **RESTATED RULE, the useful form: a narrow (HImode) minipool fix survives
+ * combine IF AND ONLY IF the HImode constant register's only use is an operand
+ * position whose pattern has NO IMMEDIATE ALTERNATIVE.**  On Thumb at -O2 that
+ * position is the second operand of *thumb_andsi3_insn.  So what has to be
+ * engineered is not a non-AND consumer -- it is an AND with NO WIDENING MOVE
+ * between the set and the AND, which needs the AND's other operand to arrive
+ * already in SImode, which needs a HImode AND tree whose other operand is an
+ * SImode lowpart and whose constant is 0xffff -- and THAT tree is what fold's
+ * `integer_all_onesp' rule deletes.  That is where the two walls meet, and it is
+ * now a statement about two named patterns instead of about spellings.
+ *
+ * A NEW POSITIVE, THE FIRST ON THIS AXIS.  fold's deletion is DEFEATED by making
+ * the mask a VARIABLE, because integer_all_onesp (arg1) needs an INTEGER_CST.
+ * With the mask in a one-member struct (to dodge promote_mode, explow.c:897-911)
+ * AND the AND performed in a 16-bit context, BOTH ANDs survive on BOTH axes --
+ * which no previous body achieved.  scratch_elev/b337/E/w4/b1_hi_var.c reads
+ * 17 of 57 at **47 instructions against 48**, and its first FORTY-FOUR
+ * instructions are the ROM's, in order, including
+ *     ldr r5,=0xffff ... strh r2,[r4,#6] / and r2,r5 / ldrh r0,[r4,#0x16] / and r2,r3
+ *     ...               strh r3,[r4,#8]  / and r3,r5 / strb r3,[r4,#0x14]
+ * The ONLY missing instruction is the ROM's `b' over the in-function pool: with
+ * the mask a HImode VARIABLE every fix came out SImode (range 1020), the minipool
+ * went to the end of the function and nothing had to be jumped over.  Its 17 is
+ * therefore MEASURING MISALIGNMENT, not distance, and is a figure ABOUT THE
+ * BLOCKER.  The park's two requirements are now visibly separable and
+ * simultaneously unmet: a VARIABLE mask buys fold-immunity and loses the narrow
+ * fix; a CONSTANT mask keeps the narrow fix (from 0x1ff) and loses the AND to fold.
+ *
+ * MEASURED THIS BATCH -- 17 variants, each with its instruction count, because a
+ * figure at a different length is not a distance:
+ *   park body (base)                                        8 of 57  48/48  SImode @36
+ *   mask struct-wrapped, `vx &= m.v' (park's row)            8 of 57  48/48  SImode @36
+ *   mask struct-wrapped, `cur->a16 = vx & m.v'              51 of 57  47/48  SImode @ 6
+ *     ... union-wrapped / `v : 16' / one-element array      51 of 57  47/48  SImode
+ *     ... plain `unsigned short' mask (promote_mode bites)  49 of 57  45/48  SImode
+ *     ... struct mask assigned late                         50 of 57  45/48  SImode
+ *   HImode holder + struct VARIABLE mask, both axes (b1)    17 of 57  47/48  SImode @36
+ *     ... union / two holders / array mask / mask late      17 of 57  47/48
+ *   HImode holder + CONSTANT mask (CONTROL)                 51 of 57  42/48  -6 insns
+ *   `(unsigned short)vx & m.v' into the field, both axes    51 of 57  47/48  SImode @ 6
+ *     ... vy axis only, vx left as `&= 0xffff'              49 of 57  45/48  SImode @34
+ *     ... vx axis only, vy left as `&= 0xffff'              51 of 57  47/48  SImode @ 6
+ *     ... array mask                                        51 of 57  47/48
+ *
+ * THE CONTROL ROW IS THE POINT OF THE TABLE: a CONSTANT 0xffff in the same HImode
+ * position loses SIX instructions -- fold deleting both ANDs and both holder
+ * moves -- while the VARIABLE-mask row loses ONE.  That is the fold-immunity,
+ * isolated and measured.
+ *
+ * Three of the cast rows KEEP the HImode 0x1ff fix at addr 42, range (0,64) AND
+ * use the variable mask, and are still one instruction short: there the 0xffff
+ * AND is folded into the following 0x1ff AND.  So the two requirements have now
+ * been shown jointly unsatisfiable by every spelling of this shape, which is
+ * tighter than the park's statement.
+ * -- scratch_elev/b337/E
  */
 struct Win {
     unsigned char pad00[0xc];

@@ -1,4 +1,17 @@
-/* p3 -- StartRain -- PARK at 4 differing encodings of 104.  PIN-FREE.
+/*
+ * StartRain -- PARK at 4 differing STREAM ENCODINGS of 104; 84 INSTRUCTIONS
+ * against 84 (lengths agree, so this is a DISTANCE, not a phase).  PIN-FREE.
+ *
+ * Verify with: docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work goldensun-build python3 tools/objcmp.py src/non_matching/rom_8a000/StartRain.c asm/rom_8a000/rom_944ec_a_a_a_a_c_c_a_a_c_a_c.s --func StartRain
+ *
+ * SPLIT SHAPE: unchanged -- the reference holds one function, no split needed.
+ *
+ * BATCH 337, brief E -- CORRECTION TO THE LINE BELOW: it says "103 instructions
+ * against 103".  103 is wrong.  objcmp reports 84/84; 104 is the STREAM ENCODING
+ * count (instructions + pool words + pad).  The old header copied the stream
+ * figure into the instruction line.  Everything else in it reproduces exactly.
+ *
+ * p3 -- StartRain -- PARK at 4 differing encodings of 104.  PIN-FREE.
  *
  * Figure I measured (not inherited): 4 differing encodings of 104 (ref 104, ours
  * 104), first differing index 80 -- ref 3302 (add r3,#2) against ours 21c8
@@ -54,6 +67,102 @@
  * measured dead end.
  *
  * STILL REFUTED, not re-proposed: a no-sched2 flag group (35 of 95).
+ 
+ *
+
+ * ===== BATCH 337, BRIEF E: THE PARK IS CONFIRMED BY GCC'S OWN PRINTED TABLE,
+ * ===== AND THE CORPUS NAMES THE LEVER THAT WOULD WORK AND CANNOT BE SUPPLIED.
+ *
+ * RE-MEASURED: 4 differing encodings of 104 (ref 104, ours 104), 84 instructions
+ * against 84, first differing index 80 -- ref 3302 against ours 21c8.  No SIZE,
+ * no INSTRUCTION COUNT, no RELOCATIONS line.
+ *
+ * THE PARK DERIVED ITS PRIORITY TABLE BY HAND.  I GOT GCC TO PRINT IT.
+ * -fsched-verbose=6 writes the .23.sched2 DUMP FILE (not stderr); its "Region
+ * Dependences" table carries a `prio' column.  Recipe: scratch_elev/b337/E/e_sched.sh.
+ *
+ *   ;;      insn  code    bb   dep  prio  cost   units
+ *   ;;      212     5     0     2    68     1    core  : 298 218 215        add r3,#2 (1st)
+ *   ;;      215   180     0     3    67     2    core  : 299 298 231 221 218  strh r2,[r3] BLDALPHA
+ *   ;;      218     5     0     2    67     1    core  : 299 298 231 221    add r3,#2 (2nd)
+ *   ;;      221   180     0     3    66     2    core  : 299 298 231        strh r4,[r3] BLDY
+ *   ;;      224   173     0     0    66     2    core  : 299 298 231        ldr r0,=Task_Rain
+ *   ;;      281   173     0     0    67     1    core  : 298 282           mov r1,#0xc8
+ *   ;;      282   112     0     1    66     1    core  : 299 298 231       lsl r1,#4
+ *   ;;      231   239     0     7    65    32    core  : 299 298 297       bl StartTask
+ *
+ *   ;;	Ready list (t = 11):    224  218  281
+ *   ;;		--> scheduling insn <<<281>>> on unit core
+ *
+ * ready sorts ASCENDING and schedule_block issues the LAST element, so at t=11
+ * the contest is 218 (prio 67) against 281 (prio 67) -- an EXACT TIE -- with
+ * last_scheduled_insn = 215.  rank_for_schedule then reaches the class rung
+ * (haifa-sched.c:4074-4094):
+ *   - 218 has an anti link from 215 (215 reads r3, 218 writes r3).
+ *     arm_adjust_cost (config/arm/arm.c:2416-2426) returns 0 for REG_DEP_ANTI /
+ *     REG_DEP_OUTPUT as its FIRST statement, so insn_cost != 1 and
+ *     REG_NOTE_KIND != 0 -> CLASS 2.
+ *   - 281 has no link from 215 at all -> link == 0 -> CLASS 3.
+ * 3 > 2, so the mov wins.  Had the classes tied, the dependent-count rung
+ * (:4096-4108) gives 218 four dependents against 281's two, and the LUID rung
+ * after it is ALREADY ROM ORDER -- the Region-Dependences table prints in LUID
+ * order and reads 215 218 221 224 281 282 231, which IS the ROM stream.  sched2
+ * is the only thing that moves this function's tail.
+ *
+ * WHY 4 IS A FLOOR, each rung with its PRECONDITION:
+ *  1. prio(281) = insn_cost(281,link,282) + prio(282) is FORCED at 67.
+ *     insn_cost (haifa-sched.c:3060-3122) zeroes a link only when
+ *     recog_memoized (used) < 0; `used' is 282, INSN_CODE 112 (*thumb_ashlsi3),
+ *     recognised.  ADJUST_COST then calls arm_adjust_cost (282, link, 281, 1):
+ *     kind 0, 282 is not a CALL_INSN, SET_SRC is an ASHIFT not a MEM, so it
+ *     falls through to `return cost' = 1.
+ *  2. prio(218) = 1 + prio(221) is FORCED at 67, because arm_adjust_cost's
+ *     SECOND clause -- `if (REG_NOTE_KIND (link) == 0 && GET_CODE (insn) ==
+ *     CALL_INSN) return 1;' -- OVERRIDES store1's latency 2 for a store feeding
+ *     a call, and crushes ldr r0,=Task_Rain (type load, latency 2) to 1 as well.
+ *     Every chain into the call is one-per-link and only 281, two links out,
+ *     reaches 67.
+ *  3. EVERYTHING IS INVARIANT UNDER prio(231).  From the dump:
+ *     prio(224) = prio(221) = prio(282) = 1 + prio(231) and
+ *     prio(281) = prio(218) = 2 + prio(231).  The park said this; the printed
+ *     numbers confirm it.
+ *  4. The class rung is UNREACHABLE, not merely lost.  Demoting 281 needs a link
+ *     from 215 = (set (mem/v:HI (reg r3)) (reg:HI r2)): it reads r3 and r2 and
+ *     writes memory, while 281 writes r1 -- no anti, no output, no data
+ *     dependence is constructible.  Promoting 218 needs
+ *     insn_cost (215, anti-link, 218) == 1, and the anti return is unconditional.
+ *
+ * SPLIT CLAIM CONFIRMED WITH LINES: *thumb_movsi_insn alternative 3 (constraint
+ * K) emits `#' and is split by the define_split at arm.md:3858-3890;
+ * split_all_insns (0) runs at toplev.c:3375-3376 UNCONDITIONALLY for
+ * optimize > 0, and sched2 at toplev.c:3473-3481.  So sched2 always sees two
+ * insns and prio = 2 + prio(call) cannot be avoided.  (The park cited
+ * arm.md:3844; the split body is at 3858-3890 in this tree.)
+ *
+ * A WOULD-BE ESCAPE OF MY OWN, REFUTED, recorded so nobody spends a round on it:
+ * priority() SKIPS links marked RTX_INTEGRATED_P (haifa-sched.c:3148), which
+ * would drop prio(281) to 1 and produce ROM order exactly.  NOTHING in this
+ * compiler ever SETS that bit on a dependence link -- the only other occurrence
+ * in the file is :4533, which merely PROPAGATES it.  The rung is dead code.
+ *
+ * THE LEVER THE CORPUS NAMES, AND WHY THIS FUNCTION CANNOT SUPPLY IT.
+ * scratch_elev/b337/E/e_corpus_movlsl.py partitions asm/ (4,527 generated .s,
+ * 704 hand-written) and finds every `mov rX,#imm / lsl rX,#n / bl' window -- the
+ * ROM's shape here.  561 in the GENERATED half, so the un-hoisted shape is amply
+ * reachable; 26 of those have a STORE immediately in front of the mov.  In EVERY
+ * one of them the store READS THE REGISTER THE MOV WRITES, e.g.
+ *     asm/overlays/rom_7b7f1c/ovl_30_c_c_c_c_c_b.s   strb r3,[r0] / mov r0,#128
+ *     asm/overlays/rom_77a7c8/ovl_30_c_a_c_c_a_c_c_c_b.s  strh r3,[r0,#6] / mov r0,#190
+ * i.e. an ANTI-DEPENDENCE on the mov's DESTINATION drops it to class 2 and hands
+ * the store the class rung.  StartRain cannot supply one: the ROM's whole
+ * REG_BLDCNT/REG_BLDALPHA/REG_BLDY tail uses r0, r2, r3 and r4 and never touches
+ * r1, and r1's last use is inside the loop -- a different basic block, so no
+ * intra-block dependence exists.  The mov's register is fixed by the ABI (second
+ * argument) and the tail's registers are fixed by the reference stream.
+ *
+ * SO THE BLOCKER IS A REGISTER IDENTITY, not a cost, a spelling or an ordering.
+ * DO NOT RE-SWEEP THE SECOND ARGUMENT OR THE STORE BLOCK.
+ * -- scratch_elev/b337/E
  */
 #include "dma.h"
 

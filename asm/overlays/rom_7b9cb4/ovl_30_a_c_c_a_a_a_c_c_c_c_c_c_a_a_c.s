@@ -1,40 +1,6 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
-@ 25 instructions. Not one of the recognised overlay shapes,
-@ so this is a CALL TRACE rather than a description -- what it does with
-@ these is not characterised here.
-@
-@   Random
-.thumb_func_start OvlFunc_932_20086a0
-	push	{r5, r6, lr}
-	mov	r6, #0x80
-	lsl	r6, #19
-	ldrh	r2, [r6]
-	ldr	r3, =0xfdff
-	and	r3, r2
-	lsl	r3, #16
-	asr	r5, r3, #16
-	bl	__Random
-	mov	r3, #0x64
-	mul	r3, r0
-	ldr	r2, =.L5238
-	ldrh	r2, [r2]
-	lsr	r3, #16
-	cmp	r3, r2
-	bcc	.L6c8
-	mov	r3, #0x80
-	lsl	r3, #2
-	orr	r5, r3
-.L6c8:
-	lsl	r3, r5, #16
-	lsr	r3, #16
-	strh	r3, [r6]
-	pop	{r5, r6}
-	pop	{r0}
-	bx	r0
-.func_end OvlFunc_932_20086a0
-
 @ 96 instructions. Not one of the recognised overlay shapes,
 @ so this is a CALL TRACE rather than a description -- what it does with
 @ these is not characterised here.

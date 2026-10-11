@@ -5,7 +5,7 @@
  *
  * Verify with:
  *   python3 tools/objcmp.py src/non_matching/ovl_common/common1_5e4.c \
- *     asm/overlays/common/common1_a_a_a_a_c_a.s --func OvlFunc_common1_5e4
+ *     asm/overlays/common/common1_a_a_a_a_c_a_c.s --func OvlFunc_common1_5e4
  *
  * READ THE NUMBER CAREFULLY.  The agent reported "202 of 277"; objcmp against
  * the tree reports 232 of 263.  The reference instruction count itself
