@@ -35100,6 +35100,33 @@ Tree-wide it reports **86 pieces holding two or more parked functions, 75 of
 them wholly parked** — a real targeting pool, because one candidate on a wholly
 parked piece can retire several parks at once.
 
+### THE ONE REAL EXCEPTION: gcc NESTED FUNCTIONS
+
+The rule above is about `split_s.py`, which can cut anywhere. There is exactly
+one class in this tree where a member genuinely **cannot** be separated from its
+piece-mates, and it is not about the `.s` at all — it is about the **static
+chain**.
+
+`src/non_matching/rom_b5000/80b9554.c` measures **0 of 81** and opens with
+`!! DO NOT "LAND" THIS !!`, correctly. `Func_80b9554` and `Func_80b9604` are
+gcc **nested functions** whose chains reach their parent `Func_80b9724`'s own
+frame slots (`fp[-1]`, `fp[-2]`, `fp[-3]`), and the park proves it rather than
+inferring it: written as a genuine nested function inside a stand-in parent, gcc
+emits it byte-identical including the `mov r7, r2` copy and the pool word. A
+nested function must be lexically inside its parent, so **the parent and its
+nested children are one TU by the language, not by the split tool.**
+
+The park also refuses the available hack — reproducing the chain from a
+non-nested function needs a read of a hard register nothing writes, a pointer
+laundered through `__asm__ __volatile__` so `flow.c` cannot see the slot as
+dead, and reliance on that asm's placement — on the batch-219 precedent that
+byte-correct and unreadable is still wrong.
+
+> **So "it measures 0" is not sufficient evidence of a landing, and neither is
+> "any member can be cut out alone".** Check whether the park says it is waiting
+> on *siblings*, and whether the reason is the `.s` (cuttable) or the static
+> chain (not).
+
 ### "Converts whole" is a fact about the TU, not about the work
 
 `piece.py`'s verdict is deliberately hedged for this reason. A wholly parked
