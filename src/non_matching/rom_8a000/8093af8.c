@@ -1,102 +1,207 @@
-/* Func_8093af8 -- NON-MATCHING, 29 encodings of 124.  SIZE AND RELOCATIONS IDENTICAL,
- * instruction count identical (124 = 124).
+/* Func_8093af8 -- NON-MATCHING.  HOLDS.  Batch 343 brief C re-derived the
+ * figure and CORRECTED WHAT IT MEASURES.
+ *
+ *   STREAM figure            29 of 124   (ref 124 encodings / ours 124)
+ *   16-BIT INSTRUCTIONS      ref 116 / ours 115   ** UNEQUAL, gap 1 **
+ *   32-bit entries           8 / 8   EQUAL   (pool words AND `bl` calls)
+ *   pad halfwords            ref 0 / ours 1
+ *   size, relocations        EQUAL
+ *   first differing index    82
+ *   ALIGNED residue          110 of 124 aligned-equal, 22 differing in 7 hunks
+ *   PINS 0 (tools/shimcount.py prints NO ROWS).  No devices, no flags.
  *
  * Verify with:
- *   python3 tools/objcmp.py src/non_matching/rom_8a000/8093af8.c \
+ *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
+ *     goldensun-build python3 tools/objcmp.py \
+ *     src/non_matching/rom_8a000/8093af8.c \
  *     asm/rom_8a000/rom_93304_a_c_c_c_c_a.s --func Func_8093af8
  *
- * BLOCKER: RELOAD-SCRATCH ROUND-ROBIN *PHASE*, in the RELOAD pass.  ALL 29 differing
- * encodings trace to ONE decision: at insn 192 the constant -0x2fff gets r2 where the ROM
- * gets r3, and the r2/r3 roles then stay swapped at the loop-tail -1 reload and at the
- * tail's `mov rX, r10`.  Reload sites 1-11 agree with the ROM REGISTER FOR REGISTER; from
- * site 12 the ROM is exactly ONE STEP FURTHER along the round robin over {r2, r3}.
+ * SPLIT SHAPE: none.  tools/piece.py -> rom_93304_a_c_c_c_c_a.s, 1 function,
+ * all 1 parked.  tools/datacheck.py exits 0 silently (no data section).
  *
- * THREE MEASURED FACTS THAT NARROW THIS, and the first CONTRADICTS THE DOC'S DISCRIMINATOR:
+ * ###########################################################################
+ * ## THE 29 IS **NOT A DISTANCE**.  BATCH 334'S INFERENCE WAS WRONG AND SO
+ * ## IS EVERY BRIEF THAT HAS REPEATED IT.  READ THIS BEFORE USING THE FIGURE.
+ * ###########################################################################
  *
- *   1. `.18.greg`'s find_reload_regs line says "Using reg 3 for reload 0" at insn 192 --
- *      THE PASS THAT PICKS THE SPILL SET ALREADY PREFERS r3.  The r2 comes from
- *      allocate_reload_reg overriding it in reload_as_needed.  So docs/elevation.md's
- *      "read `Using reg N`" discriminator DOES NOT SEE THIS DEFECT, and the spill set here
- *      is already {2,3}, the same width as the ROM's.  This is NOT the narrow-spill-set
- *      variant -- for that, see the file-mate park 808bb2c.
- *   2. `last_spill_reg` IS RESET PER FUNCTION.  Prepending a dummy function that consumes
- *      a reload left the residue at exactly 29, so THE PHASE CANNOT BE FIXED FROM A
- *      FILE-MATE and a single-function candidate is legitimate here.
- *   3. ADDING A RELOAD EARLIER DID NOT SHIFT THE PHASE.  An extra `if (ref->f0c ==
- *      0x12345678) return 0;` at the top -- a real const reload, +3 instructions -- left
- *      `ldr r2,=0xffffd001` unchanged.  That CONTRADICTS the simple "add a reload
- *      somewhere else" cure and is the measured negative worth carrying.
+ * Batch 334 wrote: "a PAD absorbs the halfword, so the STREAM lengths are equal
+ * and this park does NOT belong on a misalignment list."  **The premise is
+ * right and the inference does not follow.**  objcmp says so itself, in a note
+ * it prints unprompted on this very park:
  *
- * Inert against this residue, all measured singly: 11 declaration-order positions for `i`;
- * 6 init-statement orders (only `best = 0;` before `bestd = 0x28;` mattered and it fixed
- * the PROLOGUE, not this); 12 tail spellings; 5 `(short)` cast spellings; 4 `u16 ang`
- * spellings; an `fp` spelling; a named `u8 *` for the +0x54 byte load; --no-rerun-cse.
+ *     XX INSTRUCTION COUNT  ref 116, ours 115
+ *        NOTE: size and encoding count MATCH -- a pad is absorbing the
+ *        difference, so the positional figure below measures MISALIGNMENT,
+ *        not distance.  Re-screen with tools/tryc.py --align.
  *
- * ================ BATCH 334, BRIEF C: THE FIGURE IS A DISTANCE, AND THE
- * ================ PARK'S "ONE DECISION" CLAIM IS INCOMPLETE
+ * Two corrections of detail, both measured:
+ *   * THE ABSORBER IS A PAD HALFWORD, NOT A 32-BIT ENTRY.  The 32-bit entries
+ *     are 8 against 8, EQUAL.  Anyone told "a 32-bit entry absorbs it" has the
+ *     wrong object.
+ *   * EQUAL STREAM LENGTH WITH UNEQUAL INSTRUCTION COUNTS DOES NOT MAKE
+ *     POSITIONS LINE UP.  tools/aligncmp.py -v locates both ends:
+ *         the MISSING INSTRUCTION is at ref indices 97-103 (our 96-102)
+ *         the PAD is at OUR index 117  ("hunk insert ref[118:118] ours[117:118]
+ *                                        ours 0000 .short 0x0000")
+ *     so the ~20 stream positions BETWEEN them are shifted by one.  The 29 is
+ *     part distance and part phase, and nothing can be concluded from its
+ *     value alone.
  *
- * RE-MEASURED: the claim line at the top of this file REPRODUCES EXACTLY, and it
- * is a TRUE DISTANCE -- ref and ours are both 124 encodings, size and relocations
- * identical.  reports/park-figure-audit.md lists this park in its gap-of-one
- * shortlist as ref 116 / ours 115; that pair is the SIXTEEN-BIT-ONLY instruction
- * count, and a PAD absorbs the halfword, so the STREAM lengths are equal and this
- * park does NOT belong on a misalignment list.  The honest reading of the two
- * numbers together: the ROM has ONE MORE 16-BIT INSTRUCTION than we do and we
- * have one more pad halfword.  Anyone handed this park as "one instruction apart
- * in length" has been handed a different problem from the one in the file.
+ *   >> USE THE ALIGNED NUMBER FOR THIS PARK: **110 of 124 aligned-equal, 22
+ *      differing/ins/del in 7 hunks** (tools/aligncmp.py).  Quote the 29 only
+ *      with the 116/115 beside it. <<
  *
- * ==================== THE MISSING INSTRUCTION, LOCATED ====================
+ * ###########################################################################
+ * ## AND THE TWO RESIDUES ARE **ONE DEFECT**, NOT TWO.  BATCH 334'S
+ * ## "INDEPENDENT OF THE r2/r3 PHASE" IS REFUTED.
+ * ###########################################################################
  *
- * The claim that "ALL 29 differing encodings trace to ONE decision" -- the r2/r3
- * reload-scratch swap -- is REFUTED as an accounting of the residue, though the
- * swap itself reproduces.  tools/aligncmp.py's hunk list puts a second, separate
- * difference in the TAIL, and it is the missing instruction:
+ * Batch 334 located the missing instruction correctly -- the ROM copies `best`
+ * out of r10 for the null test AND AGAIN for the dereference, we do it once --
+ * and then wrote "it is independent of the r2/r3 phase".  IT IS NOT.  The two
+ * are the same decision seen twice:
  *
  *     rom    mov r3,r10 / mov r0,#0 / cmp r3,#0 / beq END
  *            mov r2,r10 / ldr r3,[r2,#0x50]
  *     ours   mov r2,sl  / mov r0,#0 / cmp r2,#0 / beq END
  *                         ldr r3,[r2,#80]
  *
- * THE ROM COPIES `best` OUT OF r10 TWICE -- once into a low register for the null
- * test, and AGAIN, in the block after the branch, for the dereference.  We copy it
- * once and keep that low copy live across the branch.  So the ROM's low copies are
- * two short-lived values re-materialised per basic block; ours is a single pseudo
- * spanning the branch.  That is where the instruction count differs, and it is
- * independent of the r2/r3 phase.
+ * The ROM's null-test scratch is **r3**, and the very next insn is
+ * `ldr r3,[r2,#0x50]` -- which DESTROYS r3.  So the ROM *cannot* reuse the
+ * test's copy as the dereference base and must materialise a fresh `mov r2,r10`.
+ * Ours lands the test's copy in **r2**, and `ldr r3,[r2,#80]` uses r3 as the
+ * DESTINATION and r2 as the BASE, so our r2 survives the branch and reload has
+ * nothing left to materialise.
  *
- * ================ THE TAIL IS NOT REACHABLE BY SPELLING ================
+ *   >> SO FIXING THE r2/r3 RELOAD-SCRATCH PHASE SHOULD PRODUCE THE MISSING
+ *      INSTRUCTION FOR FREE, and the park has ONE blocker, not two.  That also
+ *      means the instruction-count gap is NOT separately reachable and should
+ *      not be attacked on its own -- which is what the previous header's
+ *      "NAMED REMAINING QUESTION" sent the next agent off to do. <<
  *
- * Eight tail spellings, measured this batch.  Every one is BIT-IDENTICAL to the
- * body above -- same stream, same aligned-equal count, same hunk list -- which by
- * the rule in src/rom_8a000/rom_93304_c_a_c.c ("if an edit does not move the
- * allocator's inputs, the edit did not happen") means these are NOT inert levers;
- * the edits never reached flow at all:
+ * ###########################################################################
+ * ## THE PREVIOUS HEADER'S OPEN QUESTION, ANSWERED FROM THE DUMPS.
+ * ###########################################################################
  *
- *   the sprite pointer named in its own local
- *   the loaded halfword named in its own local
- *   the `short *` named in its own local
- *   both of the above named, as two statements
- *   a second actor local assigned from `best`
- *   an early `return res` instead of the nested test
- *   `&&` instead of the nested ifs
- *   the body's own spelling (control)
+ * It asked: "what keeps OUR low copy of `best` alive across the `beq`?  If the
+ * copy is reload's ... If instead the copy is an allocator-assigned pseudo ...
+ * Those are different files; name which before editing C again."
  *
- * This matters more than the eight rows: the previous header's inert list is also
- * mostly tail spellings ("12 tail spellings", "5 cast spellings", "4 u16 ang
- * spellings"), and the eight above suggest that WHOLE CLASS was flat for the same
- * reason -- it was never reaching the compiler's intermediate form.  A tail edit
- * on this function should be screened by `-da`'s dumps before its figure is
- * believed either way.
+ * ANSWER: **`best` is an ALLOCATOR-assigned pseudo and the low copies are
+ * RELOAD'S.**  `.17.lreg` has `Register 34 used 6 times across 140 insns; set 2
+ * times; user var; crosses 2 calls; pref LO_REGS; pointer` and `.18.greg` has
+ * `34 in 10` -- so `best` lives in r10 for its whole range, with LO_REGS as its
+ * PREFERRED class that it did not get.  Every low copy is therefore reload
+ * satisfying a Thumb operand constraint, not an allocation.
  *
- * >> NAMED REMAINING QUESTION, and it is narrower than the previous one: what
- *    keeps OUR low copy of `best` alive across the `beq`?  If the copy is reload's
- *    (r10 is a high register and both `cmp` and the `ldr` base need a low one),
- *    then the single copy is the anomaly and the thing to read is whether
- *    reload1.c's post-reload CSE is deleting the second re-materialisation, and
- *    whether its value table is reset at the block boundary.  If instead the copy
- *    is an allocator-assigned pseudo, the thing to read is why `best` has a low
- *    pseudo at all when the ROM reaches r10 directly at every use.  Those are
- *    different files; name which before editing C again.
+ * AND THE COUNT IN THE PREVIOUS HEADER IS OFF BY ONE, which matters for anyone
+ * reading `.19.flow2`: we emit **two** reads of sl, not one, and the ROM emits
+ * **three**.  Ours are `insn 379  (set (reg:SI 2 r2) (reg/v:SI 10 sl))` in
+ * bb 18, the null-test copy, and `insn 245  (set (reg/v:SI 0 r0)
+ * (reg/v:SI 10 sl))` in bb 20, the RETURN VALUE.  Both survive unchanged into
+ * `.23.sched2` and `.26.mach`.  The one we lack is the DEREFERENCE BASE, and
+ * per the section above it is lacking because our test copy is in r2.
+ *
+ *   >> SO THE FILE TO READ IS reload1.c's SCRATCH CURSOR, not its post-reload
+ *      CSE: nothing is deleting a second re-materialisation, because reload
+ *      never needed one.  batch 342's finding applies directly -- a scratch
+ *      residue that ALTERNATES is ONE CURSOR PHASE, not N choices
+ *      (allocate_reload_reg takes the next register off a round-robin cursor,
+ *      reload1.c:5003, :4937, reset per function at :821), so with {r2,r3} the
+ *      PERIOD IS TWO and ONE EXTRA RELOAD ANYWHERE EARLIER INVERTS EVERY LATER
+ *      SITE AT ONCE. <<
+ *
+ * That last point is in tension with this park's own measured fact 3 ("ADDING A
+ * RELOAD EARLIER DID NOT SHIFT THE PHASE", an extra `if (ref->f0c ==
+ * 0x12345678) return 0;` at the top, +3 instructions, left `ldr r2,=0xffffd001`
+ * unchanged).  BOTH ARE MEASUREMENTS AND BOTH SHOULD BE BELIEVED; the
+ * reconciliation to test is that the added reload was in a DIFFERENT BASIC
+ * BLOCK from the contested sites and the cursor is not what that probe moved.
+ * That is the next experiment, and it is cheap: add a reload inside the LOOP
+ * BODY, where sites 1-11 already agree with the ROM register for register, and
+ * see whether site 12 onward inverts.
+ *
+ * ###########################################################################
+ * ## AUTOSWEEP: BOTH CHEAP AXES RUN, AND ITS 28 IS A **POSITIONAL ARTIFACT**.
+ * ###########################################################################
+ *
+ * FLAG AXIS -- nothing.  Four groups EXACTLY INERT at 29 (-fno-gcse,
+ * -fno-strict-aliasing, -fno-strength-reduce, -fno-rerun-cse-after-loop,
+ * -fno-rerun-loop-opt); -O1 107, -fno-schedule-insns2 49, -ffixed-r7 122.
+ *
+ * ANCHOR AXIS -- autosweep reports `anchor18` at **28**, "Improved 29 -> 28".
+ * **DO NOT BELIEVE IT AS AN IMPROVEMENT.**  anchor18 is
+ * `do { } while (0);` after `ang = (short)(ang - ref->f06);` inside the
+ * `if (r > 0x17)` arm.  Measured both ways:
+ *
+ *     body       objcmp stream    instructions    aligncmp
+ *     parked     29 of 124        116 / 115       110 equal, 22 diff, 7 hunks
+ *     anchor18   28 of 124        116 / 115       110 equal, 22 diff, 6 hunks
+ *
+ * The ALIGNED residue is IDENTICAL -- same 110, same 22.  The anchor merely
+ * coalesced two adjacent hunks, which moves `first` from 82 to 83 and drops the
+ * positional count by one.  It does not fix the instruction count and it
+ * removes nothing.  **This is exactly the trap the misalignment correction
+ * above is about, caught on this park's own cheapest axis**, and it is why a
+ * positional figure on a different-length stream must never be ranked.
+ * The parked body is retained unchanged; the anchor buys nothing real.
+ * 2 of 26 anchor placements produced NO ROW (untested, not inert).
+ *
+ * ###########################################################################
+ * ## EVERYTHING BELOW IS CARRIED FORWARD AND STILL THE MAP.
+ * ###########################################################################
+ *
+ * BLOCKER: RELOAD-SCRATCH ROUND-ROBIN *PHASE*, in the RELOAD pass.  The 29
+ * differing encodings trace to ONE decision: at insn 192 the constant -0x2fff
+ * gets r2 where the ROM gets r3, and the r2/r3 roles then stay swapped at the
+ * loop-tail -1 reload and at the tail's `mov rX, r10`.  Reload sites 1-11 agree
+ * with the ROM REGISTER FOR REGISTER; from site 12 the ROM is exactly ONE STEP
+ * FURTHER along the round robin over {r2, r3}.  (Batch 334 called the
+ * "all 29 trace to one decision" accounting refuted because of the tail; this
+ * batch restores it -- the tail IS the same decision.  See above.)
+ *
+ * THREE MEASURED FACTS THAT NARROW THIS, and the first CONTRADICTS THE DOC'S
+ * DISCRIMINATOR:
+ *
+ *   1. `.18.greg`'s find_reload_regs line says "Using reg 3 for reload 0" at
+ *      insn 192 -- THE PASS THAT PICKS THE SPILL SET ALREADY PREFERS r3.  The
+ *      r2 comes from allocate_reload_reg overriding it in reload_as_needed.  So
+ *      docs/elevation.md's "read `Using reg N`" discriminator DOES NOT SEE THIS
+ *      DEFECT, and the spill set here is already {2,3}, the same width as the
+ *      ROM's.  This is NOT the narrow-spill-set variant -- for that, see the
+ *      file-mate park 808bb2c.
+ *   2. `last_spill_reg` IS RESET PER FUNCTION.  Prepending a dummy function
+ *      that consumes a reload left the residue at exactly 29, so THE PHASE
+ *      CANNOT BE FIXED FROM A FILE-MATE and a single-function candidate is
+ *      legitimate here.
+ *   3. ADDING A RELOAD EARLIER DID NOT SHIFT THE PHASE (see the reconciliation
+ *      proposed above -- the probe was in a different basic block).
+ *
+ * Inert against this residue, all measured singly: 11 declaration-order
+ * positions for `i`; 6 init-statement orders (only `best = 0;` before
+ * `bestd = 0x28;` mattered and it fixed the PROLOGUE, not this); 12 tail
+ * spellings; 5 `(short)` cast spellings; 4 `u16 ang` spellings; an `fp`
+ * spelling; a named `u8 *` for the +0x54 byte load; --no-rerun-cse.
+ *
+ * THE TAIL IS NOT REACHABLE BY SPELLING.  Eight tail spellings measured in
+ * batch 334 are every one BIT-IDENTICAL to the body above -- same stream, same
+ * aligned-equal count, same hunk list -- which by the rule in
+ * src/rom_8a000/rom_93304_c_a_c.c ("if an edit does not move the allocator's
+ * inputs, the edit did not happen") means these are NOT inert levers; the edits
+ * never reached flow at all:
+ *     the sprite pointer named in its own local
+ *     the loaded halfword named in its own local
+ *     the `short *` named in its own local
+ *     both of the above named, as two statements
+ *     a second actor local assigned from `best`
+ *     an early `return res` instead of the nested test
+ *     `&&` instead of the nested ifs
+ *     the body's own spelling (control)
+ * A tail edit on this function should be screened by `-da`'s dumps before its
+ * figure is believed either way.  BATCH 343 CORROBORATION FROM ANOTHER
+ * FUNCTION: the same phenomenon was measured on Func_80c0f98 at scale -- 144
+ * crossed statement-order variants, ALL EXACTLY 22, bit-identical.  So this is
+ * a CLASS, not a quirk of this park.
  */
 typedef unsigned char u8;
 typedef unsigned short u16;

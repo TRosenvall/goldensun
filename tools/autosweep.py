@@ -179,6 +179,9 @@ def measure(path, ref, fn, extra=""):
     m = re.search(r"differ in (\d+) place\(s\) \(ref (\d+)", out)
     if not m:
         return None
+    fi = re.search(r"first at index (\d+)", out)
+    if fi:
+        globals()["_BASE_FIRST"] = int(fi.group(1))
     # RELOCATIONS ARE ON THE SAME OUTPUT and a figure alone hides them: brief D's
     # 20087b0 read "14 of 71" AND "RELOCATIONS differ", two pool words transposed,
     # so its 14 was never a plain distance.  Asking for both instruction counts
@@ -364,6 +367,7 @@ def main():
                 continue
             if label == "BARRIER" and not a.barrier:
                 continue
+            base_first = globals().get("_BASE_FIRST")
             capped = len(pts) > a.max
             print(f"{label} AXIS -- {min(len(pts), a.max)} of {len(pts)} statement "
                   f"boundaries{'  (DEVICE: fakematch-class, pass-3 debt)' if dev else '  (device-free)'}")
@@ -409,10 +413,25 @@ def main():
                             # was handed two such rows (82->81 and 149->145) and
                             # had to establish that neither was an improvement;
                             # dsize is sweep_variants' length delta.
+                            # dsize=0 IS NOT ENOUGH.  Batch 343 brief C showed a
+                            # row reading 29 -> 28 at dsize=0 that aligncmp scores
+                            # 110/22 BEFORE AND AFTER -- only the hunk count moved.
+                            # A positional count can fall while nothing closes,
+                            # because an equal-length stream can still be out of
+                            # phase when the instruction counts differ and a PAD
+                            # absorbs the difference.  So a win is only credible
+                            # when `first` moves too; flag the rest for checking
+                            # rather than calling them improvements.
                             dm = re.search(r"dsize=(-?\d+)", line)
+                            fm = re.search(r"first=(-?\d+)", line)
                             if dm and dm.group(1) != "0":
                                 tag = ("  <-- lower count but dsize=" + dm.group(1)
                                        + ": MISALIGNMENT, not an improvement")
+                            elif fm and base_first is not None and \
+                                    fm.group(1) == str(base_first):
+                                tag = ("  <-- lower count but `first` UNMOVED at "
+                                       + fm.group(1) + ": may be a phase artifact,"
+                                       " check with aligncmp before believing it")
                             else:
                                 tag = "  <-- BETTER"
                         if nd == 0:

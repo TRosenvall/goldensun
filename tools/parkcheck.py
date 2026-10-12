@@ -333,17 +333,28 @@ def check(path):
     # decomposes into real causes.  So:
     #
     #   stream lengths DIFFER  -> the comparison really is out of phase
-    #   stream lengths AGREE   -> positions line up; the figure may well be a
-    #                             distance, and the mix of 16- and 32-bit
-    #                             entries differs instead
+    #   stream lengths AGREE   -> SOMETHING absorbs the difference, but it does
+    #                             NOT follow that positions line up
     #
-    # The flag now reports what it measured instead of asserting a conclusion.
+    # CORRECTED, batch 343 brief C, on the SAME function this note was written
+    # for.  Two things about Func_8093af8 were wrong here: the absorber is a PAD
+    # HALFWORD, not a 32-bit entry (those are 8 against 8), and EQUAL STREAM
+    # LENGTH WITH UNEQUAL INSTRUCTION COUNTS DOES NOT LINE POSITIONS UP.  A
+    # trailing pad cannot compensate positionally for an instruction missing
+    # MID-STREAM: aligncmp locates the missing instruction at ref 97-103 and the
+    # pad at our index 117, so everything between them is shifted, and the real
+    # residue is 110 aligned-equal against 22 in seven hunks.
+    #
+    # So the flag reports what it measured and names the alignment tool rather
+    # than asserting a conclusion either way.
     if insn:
         if ref_stream_equal:
             extra_note += ("  [16-bit instruction counts differ (ref %d, ours %d) but"
-                           " STREAM LENGTHS AGREE -- a 32-bit entry absorbs it, so"
-                           " positions line up and this figure may be a true distance]"
-                           % insn)
+                           " STREAM LENGTHS AGREE -- a 32-bit entry OR A PAD absorbs"
+                           " it.  THIS DOES NOT MEAN POSITIONS LINE UP: a trailing pad"
+                           " cannot compensate for an instruction missing mid-stream."
+                           " Run aligncmp to locate both ends before reading this"
+                           " figure as a distance]" % insn)
         else:
             extra_note += ("  *** INFLATED: instruction counts differ (ref %d, ours %d)"
                            " AND stream lengths differ, so this positional figure"
