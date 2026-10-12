@@ -35648,6 +35648,26 @@ gap of ±1 is not evidence of one site.
 figure is 143 is not "143 away"; it is one instruction away from being
 *measurable*.
 
+## BUT CLOSING THE GAP IS NOT MONOTONIC PROGRESS — measure the ALIGNED residue
+
+This is the qualifier on everything above, and brief B measured it on `Func_8093af8`:
+a change that **equalised the instruction counts** (figure 29 → 17 of 124) made
+the **aligned** residue *worse* — 110/22 became 109/23 — **with the missing
+instruction still missing**. The figure fell because the phase offset went away,
+not because the code got closer.
+
+So the ordering is:
+
+1. Close the length gap, and treat the figure as unreadable until it is closed.
+2. Then read the **aligned** residue (`aligncmp`), not the raw figure, and
+   compare it against the aligned residue of the body you started from.
+
+A falling figure across a length change is **expected and means nothing on its
+own** — it is the offset disappearing. The only comparison that survives a length
+change is the aligned one. This is the same defect `autosweep`'s flag axis had
+(ranking variants on raw ndiff across length changes), and it applies just as
+much to a human reading two figures by hand.
+
 # Batch 344 — mechanisms
 
 ## `flow.c` appends a nop that breaks `find_cross_jump`
@@ -35739,3 +35759,43 @@ parks that fit the command on one line and **silently skipped 550**, better than
 **A tool that reports nothing is making a claim, and the claim needs the same
 audit as a figure.** Six instruments, six clean negatives. The cheapest check is
 to run the tool on something you already know the answer to.
+
+## Batch 344 brief B — four more mechanisms, and `cse`'s copy test is about ADJACENCY
+
+- **`cse.c:5960-6005` is an adjacency test, not a liveness test.** Its gate at
+  `:5992-5994` requires `prev_nonnote_insn` of the copy to be the insn that set
+  the source. That is why naming the dividend in a local **keeps**
+  `expand_divmod`'s copy (`expmed.c:3243`) — a park had bounded this as needing
+  "a second use the function has none to give", which is the wrong precondition
+  entirely.
+- **N two-instruction Thumb constants in one argument list need N names DEFINED
+  BEFORE A CALL THEY ARE LIVE ACROSS** — not N names at the call. `cse` unifies
+  them whatever the spelling, and the ROM's repetition comes from reload
+  **rematerialising a `REG_EQUIV` constant once per argument**. The lever is
+  **definition order**; declaration order is exactly inert, which is all the park
+  had tried across ten bit-identical spellings.
+- **A use-site `volatile` keeps an `add rD, rB, rI`** that `(plus reg reg)`
+  addressing would otherwise fold into the store (`arm.h:2133-2148`). Ten
+  non-volatile spellings inert. The free version: the fold is blocked wherever
+  the offset register is **written between** the `add` and the store.
+- **Reload inheritance across an UNLABELLED FALLTHROUGH EDGE** decides whether a
+  second low copy of a high register exists. Worth recording because it means a
+  **reload-cursor parity question can PRODUCE an instruction** — the kind of gap
+  that looks source-level and is not.
+- **`.12.life`'s refs and live-length do not predict `allocno_compare`'s sort.**
+  One park went 2.00 → 1.09, below its rival's 1.60, with the sort order and both
+  dispositions **unchanged**: those fields are recomputed before lreg. Reading
+  the ratio out of `.12.life` is reading the wrong dump.
+
+### And the recorded-negative pattern, now three batches running
+
+Two of this brief's parks had their **decisive lever sitting in their own
+recorded-negative list** — p3's allocation bound, and p4's "dividend named in an
+int local [39]", which is 40/40 once the name is **reused** for the later temp.
+Both parks had been closed on those rows for ten batches.
+
+The reason is always the same and it is worth stating as a rule: **a recorded
+negative is a measurement of ONE BODY, and it expires silently every time the
+body changes.** It is still worth recording — it saves the next agent real
+tokens — but it must be read as "inert against the body of batch N", never as
+"inert".
