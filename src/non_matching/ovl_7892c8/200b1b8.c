@@ -1,3 +1,66 @@
+/* ===================== BATCH 342 (brief E, the DEPIN brief) ADDENDUM -- READ FIRST
+ *
+ * OvlFunc_888_200b1b8 -- STILL NON-MATCHING, AND NOW PIN-FREE AT NO COST.
+ *
+ * *** THE SINGLE PIN IS ENTIRELY INERT.  THIS IS A FREE DEPIN. ***
+ * Dropping `register unsigned char *a __asm__("r6")` to a plain
+ * `unsigned char *a;` is IDENTICAL in every column objcmp reports:
+ *     20 of 79 stream encodings, first differing at index 6,
+ *     65 / 64 16-bit instructions, 13 / 12 32-bit entries,
+ *     176 bytes against 184 (dsize -8), same relocation list.
+ * So this file now carries **0 pins** (tools/shimcount.py) and needs no
+ * fakematch.txt row whenever it eventually lands.
+ *
+ * THE FIGURE IS A PHASE FIGURE, NOT A DISTANCE: ref 79 stream / 65 instructions
+ * against ours 76 / 64, and the reference is 8 bytes longer.  Read the counts
+ * before the 20.
+ *
+ * Verify with:
+ *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
+ *     goldensun-build python3 tools/objcmp.py \
+ *     src/non_matching/ovl_7892c8/200b1b8.c \
+ *     asm/overlays/rom_7892c8/ovl_30_c_c_a_a_a_c_c_a_c_c.s --func OvlFunc_888_200b1b8
+ *
+ * *** THE HEADER BELOW SAYS THE r6 PIN IS LOAD-BEARING.  IT IS NOT, ANY MORE. ***
+ * It records: "This park recorded pinning the map actor to r6 as WORSE (80
+ * lines, 78 differing) ... With the hoist gone the same pin is worth 16
+ * differing (42 -> 26 in combination) and is load-bearing.  Re-measure a
+ * rejected lever after the shape changes."  THE ADVICE IS EXACTLY RIGHT AND IT
+ * APPLIES TO THE SENTENCE ITSELF: the body has changed again since, and at
+ * today's baseline the pin is worth ZERO.  This is the same lesson the header
+ * already records about the two r5 pins -- "scaffolding that was load-bearing
+ * under one diagnosis is dead weight under the next" -- happening a second time
+ * to the lever that replaced them.  CORRECTED.
+ *
+ * THE RELOCATION STATE, CHECKED RATHER THAN ASSUMED.  objcmp --whole reports the
+ * relocations as differing and then says so itself, three times:
+ *     ~~ relocation _umodsi3_RAM / __umodsi3 is ONE symbol (same address in the
+ *        linked ELF)
+ * which confirms the header's withdrawal of the old relocation scare.  The only
+ * other relocation delta is OvlFunc_888_200b144 at offset 0xa8 against 0xac --
+ * the four-byte shift the 8-byte length gap causes, not a symbol difference.
+ *
+ * WHAT IS LEFT IS NOT A PIN QUESTION AND NOT A SPELLING QUESTION.  The 8 missing
+ * bytes are one pool word + the `b` over it + its pad, i.e. the pooled constant
+ * and `create_fix_barrier` (arm.c:5240, emitted :5305-5309, reached from :5551-5572)
+ * that comes with it, exactly as the header derives.  The gate is the OWNER
+ * DECISION on the pooled word's identity.  Nothing measured this batch moves it.
+ *
+ * MEASURED THIS BATCH, pin-free, all inert or worse (base 20):
+ *   - flag axis: `-fno-gcse`, `-fno-strict-aliasing`, `-fno-strength-reduce`,
+ *     `-fno-rerun-cse-after-loop`, `-fno-rerun-loop-opt` all 20 (INERT);
+ *     `-fno-schedule-insns2` 40; `-O1` 67; `-ffixed-r7` 79.
+ *   - autosweep's anchor axis: ALL 20 OF 20 boundaries measured, all inert at
+ *     20.  **BOTH CHEAP AXES ARE CLOSED ON THIS PARK** -- do not re-run them.
+ *   - naming the actor's fourth field before __CreateActor: 71 (and one
+ *     instruction LONG).
+ *   - hoisting the actor's sprite-byte read above the stores: 79.
+ *   - `do { } while (0)` before __CreateActor: 22.
+ *
+ * SPLIT SHAPE, unchanged.  Harness: scratch_elev/b342/E (e342_sweep.py,
+ * e342_flagcross.py; v3/ holds the variants above).
+ * =====================================================================================
+ */
 /* OvlFunc_888_200b1b8 -- 0x0200b1b8  [asm/overlays/rom_7892c8/ovl_30_c_c_a_a_a_c_c_a_c_c.s]
  *
  * NON-MATCHING, 20 of 79 encodings  (MEASURED, batch 333 brief E).
@@ -180,7 +243,7 @@ extern void OvlFunc_888_200b144(void);
 
 void OvlFunc_888_200b1b8(int slot)
 {
-    register unsigned char *a __asm__("r6");
+    unsigned char *a;
     unsigned char *n;
     unsigned char *q;
     int x;

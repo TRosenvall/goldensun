@@ -30,8 +30,21 @@ the park alone finds nothing."  A blind flag sweep would NOT have found it.
 
 Measured since, on parks no agent had swept:
 
-    FLAG axis    0 landings / 0 improvements in 6 parks
-    ANCHOR axis  1 LANDING in 7 parks  (batch 338 brief A, Func_80a7440 4 -> 0)
+    FLAG axis    2 LANDINGS and 3 improvements in 10 parks  (batches 340-342)
+    ANCHOR axis  1 landing and several improvements in ~20 parks
+
+THE FLAG AXIS RATE WAS BADLY UNDERSTATED, and the reason matters for sequencing.
+The original "0 in 6" came from six parks that had ALREADY BEEN HAND-SWEPT by
+earlier briefs, so the cheap answers were gone before this tool ran.  Batch 342
+brief A drew four parks that were batch-319 backfills NOBODY had ever swept and
+THREE of the four improved on the flag axis -- 23 -> 11 on -fno-gcse (which then
+landed), 25 -> 17 on -O1, 23 -> 19 on -ffixed-r7.  Batch 342 brief D's whole
+landing WAS a flag: OvlFunc_924_2009db4 is byte-identical under
+-fno-rerun-loop-opt with the park's body unchanged, and its park had recorded
+"NO FLAG GROUP HELPS" -- a bound stated from six of the eight groups.
+
+So: on a park nobody has swept, run this FIRST.  On one that has been swept by
+hand, expect little.
 
 THE ANCHOR AXIS HAS NOW PAID ONCE.  Brief A's Func_80a7440 came to 0 on
 `do { } while (0);` after `s = iwram_3001f2c;`, found by this tool while the
@@ -255,6 +268,15 @@ def path_in_reloc_warn(p):
 
 
 def main():
+    # THIS TOOL SHELLS OUT TO `docker` ITSELF, so it must run on the HOST.  Run
+    # inside the build container it dies AFTER printing the park's claims, which
+    # reads as a measurement failure rather than a usage error -- batch 341 brief
+    # D and batch 342 brief E each lost time to it.
+    if not shutil.which("docker"):
+        print("autosweep.py must run on the HOST, not inside the build container:")
+        print("  it invokes `docker run` itself, and there is no docker here.")
+        print("  (If you are in the container, exit and run it from the repo root.)")
+        return 2
     ap = argparse.ArgumentParser()
     ap.add_argument("park")
     ap.add_argument("--flags", action="store_true")

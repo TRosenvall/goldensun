@@ -1,12 +1,15 @@
 /* Func_80c1014 (0x080c1014) -- NON-MATCHING.
  *
- * NON-MATCHING, 23 of 30 encodings  (MEASURED, batch 319 recipe backfill).
- *   COUNT DIFFERS (ref 30, ours 28) -- so this positional figure measures
- *   MISALIGNMENT, not distance.  Read the count before the figure.
- *   RELOCATIONS differ, but THE SAME SYMBOLS AT A SHIFTED OFFSET -- which
- *   this project treats as a CONSEQUENCE of the length difference, not a
- *   separate blocker.  Re-classified in batch 322; the figure IS a distance.
- *   SIZE ref 64 bytes, ours 60.
+ * NON-MATCHING, 23 of 30 encodings  (RE-MEASURED UNCHANGED, batch 342 brief A).
+ *   COUNT DIFFERS -- instructions ref 28 / ours 26, so this positional figure
+ *   counts PHASE and ours is TWO SHORT.  Size ref 64 bytes, ours 60.
+ *   RELOCATIONS differ, but THE SAME TWO SYMBOLS AT A SHIFTED OFFSET
+ *   (Func_80b6c08 at 0x10 both sides; Func_80c0f98 at 0x28 against 0x24),
+ *   which is a CONSEQUENCE of the two missing instructions, not a blocker.
+ *   NOTE: the figure line this park carried before batch 342 printed the
+ *   STREAM counts ("ref 30, ours 28") on the line that says COUNT DIFFERS.
+ *   Those are stream entries; the instruction counts are 28 / 26.  The batch-334
+ *   addendum below had it right and the header line did not.
  *
  * Verify with:
  *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
@@ -14,103 +17,97 @@
  *     src/non_matching/rom_b5000/80c1014.c \
  *     asm/rom_b5000/rom_bffb8_c_c_a_a.s --func Func_80c1014
  *
- * This recipe was ADDED by the batch-319 backfill: the park had none, so
- * parkcheck.py could not report its figure and nothing had ever checked it.
- * Blocker class: REGISTER-ROLE SWAP plus one uncreatable copy.
+ * PIECE: tools/piece.py reports THREE functions in rom_bffb8_c_c_a_a.s --
+ * Func_80c0eec (66 of 79), Func_80c0f98 (30 of 61) and this one.  Any member
+ * can be cut out alone with tools/split_s.py.
+ * PINS: tools/shimcount.py reports 0.
+ * Blocker class: WHICH OF FOUR CALL-CROSSING VALUES LOSES LO_REGS.
  *
- * 31 lines against the ROM's 33. The bodies agree instruction for instruction;
- * the two missing lines and every register difference come from one thing the
- * ROM does and gcc will not:
- *
- *     rom    mov r5, sp / mov r7, r0 ... (guard) ... mov r8, r5
- *            then `mov r2, r8 / ldrsh r0, [r6, r2]` each iteration
- *     ours   mov r7, sp / mov r8, r0 ... no copy ...
- *            then `ldrsh r0, [r6, r7]` each iteration
- *
- * The ROM materialises the buffer address in r5, copies it into r8 INSIDE the
- * guard, and reloads it into a scratch register every iteration. We keep it in
- * one callee-saved register and index straight off that, which is a shorter and
- * obviously better allocation -- and two instructions the ROM has.
- *
- * MEASURED, all 31 lines and 25 differing, byte-identical to each other:
- *   one `base` local passed to the call and used in the loop
- *   a SECOND local `p = base;` assigned inside the guard -- the shape the
- *     ROM's `mov r8, r5` reads as; gcc coalesces it straight back
- *   the array passed directly to the call and `p = buf;` inside the guard,
- *     so the two materialisations have no common variable at all
- *
- * The third is the interesting negative: even with no shared name between the
- * call argument and the loop base, gcc still produces ONE address and never the
- * ROM's copy. This is the same wall as src/non_matching/ovl_77dd1c/2009498.c
- * from the previous round -- the C has no way to demand a particular
- * callee-saved register, or a redundant copy into one.
- *
- * WHAT IS RIGHT: the offset-first operand order on the load. The ROM's
- * `ldrsh r0, [r6, r2]` puts the OFFSET register first, which
- * `*(short *)(off + (int)p)` produces and `p[i]` does not -- the rule recorded
- * for register-offset loads, applied per access.
- *
- * NEXT: nothing source-level.
- 
- * ===== BATCH 334 BRIEF B: THE COPY IS NOT THE BLOCKER.  THE BLOCKER IS THE
- * ===== ALLOCNO PRIORITY ORDER, AND IT IS NOW QUANTIFIED.
- *
- * Figure re-derived unchanged: twenty-three of thirty stream encodings,
- * instructions ref twenty-eight against ours twenty-six.  Body unchanged.
- *
- * THE TWO MISSING INSTRUCTIONS ARE ONE DECISION, AND IT IS NOT A COPY.
- * The reference's `mov r8, r5` and its per-iteration `mov r2, r8` both exist
+ * THE TWO MISSING INSTRUCTIONS ARE ONE DECISION AND IT IS NOT A COPY.  The
+ * reference's `mov r8, r5` and its per-iteration `mov r2, r8` both exist
  * because the loop's buffer base is in a HIGH register and `ldrsh` needs a low
- * one -- so `mov r2, r8` is a RELOAD, not a source-level copy.  Our output is
- * the same program with the roles of two values swapped: we put the parameter
- * in r8 (where a `cmp` can read it for free) and the base in r7.  The park's
- * reading, and batch 333's correction of it to gcse copy propagation, are both
- * about keeping `p = base` alive; neither would produce the reference even if
- * it worked, because the reference's two instructions come from WHICH VALUE
- * TAKES THE HIGH REGISTER.
+ * one, so `mov r2, r8` is a RELOAD.  Our output is the same program with two
+ * values' roles swapped: we put the parameter in r8 (where `cmp` reads a high
+ * register for free) and the base in r7.  r4 is call-used in this build, so
+ * only r5, r6 and r7 are low callee-saved for FOUR values that live across the
+ * inner call -- one MUST go high, and the only question is which.
  *
- * READ IT STRAIGHT OFF `.18.greg`, which prints the order for you:
- *     ;; 6 regs to allocate: 38 36 35 37 33 32
- *     ;; Register dispositions: 32 in 8  33 in 7  35 in 0  36 in 5  37 in 6
- * That list IS `allocno_order` after its sort, lowest priority LAST.  reg 32
- * is the parameter (set from r0 at insn 4) and reg 33 is the base.  The
- * parameter is last, so it is the one that fails its preferred class and
- * retries with `reg_alternate_class` (**global.c:561-566**), and that retry is
- * what hands out r8.  To reach the reference, reg 33 must be last instead.
+ * ===== BATCH 342 BRIEF A: THE SHAPE IS REACHABLE, AND BATCH 334's ARITHMETIC
+ * ===== WAS WRONG BECAUSE n_refs IS WEIGHTED BY LOOP DEPTH.
  *
- * WHY IT CANNOT BE, ARITHMETICALLY.  `allocno_compare` (**global.c**, the
- * `pri1`/`pri2` expression) is
- * `floor_log2 (n_refs) * n_refs / live_length`, descending.  The base has
- * three references (its set, the call argument, the loop load) against the
- * parameter's two, and the parameter is born at the FIRST insn of the function
- * so its `live_length` is strictly the larger.  Ordering the base after the
- * parameter therefore needs `3 / L_base < 2 / L_param`, i.e. the base's live
- * length more than half again the parameter's -- impossible when the base is
- * born later.  Cutting the base to two references does not help either: with
- * equal reference counts the shorter life wins, and that is still the base.
+ * TWO NEW FACTS, ONE OF WHICH INVALIDATES THE OLD BOUND.
  *
- * SO THE ESCAPE IS EXPLICIT AND NARROW: the compared value needs FOUR
- * references and the base TWO.  `floor_log2` jumps at four, so 2/L_base is
- * then below 8/L_param for any plausible pair of lengths.  That is the shape
- * to go looking for, and it is a statement about reference COUNTS, not about
- * spellings of a copy.
+ * (1) THE ROM'S SHAPE IS REACHABLE.  Under `-ffixed-r7` gcc produces exactly
+ * the reference's treatment of the base -- `mov r8, sp` and a per-iteration
+ * `mov r3, r8 / ldrsh r0, [r6, r3]` -- at 19 of 30, autosweep's only improving
+ * row.  It does NOT land, and the reason is a hard budget rather than a choice:
+ * with r7 fixed only r5 and r6 are low, so TWO of the four go high, the second
+ * one (`sl`) has to be saved and restored, and ours is then 29 instructions
+ * against the reference's 28.  So `-ffixed-r7` cannot close this park at four
+ * long-lived values, whatever else is done.  Record that as a bound WITH its
+ * reason; the escape would be a body with only three.
  *
- * MEASURED INERT THIS ROUND, all twenty-six instructions and twenty-one
- * aligned-equal of thirty, i.e. byte-identical to the installed body -- and
- * note these vary the dimension the park and batch 333 both aimed at:
- *   - the parameter copied into a local inside the guard
- *   - a second pointer assigned inside the guard
- *   - both of the above together
- *   - the parameter copied into a local BEFORE the call
- *   - the array passed to the call directly, with the base named in the guard
- * MEASURED WORSE: reusing `count` as the loop counter (nineteen aligned-equal).
- * `.18.greg` confirms every one of these collapses back to the six allocnos
- * above, which is why they are all one cell of the search.
+ * (2) `n_refs` IS A LOOP-DEPTH-WEIGHTED COUNT.  **flow.c:5114-5116** reads
+ *     REG_N_REFS (regno) += (optimize_size ? 1 : pbi->bb->loop_depth + 1);
+ * so a reference inside a depth-1 loop counts TWO, not one.  (The same
+ * weighting is at :4948 for the auto-increment path and :5556 for a deleted
+ * increment; :5114 is the general one and is the line to cite.)  Batch 334
+ * counted raw occurrences -- "the base has three references against the
+ * parameter's two" -- and concluded the escape needs the parameter at FOUR
+ * references and the base at TWO.  With the weighting the real counts are
+ *     parameter   1 (prologue set, depth 0) + 2 (loop compare, depth 1) = 3
+ *     base        1 (set) + 1 (call argument) + 2 (loop load)           = 4
+ * and `allocno_compare` (**global.c:597-619**) scores
+ * `floor_log2 (n_refs) * n_refs / live_length * 10000 * size`, so the two
+ * priorities are 1*3/L_param = 3/L and 2*4/L_base = 8/L -- a far wider gap
+ * than batch 334 thought, because `floor_log2` has already jumped for the base.
+ * ONE REFINEMENT IN OUR FAVOUR: :617-619 breaks a tie with `return v1 - v2`,
+ * ascending allocno number, and the parameter IS the lower allocno (32 against
+ * 33), so A TIE IS A WIN and the requirement is `>=`, not `>`.
  *
- * ALSO WORTH KNOWING: r4 is unavailable across the loop's call in this build,
- * so only r5, r6 and r7 are low callee-saved registers for four values that
- * live across it.  One of the four MUST go high; the question is only which,
- * and that is the priority order above.
+ * THAT MODEL WAS THEN CONFIRMED BY THREE PROBES, and the probes are the point
+ * because they separate two things that look identical in the source:
+ *   - ONE EXTRA IN-LOOP reference to the parameter (`Func_80c0f98(v, arg0 | 1)`)
+ *     takes its weighted count 3 -> 5, `floor_log2 * n` 3 -> 10, AND FLIPS THE
+ *     ALLOCATION: `mov r7, r0` for the parameter, `mov r8, sp` for the base,
+ *     and the reference's `mov r3, r8 / ldrsh` reload.  (32 instructions, so
+ *     not a landing -- it is a probe.)
+ *   - ONE EXTRA DEPTH-0 reference (a second clause in the guard,
+ *     `count > 0 && arg0 >= 0`) takes the weighted count only 3 -> 4,
+ *     `floor_log2 * n` 3 -> 8, a TIE against the base's 8 -- and DOES NOT flip,
+ *     because the parameter is born one insn earlier so L_param > L_base and
+ *     8/L_param < 8/L_base.  The tie-break never gets reached.
+ *   - a FIFTH long-lived value crossing the call, with the parameter's
+ *     references unchanged, does not flip it either.
+ * So the escape is now stated sharply: THE PARAMETER NEEDS ONE MORE REFERENCE
+ * INSIDE THE LOOP, worth 2, and it must cost no instruction.  Nothing found so
+ * far does; that is the open question and it is a much smaller one than
+ * "four references".
+ *
+ * MEASURED INERT THIS ROUND, all exactly 23 of 30 and byte-identical to this
+ * body -- 17 spellings, and note the last six are the shape the reference's
+ * `mov r8, r5` actually has, a second name for the buffer address whose COPY
+ * SITS BEFORE THE CALL so the first name does not die at it and regmove's
+ * optimize_reg_copy_1 cannot coalesce.  gcse/cse collapse them anyway:
+ *   the array passed straight to the call, keeping `base` for the loop only
+ *   the compare's operands swapped
+ *   `v - arg0 != 0` and `(v ^ arg0) != 0` (both fold back to one `cmp`)
+ *   the subtraction named
+ *   `arg0 = arg0;` ahead of the call (the batch-336 parameter-in-place lever)
+ *   q = base before the call, q = buf before the call, the call taking q
+ *   base kept live past the loop
+ *   q = base + 0
+ * MEASURED WORSE: `base` defined inside the guard (26); the loop indexing `buf`
+ *   directly (29).
+ * AUTOSWEEP (batch 342): flag axis -- `-ffixed-r7` 19 (see (1) above), `-O1`
+ *   and `-fno-schedule-insns2` 24, the other five inert at 23; anchor axis --
+ *   10 of 10 boundaries, ALL inert or worse.  BOTH AXES ARE CLOSED.
+ *
+ * NEXT: a free in-loop reference to `arg0`, or a body with three call-crossing
+ * values rather than four (which would also make `-ffixed-r7` affordable).
+ * Nothing else in the allocator is reachable from here -- the priority order
+ * `;; 6 regs to allocate: 38 36 35 37 33 32` in `.18.greg` is identical across
+ * every one of the 17 inert spellings.
  */
 extern int Func_80b6c08(int a, short *buf);
 extern void Func_80c0f98(int v, int b);

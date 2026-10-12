@@ -1,3 +1,103 @@
+/* ===================== BATCH 342 (brief E, the DEPIN brief) ADDENDUM -- READ FIRST
+ *
+ * BaseAnim_Tackle -- STILL NON-MATCHING.  BODY REPLACED WITH THE PIN-FREE ONE
+ * under the owner's PREFER-PIN-FREE policy.  The 10-pin body's figure of 2 is
+ * REPRODUCED and reconstructible from the ladder below; a 9-PIN BODY REACHES THE
+ * SAME 2 and is a strict improvement on what was installed.
+ *
+ * THE FIGURE, IN STREAM TERMS, FOR THE BODY THAT IS IN THIS FILE (pin-free):
+ *   274 of 402 stream encodings; 345 / 344 16-bit instructions -- THE COUNTS
+ *   DIFFER, so 274 MEASURES PHASE AND IS NOT A DISTANCE.  56/56 32-bit entries,
+ *   size 912 against 916 (dsize -4), RELOCATIONS DIFFER.
+ *
+ * Verify with:
+ *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
+ *     goldensun-build python3 tools/objcmp.py \
+ *     src/non_matching/rom_c9000/dfa18_Tackle.c \
+ *     asm/rom_c9000/rom_dfa18_c_c_c_c_a.s --func BaseAnim_Tackle
+ *
+ * REFERENCE, DECOMPOSED (the header below quotes 402 as the instruction count;
+ * it is the STREAM length): stream 402 = 345 16-bit instructions + 56 32-bit
+ * entries (pool words AND `bl`s) + pads.  916 bytes.
+ *
+ * *** ONE PIN IS FREE AND FOUR MORE COST TWO ENCODINGS BETWEEN THEM. ***
+ * Leave-one-out from the 10-pin body, all as built:
+ *
+ *   pins  dropped                                    ndiff  insns    reloc
+ *   ----  -----------------------------------------  -----  -------  -----
+ *    10   -- (the previous park)                       2    345/345  clean
+ *     9   `r11` on `frame`                             2    345/345  clean
+ *     8   `r11` + `r9` on `base`                       4    345/345  clean
+ *     8   `r11` + `r4` on `tb`                         5    345/345  clean
+ *     6   `r11` + the 3-pin PIN3 copy block            4    345/345  clean
+ *     5   `r11` + `r9` + PIN3                          6    345/345  clean
+ *     5   `r11` + PIN3 + `r4`                          7    345/345  clean
+ *     4   `r11` + `r9` + PIN3 + `r4`                   9    345/345  clean
+ *     3   the above + `r3` on `k3`                   217    345/344  DIFFER
+ *     0   all ten (THIS BODY)                        274    345/344  DIFFER
+ *
+ * `scratch_elev/b342/E/v2/pins09_minus-r11_frame.c` IS THE PARK'S OWN FIGURE
+ * WITH ONE FEWER PIN -- 2 of 402, 345/345, relocations clean, dsize 0, residue
+ * still at index 223.  `register int frame __asm__("r11")` is dead weight; r11
+ * is where gcc puts that loop counter anyway.  No flag, no cost.  It takes the
+ * file's eventual fakematch row from 10 pins to 9.
+ *
+ * SINGLE-PIN COSTS, measured one at a time from the 2 baseline: `r11` **0**,
+ * `r9` 2, PIN3 2, `r4` 3, `r3` 20, `r7` 140, `r0`(`b0`) 303, `r8`(`i`) 253.
+ * THE THREE LOAD-BEARING PINS ARE `r0` ON `b0`, `r8` ON `i` AND `r7` ON `pp`;
+ * the other five are 27 encodings between them and are where a pass-3 depin
+ * should aim.  Drops are roughly additive to four pins; `r3` breaks additivity
+ * hard (dropping it fifth is 9 -> 217 and leaves phase).
+ *
+ * *** THE HEADER BELOW HAS THE r9 FIGURE WRONG, AND IT IS THE EVIDENCE FOR ITS
+ * *** OWN RANKING ADVICE.  It states "removing only the r9 pin costs 47 -> 224".
+ * *** At today's baseline removing only `r9` costs 2 -> 4.  Whatever body the
+ * *** 224 was taken on is not this one.  Its CONCLUSION survives -- the pin-free
+ * *** figure IS in the hundreds (274) and this function cannot be a pass-2
+ * *** landing -- but the number must not be quoted again.  CORRECTED.
+ *
+ * *** THE "ONE ESCAPE LEFT" IS NOW CLOSED BY MEASUREMENT, NOT BY BELIEF. ***
+ * The header derives the sched2 bound properly (LUID direction at
+ * haifa-sched.c:4030-4115; the chain arm.h:1314 ACCUMULATE_OUTGOING_ARGS 1 ->
+ * calls.c:44 PUSH_ARGS 0 -> calls.c:67/73 PUSH_ARGS_REVERSED 0, so
+ * load_register_parameters at calls.c:1692-1696 walks args[] FORWARD) and leaves
+ * one door open: `emit_move_insn (r0, args[0].value)` must emit NOTHING at the
+ * forward position, "which requires args[0].value to already BE hard reg r0.  I
+ * could not construct that ... and do not believe it is constructible in C."
+ * IT IS CONSTRUCTIBLE -- a `register void *c0 __asm__("r0")` assigned from `ctx`
+ * immediately before the call is exactly that -- AND IT DOES NOT WORK.  Measured
+ * on the 9-pin body at the `dfs[0]` site that owns the residue (v2c/):
+ *     base, no device                                        2
+ *     `ctx` through a hard-r0 register local                 8
+ *     that, plus the call target through a hard-r4 local      8
+ *     `base` through a hard-r1 local (the swap's other half)  8
+ *     `do { } while (0)` immediately before the call          3
+ * All four keep 345/345.  The forward move IS elided; the window still does not
+ * come out in the ROM's order, it comes out worse, because the pin also displaces
+ * the call's three other register arguments.  THE BOUND STANDS, now with the
+ * construction tried rather than assumed.  Do not re-open it.
+ *
+ * AUTOSWEEP, THIS BATCH, on the 10-pin body: flag axis -- `-fno-strength-reduce`
+ * 2 (inert), `-fno-strict-aliasing` 16, `-fno-rerun-cse-after-loop` 16,
+ * `-fno-rerun-loop-opt` 181, `-fno-schedule-insns2` 272, `-ffixed-r7` 290.
+ * Anchor axis -- only 31 of 121 boundaries actually measured (autosweep CAPS at
+ * 40 and 9 of those produced no row), all inert at 2.  **THE ANCHOR AXIS IS NOT
+ * CLOSED ON THIS PARK: boundaries 40..120 are UNTESTED, not inert.**
+ * Flag axis on THIS pin-free body (base 274): `-fno-strength-reduce` 274 and
+ * `-fno-rerun-cse-after-loop` 274 (inert), `-fno-gcse` 270, `-fno-rerun-loop-opt`
+ * 274, `-fno-strict-aliasing` 277, `-fno-schedule-insns2` 306, `-O1` 312,
+ * `-ffixed-r7` 332 -- every one a phase figure.  *** UNLIKE OvlFunc_885_200950c
+ * IN THIS SAME BATCH, TAKING THE PINS OUT HERE UNLOCKS NO FLAG.  So the
+ * batch-341 "the control was measured in the wrong search space" inversion is a
+ * REAL phenomenon but NOT A GENERAL ONE, and this function is the control that
+ * shows it. ***
+ *
+ * SPLIT SHAPE, unchanged: datacheck.py prints nothing, one function, converts
+ * whole, no data, no exports, no .sym entry.
+ * Harness: scratch_elev/b342/E (e342_sweep.py, e342_flagcross.py,
+ * e342_gen_t2.py; v2/ v2b/ v2c/ hold every variant above).
+ * =====================================================================================
+ */
 /* ===================== BATCH 327 (brief A) ADDENDUM -- READ FIRST =====================
  * BaseAnim_Tackle -- STILL NON-MATCHING, 2 differing encodings of 402.  BODY
  * UNCHANGED.  NO SWEEP RUN THIS BATCH, BY DESIGN: this header's own closing line
@@ -443,7 +543,7 @@ extern void WaitFrames(unsigned int n);
 
 void BaseAnim_Tackle(void *context, int variant)
 {
-    register unsigned char *base __asm__("r9");
+    unsigned char *base;
     void *ctx;
     DrawFn dfs[2];
     char *view;
@@ -458,7 +558,7 @@ void BaseAnim_Tackle(void *context, int variant)
     int fid;
     int arg;
     int arg2;
-    register int frame __asm__("r11");
+    int frame;
     vec3_t hit;
     vec3_t apos;
     vec3_t pos;
@@ -487,7 +587,7 @@ void BaseAnim_Tackle(void *context, int variant)
     arg2 = 0x90;
     arg2 <<= 1;
     {
-        register unsigned char *b0 __asm__("r0");
+        unsigned char *b0;
         b0 = base;
         Func_80df9d0(b0, gBuffer, 0x28, arg2);
     }
@@ -508,7 +608,7 @@ void BaseAnim_Tackle(void *context, int variant)
     }
     data = GetFile(fid);
     {
-        PIN3;
+        int q0, q1, q2;
         q1 = (int)data;
         q0 = 0xa0;
         copy = Func_8001af8;
@@ -529,7 +629,7 @@ void BaseAnim_Tackle(void *context, int variant)
             int *src = (int *)*ab;
             Part *p;
             int msk;
-            register int i __asm__("r8");
+            int i;
             i = 0;
             msk = 0xff;
             p = (Part *)(base + (0xe1 << 7));
@@ -550,7 +650,7 @@ void BaseAnim_Tackle(void *context, int variant)
         }
     }
     {
-        register int k3 __asm__("r3");
+        int k3;
         k3 = 0x7828;
         GetBattleActorPos3((*(Desc **)(base + k3))->ids[0], &hit);
     }
@@ -579,7 +679,7 @@ void BaseAnim_Tackle(void *context, int variant)
         if (frame >= 8 && frame <= 0x3f) {
             Part *p;
             int j;
-            register vec3_t *pp __asm__("r7");
+            vec3_t *pp;
             InitMatrixStack();
             MatrixSetLook(view, view + 0xc);
             j = 0;
@@ -597,7 +697,7 @@ void BaseAnim_Tackle(void *context, int variant)
                     ix = h - 2;
                     pos.x = pos.x >> 1;
                     {
-                    register char *tb __asm__("r4");
+                    char *tb;
                     tb = (char *)Data_ede48;
                     dfs[0](ctx, gfx + *(unsigned short *)(tb + ix),
                        pos.x - sz / 2, pos.y - sz, sz, h);

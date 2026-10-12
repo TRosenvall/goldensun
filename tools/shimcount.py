@@ -59,6 +59,59 @@ EQU     = re.compile(r"__asm__\s*(?:volatile\s*)?\(\s*\"\.equ\s+([A-Za-z_]\w*)")
 BARRIER = re.compile(r"__asm__\s*volatile\s*\(\s*\"\"\s*\)")              # ASM_INPUT: sched only
 CLOBBER = re.compile(r"__asm__\s*volatile\s*\(\s*\"\"\s*:{3}\s*\"memory\"") # PARALLEL: + combine
 PLUSR   = re.compile(r"__asm__\s*(?:volatile\s*)?\(\s*\"\"\s*:\s*\"\+r\"")
+# AN UNDEFINED EXTERN TAKEN BY ADDRESS IS A DEVICE, and it was a blind spot.
+# This tool counted register-asm declarations, `.equ` shims and empty
+# `asm volatile` -- but batch 342 brief E found a park reported as 0 PINS AND 0
+# DEVICES that carries `extern int _FILE_18;` read as `(int)&_FILE_18`, with
+# _FILE_18 defined NOWHERE in the tree: not in file_table.sym, not anywhere.
+# That stands in for a pooled constant and is worth 160 encodings on that park,
+# so a clean shimcount row there was badly misleading.
+#
+# It is exactly the class the owner's symbol-table ruling governs, so it must be
+# visible. Detected as: an `extern` declaration whose symbol is taken by ADDRESS
+# in the same file and which no `.sym` file defines.
+EXTERN_DECL = re.compile(r"^\s*extern\s+[\w \t\*]+?\b(\w+)\s*(?:\[[^\]]*\])?\s*;", re.M)
+
+
+def sym_defined():
+    """Every symbol the tree DEFINES anywhere -- .sym values, asm labels and
+    .globals, and C definitions (cached).
+
+    CHECKING ONLY .sym FILES WAS WRONG and flagged 26 landed files on its first
+    run.  A symbol can perfectly well be defined as a LABEL in asm/ --
+    gOvl_0200e3f4, gScript_882__0200cec8, ActorCmd_ARRAY_918__02009c00 are all
+    real overlay data -- and those are not devices.  The decisive argument is
+    that a LANDED file's externs all resolve by definition, because the build
+    links; so anything flagged in one is a false positive by construction.
+
+    Only a symbol defined NOWHERE is the device class: it cannot link, which is
+    precisely why it only ever appears in a park, standing in for a constant.
+    """
+    global _SYMDEF
+    try:
+        return _SYMDEF
+    except NameError:
+        pass
+    import glob as _g
+    _SYMDEF = set()
+    for s in _g.glob(os.path.join(ROOT, "*.sym")):
+        for line in open(s, errors="replace"):
+            line = line.split("/*")[0].split("//")[0].strip()
+            m = re.match(r"([A-Za-z_]\w*)\s*=", line)
+            if m:
+                _SYMDEF.add(m.group(1))
+    lbl = re.compile(r"^\s*(?:\.global\s+|\.globl\s+)?([A-Za-z_][\w.]*)\s*:", re.M)
+    glb = re.compile(r"^\s*\.glob(?:a)?l\s+([A-Za-z_][\w.]*)", re.M)
+    for s in _g.glob(os.path.join(ROOT, "asm/**/*.s"), recursive=True):
+        txt = open(s, errors="replace").read()
+        _SYMDEF.update(lbl.findall(txt))
+        _SYMDEF.update(glb.findall(txt))
+    cdef = re.compile(r"^[A-Za-z_][\w \t\*]*?\b(\w+)\s*(?:\([^;{]*?\)\s*\{|\[|=)", re.M)
+    for s in _g.glob(os.path.join(ROOT, "src/**/*.c"), recursive=True):
+        if "non_matching" in s:
+            continue
+        _SYMDEF.update(cdef.findall(open(s, errors="replace").read()))
+    return _SYMDEF
 # a bare ASM_OPERANDS pattern -- the only form that reaches cse.c:5742-5745.
 # Matches an operand list that is NOT "+r" (counted above) and NOT ::: "memory".
 OPERAND = re.compile(r"__asm__\s*volatile\s*\(\s*\"\"\s*:(?!::)\s*(?!\"\+r\")[^;]*?\)\s*;")
@@ -100,6 +153,19 @@ def count(path):
         # NOT added into `pins`: brief D found the single `"+r"` asm being counted
         # once as a barrier and again as a declaration.
         "plus_r": len(PLUSR.findall(body)),
+        # ONLY A PARK CAN CARRY THIS DEVICE, and that is the decisive test rather
+        # than any definition index.  A LANDED file's externs all resolve by
+        # construction -- the build links -- so a flag there is a false positive
+        # whatever the index says.  Two rounds of widening the index proved the
+        # point the hard way: .sym values alone flagged 26 landed files, adding
+        # asm labels and C definitions left 5, and those 5 are symbols defined
+        # through assembler MACROS (_FIXUP_RAM_CODE_SIZE comes from
+        # `.func_end_emit_size` at asm/rom_c0/rom_2544.s:619).  Chasing definition
+        # syntaxes is the wrong move; the link is the authority.
+        "addr_dev": sorted({n for n in EXTERN_DECL.findall(body)
+                            if "non_matching" in path
+                            and re.search(r"&\s*" + re.escape(n) + r"\b", body)
+                            and n not in sym_defined()}),
     }
 
 
@@ -127,7 +193,7 @@ def main():
         r = count(p)
         rel = os.path.relpath(p, ROOT)
         total = (r["pins"] + len(r["equ"]) + r["plus_r"]
-                 + r["clobber"] + r["operand"])
+                 + r["clobber"] + r["operand"] + len(r["addr_dev"]))
         if "--all" in sys.argv and total == 0 and not r["barriers"]:
             continue
         print(f"{rel}")
@@ -146,6 +212,11 @@ def main():
         if r["clobber"]:
             print('    asm + memory  : %d  (PARALLEL -- fences combine, NOT cse;'
                   ' fakematch-class)' % r["clobber"])
+        if r["addr_dev"]:
+            print('    addr device   : %d  (%s)  <-- UNDEFINED extern taken by ADDRESS;'
+                  ' stands in for a constant, and no .sym defines it'
+                  % (len(r["addr_dev"]), ", ".join(r["addr_dev"])))
+            problems += 1
         if r["operand"]:
             print('    asm + operand : %d  (bare ASM_OPERANDS -- the only form that'
                   ' flushes cse; fakematch-class)' % r["operand"])

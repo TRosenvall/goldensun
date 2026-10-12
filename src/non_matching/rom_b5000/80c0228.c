@@ -1,12 +1,12 @@
-/* Func_80c0228 -- asm/rom_b5000/rom_bffb8_a_a_c.s
+/* Func_80c0228 -- asm/rom_b5000/rom_bffb8_a_a_c_c.s
+ *   (the old subject line named rom_bffb8_a_a_c.s, WHICH DOES NOT EXIST; the
+ *   Verify recipe below was already right and tools/piece.py agrees)
  *
- * NON-MATCHING, 21 of 53 encodings  (MEASURED, batch 333).
- *   SIZE AND ENCODING COUNT MATCH (53 both) but a PAD IS ABSORBING a
- *   one-instruction difference -- instructions are ref 50, ours 49 -- so this
- *   positional figure STILL MEASURES MISALIGNMENT.  It stood at thirty-six of
- *   fifty-three; aligned-equal (tools/aligncmp.py) rose from nineteen to 34 of
- *   53 and the aligned residue fell from thirty-five differing in nine hunks to
- *   20 in 10.
+ * NON-MATCHING, 21 of 53 encodings.  RE-MEASURED batch 342, brief B: unmoved.
+ *   STILL A PHASE FIGURE.  Stream slots 53 both and size identical, but the
+ *   INSTRUCTIONS ARE 50 (ref) against 49 (ours) and a trailing 2-byte pad
+ *   absorbs the difference.  Relocations identical.
+ *   PINS: 0.  Device-free.
  *
  * Verify with:
  *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
@@ -19,7 +19,79 @@
  *     src/non_matching/rom_b5000/80c0228.c \
  *     asm/rom_b5000/rom_bffb8_a_a_c_c.s Func_80c0228 -v
  *
- * === BATCH 333: THE LENGTH GAP IS LOCATED, AND A NEW LEVER MOVED IT. ===
+ * SPLIT SHAPE: none.  tools/split_s.py --dry-run reports the reference "holds
+ * only Func_80c0228 and no data; convert it directly, no split needed".
+ *
+ * AUTOSWEPT AT FULL DEPTH, batch 342 (tools/autosweep.py --max 200).  FLAG
+ * AXIS: -fno-gcse, -ffixed-r7, -fno-strict-aliasing, -fno-strength-reduce and
+ * -fno-rerun-loop-opt all inert at 21; -fno-rerun-cse-after-loop 22;
+ * -fno-schedule-insns2 25; -O1 45.  ANCHOR AXIS: all 20 of 20 statement
+ * boundaries inert.  BOTH CHEAP AXES ARE CLOSED.
+ *
+ * === BATCH 342: THE MISSING INSTRUCTION IS A COALESCING FACT, NOT PRESSURE ===
+ *
+ * Batch 333 located the one missing encoding (the reference's `pop {r5}`) and
+ * called what remains "one coupled allocation decision".  The full stream diff
+ * says it is one COALESCING decision, and that is a different search.
+ *
+ * Both sides compute the same chain.  The reference keeps its four values in
+ * four places; ours ties three of them into one register:
+ *
+ *   reference                        ours
+ *     asr r3, #3        (TIED)         asr r2, r3, #3     (not tied)
+ *     mov r2, #0xd                     mov r3, #0xd
+ *     sub r2, r3        row -> r2      sub r3, r2         row -> r3
+ *     ldr r5, =0x6006000  base -> r5   ldr r2, =0x6006000 base -> r2
+ *     lsl r3, r2, #6    shift -> r3    lsl r3, #6         shift TIED to row
+ *     mov r1, #0                       mov r1, #0
+ *     add r2, r3, r5    ptr  -> r2     add r3, r2         ptr   TIED to shift
+ *
+ * So the reference's `row`, `shift` and `ptr` are three quantities in two
+ * registers (row and ptr share r2 because they do not overlap), which leaves
+ * r0/r1/r2/r3/r4 all occupied when the pooled base is born and forces it onto
+ * r5 -- hence `push {r5, lr}` and the extra `pop {r5}`.  Ours collapses
+ * row -> shift -> ptr into r3, so the base fits in r2 and no sixth register is
+ * ever wanted.  THE ROM IS NOT UNDER MORE PRESSURE; it simply did not
+ * coalesce.  Block 2 is the same story with the registers exchanged (idx 36-39
+ * is a pure r2/r3 swap) and the base there lands in r0 because `v` is dead.
+ *
+ * WHERE THE TIE IS MADE, AND THE GATE THAT WOULD REFUSE IT.  local-alloc's
+ * `combine_regs` ties a two-operand insn's output to a dying input, and its
+ * FIRST refusal is exactly the one that matters here:
+ *
+ *     if ((ureg >= FIRST_PSEUDO_REGISTER && reg_qty[ureg] < 0)
+ *   -- local-alloc.c:1633-1636, "it means that it is not local to this block
+ *      or dies more than once.  In either event, we can't do anything with it"
+ *
+ * So the next question is NOT "which declaration order", "which operand order"
+ * or "where does i = 0 go" -- all of which are now swept wide and flat -- but
+ * "what spelling makes the row/shift temp non-block-local or kill it twice, so
+ * that combine_regs declines and the base is pushed onto r5".  Note the
+ * obvious move has been tried and fails: making `r`, `i` and `d` block-local
+ * by splitting them per block is INERT OR WORSE (below), because it changes
+ * the wrong end of the chain.
+ *
+ * MEASURED IN BATCH 342 -- 14 NEW BODIES, ALL BYTE-IDENTICAL AT 21:
+ *   the pooled 0x6006000 named in ONE local shared by both blocks, as an
+ *     `unsigned short *` with pointer arithmetic `base + (row << 5)`, and as
+ *     an `int` with `(... << 6) + base`
+ *   the pooled base named in a SEPARATE local per block, and the same with the
+ *     base assignment placed before `i = 0;` instead of after
+ *   the base assigned inside the outer guard rather than above it
+ *   base AND offset both named, per block
+ *     -> all six base spellings are byte-identical, so the pool constant is
+ *        rematerialised per block whatever the source says; naming it does not
+ *        create a long-lived value and cannot buy the sixth register
+ *   splitting the reused locals, all eight combinations of {r, i, d}:
+ *     i split (alone or with d)                      26, WORSE
+ *     r split (any combination)                      25, WORSE
+ *     d split alone                                  21, inert
+ *     -> THE BATCH-339 BLOCK-LOCALITY LEVER DOES NOT REACH THIS PARK.  That is
+ *        worth recording because the park's shape invites it: three locals are
+ *        reused across the two fill blocks and the obvious reading is that one
+ *        of them is holding the allocator back.  It is not.
+ *
+ * --- THE BATCH-333 RECORD FOLLOWS; ITS LEVER AND ITS NEGATIVES STAND ---
  *
  * WHERE THE ONE INSTRUCTION IS.  The reference spends ONE MORE CALLEE-SAVED
  * REGISTER: `push {r5, lr}` and a separate `pop {r5}` before the `pop {r0} /
@@ -29,8 +101,8 @@
  * instead, which is why the stream lengths agree while the instruction counts
  * do not.  Everything else is a register rename.
  *
- * THE LEVER, AND IT IS NEW HERE: `i = 0;` MUST PRECEDE THE WHOLE ADDRESS
- * COMPUTATION IN SOURCE ORDER, in BOTH blocks.  Written
+ * THE LEVER: `i = 0;` MUST PRECEDE THE WHOLE ADDRESS COMPUTATION IN SOURCE
+ * ORDER, in BOTH blocks.  Written
  *
  *     i = 0;
  *     d = (unsigned short *)(((0xd - r) << 6) + 0x6006000);
@@ -45,19 +117,8 @@
  * loses the whole gain and returns the park to thirty-five differing.  The
  * counter initialisation has to be the first statement of the block.
  *
- * WHAT REMAINS is one coupled allocation decision, visible as a three-way
- * rename.  The reference keeps `0xd - row` in r2 and the shifted value in r3,
- * then reuses r2 for the walking pointer and takes r5 for the pooled
- * 0x6006000; ours keeps the shift result in r2 and `0xd - row` in r3, so r2
- * falls free early and the pooled base reuses it instead of claiming a sixth
- * name.  The ROM's shift of `0xd - r` by six is THREE-OPERAND (`lsl r3, r2,
- * #6`) and ours is TWO-ADDRESS (`lsl r3, r3, #6`) -- that is the tell, and it
- * is an allocator coincidence rather than a liveness fact, because nothing
- * reads either source after the shift.
- *
  * MEASURED IN BATCH 333, ALL BYTE-IDENTICAL TO EACH OTHER at 20 aligned
- * differing -- a thirty-six-variant clean negative, which is the widest
- * recorded for this park:
+ * differing -- a thirty-six-variant clean negative:
  *   six declaration orders (p,v,r,row,tile,i,d; row before r; fully reversed;
  *     tile before r; d before i; i,d early) x three block-1 forms (the
  *     expression inline; a named `row = 0xd - r`; the pool constant written
@@ -69,53 +130,15 @@
  * the final add are not either.  The park's older note that naming the 0x7 mask
  * "fixed nothing" is confirmed and is the same class of negative.
  *
- * ONE CORRECTION TO THE RECORD BELOW: the claim that "the remaining single line
- * is `mov r2, r3` in the SECOND block -- the ROM copies before shifting there
- * too" IS STALE.  Ours emits that copy (`adds r3, r2, #0 / adds r3, #13`); the
- * second block differs from the reference only in which register holds which
- * value.  The copy-then-modify reading that produced the `r = v / 8;
- * row = r + 0xd;` split is sound and is kept.
+ * The copy-then-modify reading that produced the `r = v / 8; row = r + 0xd;`
+ * split is sound and is kept: a copy before an add in the ROM is a tell that
+ * two named values exist where we wrote one expression.  Batch 342 adds the
+ * converse, which is the whole finding above -- a THREE-OPERAND shift or add in
+ * the ROM where ours is two-address is a tell that the ROM DID NOT COALESCE,
+ * and that is a local-alloc question, not a naming one.
  *
- * --- THE PRE-BATCH-333 RECORD FOLLOWS; ITS NUMBERS ARE SUPERSEDED ---
- *
- * This recipe was ADDED by the batch-319 backfill: the park had none, so
- * parkcheck.py could not report its figure and nothing had ever checked it.
- *
- * BLOCKER AS FIRST STATED: REGISTER ROTATION (allocator preference). thirty-six of fifty-five, one line short.
- *
- * Every structural feature reproduces: the unsigned range guard, both signed
- * divisions by 8 (the ROM recomputes rather than reusing, and so does ours),
- * both 0x20-iteration fill loops, the `orr` of 0x80<<4 between them, the
- * second range guard, and both address computations. What differs is WHICH
- * REGISTER holds what, throughout:
- *
- *     rom    v->r0   tile->r4  base->r5  counter->r1   push {r5, r14}
- *     ours   v->r1   tile->r0  base->r4  counter->r3   push {r14}
- *
- * The ROM spends one MORE callee-saved register than gcc does. This function
- * has no calls, so r0-r3 are free for the whole body and gcc's allocation is
- * the cheaper one. Same asymmetry as src/non_matching/rom_f4000/80f4100.c and
- * src/non_matching/rom_15000/8029274.c: to match, gcc must be made to WANT a
- * register it has no reason to take, and the body is already minimal.
- *
- * MEASURED:
- *   baseline, `row = v / 8 + 0xd` as one expression        fifty-three lines, forty differ
- *   division result named separately, `r = v / 8;
- *     row = r + 0xd;`                                      fifty-four lines, thirty-six differ
- *   + the 0x7 mask named in a local born before 0xf081     fifty-four lines, thirty-six differ
- *
- * The middle step is a real gain and is kept. It was read off two ROM
- * instructions -- `mov r2, r3 / add r2, #0xd`, a COPY before the add, where
- * ours had an in-place `add r3, #0xd`. A copy-then-modify in the ROM is a tell
- * that two named values exist where we wrote one expression; that is worth
- * carrying to the next function of this shape.
- *
- * The mask naming is a clean negative: it fixed nothing. The same lever moved
- * Func_8029274 by two lines, so it is site-dependent, not general.
- *
- * The remaining single line is `mov r2, r3` in the SECOND block -- the ROM
- * copies before shifting there too (`lsl r3, r2, #6` three-operand, ours
- * two-operand in place). Naming did not produce it a second time.
+ * This function paints two rows of a 0x20-wide VRAM tilemap at 0x6006000 from
+ * a tile id built out of a slot value read through iwram_3001ef8.
  */
 extern int iwram_3001ef8;
 

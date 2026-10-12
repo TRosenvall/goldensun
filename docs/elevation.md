@@ -5966,7 +5966,7 @@ ten: **same instruction stream, one register rotation, parameter one slot low.**
 ### `n_refs` IS LOOP-DEPTH WEIGHTED — NEVER COUNT SOURCE REFERENCES BY HAND
 
 Every formula on this page that takes `n_refs` takes a WEIGHTED count, not a count of
-appearances in the source. `flow.c:4948`, and again at 4436, 5115 and 5556:
+appearances in the source. `flow.c:5114-5116`, and again at 4436, 5115 and 5556:
 
     REG_N_REFS (regno) += (optimize_size ? 1 : pbi->bb->loop_depth + 1);
 
@@ -6005,7 +6005,7 @@ short-lived parameter.**
 `allocno_compare` does **NOT** weight priority by basic-block frequency -- that
 claim is wrong and contradicts this document's own section below, "`allocno_compare`
 has NO frequency term". Frequency is already folded into `n_refs` by
-`flow.c:4948`, so the sort sees it only through that count. (Corrected batch 341
+`flow.c:5114-5116`, so the sort sees it only through that count. (Corrected batch 341
 brief C, read from `global.c:600-618`.) What is true is that merging the
 parameter with a loop counter multiplies its priority past a whole-function
 pointer's. Reusing `anim` as the counter for both loops, changing nothing else,
@@ -24924,7 +24924,7 @@ changes that.
 ## allocno_compare is reachable, but usually only through a shim
 
 `global.c:598` ranks global allocnos by `floor_log2(n_refs) * n_refs /
-live_length`. Because `n_refs` is loop-depth weighted (`flow.c:4948`) and
+live_length`. Because `n_refs` is loop-depth weighted (`flow.c:5114-5116`) and
 `live_length` is pinned at both ends by the ROM's own instructions, the ratio is
 mostly not yours to set -- but it decides the allocation ORDER, and therefore
 which pseudo gets the low register.
@@ -35161,6 +35161,46 @@ match. The pattern is now specific enough to state as a rule:
 
 > **Any tool that greps this tree's sources for an identifier must strip
 > comments first, or it will measure the documentation instead of the code.**
+
+## FIVE ROUTES INTO THE ALLOCATOR, AND TWO OF THEM DO NOT TOUCH PRIORITY
+
+Found across batches 339-342, and they are **not** interchangeable -- several parks
+have had one tested, found inert, and generalised into a bound the others defeat.
+
+| # | route | what it changes |
+|---|---|---|
+| 1 | delete or split a reused local | makes the value **block-local**, so `local-alloc` takes the register before `global-alloc` ranks anything (`local-alloc.c:1341-1420`) |
+| 2 | move a definition to just before its first use | shortens `live_length` |
+| 3 | **add** a definition so the range splits | the long-lived value **leaves the race** |
+| 4 | move a statement across a **block boundary** | a range stops **spanning** the boundary (batch 342 brief B) |
+| 5 | **lengthen** a range until it overlaps a hard register | **prunes the value's own preference** (batch 342 brief A) |
+
+Route 5 is the counter-intuitive one and it does not touch priority at all -- the
+priority order is **identical** in both `.18.greg` dumps. `return n` gives an
+allocno a preference for r0 (`global.c:1630-1642`); `prune_preferences` deletes a
+preference for any register the allocno hard-conflicts with (`:897-909`); and
+`find_reg`'s pass 0 excludes whatever a lower-priority conflicting allocno prefers
+(`:1016`). So lengthening the range until it overlaps the incoming argument in r0
+**prunes its own preference** and frees r0. All three priority levers were inert.
+
+> **So "no priority lever reaches this" is not a bound.** Two of the five routes
+> are invisible to priority arithmetic, and a park that proved its arithmetic
+> correctly can still be wrong about what is reachable.
+
+### Two corrections to how this document stated the sort
+
+**`REG_N_REFS` is LOOP-DEPTH WEIGHTED, and the general counter is
+`flow.c:5114-5116`** -- `REG_N_REFS (regno) += (optimize_size ? 1 : pbi->bb->loop_depth + 1)`,
+so **an in-loop reference counts two**. This document had cited `flow.c:4948`,
+which carries the same expression but is **only the auto-increment path**; read
+that way it looks as though the weighting applies to increments alone. Verified in
+the source, batch 342 brief A, which also confirmed the corrected model with
+probes separating a depth-0 edit (does *not* flip the allocation) from a depth-1
+one (**does**).
+
+**"A tie is a win" needs its direction.** `global.c:617-619` breaks a tie on
+*ascending* allocno number, so a tie wins **only for the lower-numbered allocno**.
+Stated without the direction it is a coin flip, which is how one park hedged it.
 
 ## TO WIN AN ALLOCATION RACE, TAKE THE VALUE OUT OF IT -- ADD A DEFINITION, DO NOT SHORTEN A RANGE
 

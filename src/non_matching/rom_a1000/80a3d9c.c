@@ -1,9 +1,9 @@
 /* Func_80a3d9c (0x080a3d9c) -- NON-MATCHING.
  *
- * NON-MATCHING, 25 of 30 encodings  (MEASURED, batch 319 recipe backfill).
- *   COUNT DIFFERS (ref 30, ours 26) -- so this positional figure measures
- *   MISALIGNMENT, not distance.  Read the count before the figure.
- *   SIZE ref 64 bytes, ours 56.
+ * NON-MATCHING, 14 of 30 encodings  (MEASURED, batch 342 brief A).
+ *   INSTRUCTION COUNTS NOW EQUAL, ref 28 / ours 28, size 64/64, relocations ok
+ *   -- so this figure IS A PLAIN DISTANCE.  It was PHASE before this batch:
+ *   25 of 30 with instructions ref 28 / ours 24, i.e. FOUR SHORT.
  *
  * Verify with:
  *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
@@ -11,78 +11,98 @@
  *     src/non_matching/rom_a1000/80a3d9c.c \
  *     asm/rom_a1000/rom_a1814_c_a_c_c_c_c_c_a_c_a_c.s --func Func_80a3d9c
  *
- * This recipe was ADDED by the batch-319 backfill: the park had none, so
- * parkcheck.py could not report its figure and nothing had ever checked it.
- * Blocker class: COMBINE FOLDS A NARROWING MASK IT CAN PROVE REDUNDANT.
+ * PIECE: tools/piece.py reports TWO functions in that .s -- this one and
+ * Func_80a3ddc (src/non_matching/rom_a1000/80a3ddc.c, no claim).  Either can be
+ * cut out alone with tools/split_s.py.
+ * PINS: tools/shimcount.py reports 0.
  *
- * 28 lines against the ROM's 32, 25 differing -- an improvement on this park's
- * previous 27, and the whole prologue emission order now reproduces exactly.
- * More usefully, THE MECHANISM IS NOW NAMED rather than guessed at.
+ * ===== BATCH 342 BRIEF A: BLOCKER A IS DEFEATED.  THE PARK'S OWN PREDICTION
+ * ===== THAT THE FUNCTION WOULD THEN "CLOSE BY ITSELF" IS WRONG.
  *
- * Scans a unit's fifteen item slots for one whose low nine bits match, and
- * returns its stack count (bits 11..15) plus one, or zero.
+ * The park's blocker A was the three-instruction fold: gcc knows the loaded
+ * halfword is sixteen bits wide, so `simplify_shift_const` rewrites
+ * `(lshiftrt (and v 0xf800) 11)` to `(and (lshiftrt v 11) 0x1f)` and then drops
+ * the AND as redundant, giving one `lsr` where the ROM has
+ * `mov r3, #0xf8 / lsl r3, #8 / and r3, r2 / lsr r5, r3, #11`.  The park's
+ * closing sentence was "the function turns entirely on making gcc not know the
+ * loaded halfword is sixteen bits wide, and nothing in the source does that
+ * ... this function will close by itself if that fold is ever defeated."
  *
- * BLOCKER A -- three of the four missing instructions.
+ * TWO THINGS DEFEAT IT, AND THE PRECONDITION IS READABLE IN THE SOURCE.
+ * `nonzero_bits` of a pseudo comes from `reg_nonzero_bits[]`, which
+ * `set_nonzero_bits_and_sign_copies` fills in (**combine.c:850-918**), and the
+ * accumulation at **combine.c:907** is
+ *     reg_nonzero_bits[REGNO (x)] |= nonzero_bits (src, nonzero_bits_mode);
+ * -- an OR over EVERY SET OF THE PSEUDO, not a property of one load.  There is
+ * also an unconditional full-mask fallback at :916 for a set whose SET_DEST is
+ * not the register itself, and :861 skips any pseudo live at the start of block
+ * 0 entirely, after which the read at **:8027-8028** is guarded by
+ * `reg_nonzero_bits[REGNO (x)]` being NONZERO and otherwise returns the whole
+ * mode mask.  So:
  *
- *     rom    mov r3, #0xf8 / lsl r3, #0x8 / and r3, r2 / lsr r5, r3, #0xb
- *     ours   lsr r3, r2, #0xb
+ *   1. GIVE THE MASKED VARIABLE A SECOND, UNBOUNDED SET.  `t = unitId;` ahead
+ *      of the call, with the same `t` reloaded from `*p` in the loop, ORs a
+ *      parameter's unbounded bits into `reg_nonzero_bits[t]`, after which
+ *      `nonzero_bits (t)` is all-ones and the AND can no longer be proved
+ *      redundant.  The ROM's four instructions appear.  This is the first
+ *      member of the "gcc knows the loaded value's range" class in this tree to
+ *      be defeated from source, and the lever should transfer to the two other
+ *      parks the park names, Func_80788c4 and Func_801f730.
+ *   2. USE A GOTO LOOP, NOT A `do`/`while`.  The park's mapping of the two
+ *      reachable states said "a `do`/`while` OR GOTO LOOP keeps the build
+ *      beside the AND" -- those are not the same thing and the difference is
+ *      worth 8 encodings.  A `do`/`while` is a natural loop, so once the AND
+ *      survives, loop.c hoists the whole `mov #0xf8 / lsl #8` build into the
+ *      preheader, which costs r7 and a wider push.  A GOTO LOOP disables loop
+ *      optimisation outright and the build stays inside the break arm, where
+ *      the ROM has it, with the ROM's `push {r5, r6, lr}`.
  *
- * gcc-2.96's combine performs a three-insn combination of the constant build,
- * the AND and the shift. Because `v` is single-set from an `ldrh`,
- * `nonzero_bits(v) <= 0xffff`, so simplify_shift_const rewrites the pair to
- * `(and (lshiftrt v 11) 0x1f)` and then drops the AND as redundant -- one
- * `lsr`. If the width were NOT known, the rewrite would leave an AND with 0x1f,
- * which has no Thumb insn and no valid two-insn split, so combine would reject
- * the whole combination and emit exactly the ROM's four lines.
+ * Measured, in order: park body 25 of 30 (instructions 28/24); the unbounded
+ * second set alone, `do`/`while` 23 of 30 (28/28, AND alive, build hoisted);
+ * plus the goto loop 15 of 30; plus `i = 0;` before `r = 0;` 14 of 30.
  *
- * So the function turns entirely on making gcc not know the loaded halfword is
- * sixteen bits wide, and nothing in the source does that. This is the same wall
- * the tree already records for Func_80788c4 and Func_801f730 -- "gcc knows the
- * loaded value's range and folds the narrowing operation" -- in its
- * mask-before-shift flavour, and this function will close by itself if that
- * fold is ever defeated.
+ * WHAT IS LEFT -- A REGISTER ROTATION AT EXACT LENGTH, AND IT IS ONE DECISION.
  *
- * ONLY TWO STATES ARE REACHABLE FROM SOURCE, and both were mapped:
- *   a `for`/`while` loop lets loop.c hoist the constant build into the
- *     preheader; the AND then survives (different basic block, no LOG_LINK) but
- *     the hoisted build costs r7 and a wider push -- 31 lines.
- *   a `do`/`while` or goto loop keeps the build beside the AND, combine sees
- *     all three and folds -- 28 lines. The ROM is neither: it has the AND
- *     inside the loop with no extra push.
+ *     rom    p in r0, the loaded halfword in r2, plus `mov r3, r2`
+ *     ours   p in r2 (via `mov r2, r0`), the halfword in r0, no copy
  *
- * BLOCKER B -- the fourth missing instruction is the `mov r3, r2` copy before
- * the compare. A GENUINE SECOND READ IS BYTE-IDENTICAL TO `t = v;` here: CSE
- * folds it away and no copy appears. That is a measured NEGATIVE for the
- * read-count lever on this shape, and worth having, because the same lever
- * unparked six other functions in this batch.
+ * The two cost the same single instruction, so the lengths agree; `r` and
+ * `itemId` are swapped between r5 and r6 as a consequence.  The ROM's
+ * `mov r3, r2` is genuinely redundant -- r3 is dead by the next instruction and
+ * `cmp r2, #0` would have done -- which is the park's BLOCKER B, and it still
+ * stands.  The park's reading of it is correct and now better localised: cse
+ * substitutes the original register into the compare and the copy's
+ * destination then dies.  THE PARK'S OWN WIDENING FINDING DOES NOT RESCUE IT:
+ * `u16 v; u32 t = v;` was crossed against all four choices of which name the
+ * zero test and the mask read, seven prologue statement orders, and with and
+ * without a separate `rec` -- 112 bodies, and the copy never appears; the best
+ * is 14.  Per batch 336, the only thing that stops a cse equivalence is an
+ * `ASM_OPERANDS` pattern, i.e. `:: "i"(0)` (**cse.c:5742-5745**), which is a
+ * device and would carry pass-3 debt.
  *
- * WHAT WAS RULED OUT, all measured: a second live definition of the loaded
- * value; splitting 0xf800 so it arrives as two instructions (CSE reconstitutes
- * it before combine); `(v >> 11) & 0x1f` (hoists `mov r7, #0x1f` instead);
- * union and struct bitfield extraction (gives `lsl #0x10 / lsr #0x1b`, or an
- * `ldrb`); and the flags -fno-gcse, -fno-rerun-cse-after-loop,
- * -fno-cse-follow-jumps, -fno-cse-skip-blocks, -O1, --no-sched2.
+ * MEASURED INERT ON THIS BODY, all exactly 14 of 30 -- and note the first list
+ * is the whole flag axis RE-CROSSED after the source changed, which is the one
+ * that mattered on this batch's other targets:
+ *   all eight per-file flag groups (-O1 is 17, -fno-schedule-insns2 is 15, the
+ *     other six are 14)
+ *   all 16 anchor placements, nested ones included
+ * MEASURED WORSE: `t = (u32)rec;` or `t = (u32)p;` as the unbounded seed
+ *   instead of `t = unitId;` (25-28); the mask written `t = 0xf800; t &= v;`
+ *   rather than `t &= 0xf800;` (25-29).
  *
- * TWO FINDINGS WORTH CARRYING OUT OF THIS, both new:
+ * CARRIED FORWARD FROM THE PARK, all still correct:
+ *   THE PROLOGUE ORDER IS A PURE STATEMENT-ORDER LEVER (and it is still worth
+ *     one encoding here: `i = 0;` before `r = 0;` is 14, every other order 15);
+ *   `(v >> 11) & 0x1f` hoists `mov r7, #0x1f`; splitting 0xf800 into two
+ *     instructions is reconstituted by CSE before combine; union and struct
+ *     bitfield extraction give `lsl #0x10 / lsr #0x1b` or an `ldrb`;
+ *   a genuine second read is byte-identical to `t = v;`.
  *
- *   `u16 v; u32 t = v;` PRODUCES THE COPY WHILE KEEPING `ldrh`. This
- *   contradicts the rule recorded in src/non_matching/rom_a1000/80a3ddc.c that
- *   a HImode local always forces `ldrsh rD, [rB, rI]` -- the `ldrsh` appears
- *   only when the u16 value is used DIRECTLY. Widening it into a u32 local on
- *   the next statement keeps the zero-extending load and still emits the copy.
- *   It lands in the wrong place here, but it is the first spelling in this
- *   family to get both at once.
- *
- *   THE PROLOGUE ORDER IS A PURE STATEMENT-ORDER LEVER. Naming the lookup's
- *   result and assigning the counter and the accumulator BEFORE computing the
- *   walking pointer moves `add r0, #0xd8` after the two `mov #0`s and
- *   reproduces the ROM's prologue exactly. That is what took this park from 27
- *   differing to 25.
- *
- * MEASURED, best of thirty spellings (rom 32 lines): 28 lines, 25 differing.
- * The full table lives in the batch report; the shape of it is that every
- * 31-line variant is the hoisted-constant state and every 28-line variant is
- * the folded state, with nothing in between.
+ * NEXT: blocker B alone.  The ROM spends an instruction on a copy that cse
+ * deletes for us, and the two candidate handles are (a) a reason the compare
+ * cannot read the load's own register, and (b) the `p`-in-r0 role, since the
+ * `mov r2, r0` we spend and the `mov r3, r2` the ROM spends are the same
+ * instruction budget -- fixing either should fix both.
  */
 #include "gba/types.h"
 
@@ -94,29 +114,29 @@ s32 Func_80a3d9c(s32 unitId, s32 itemId)
 	u16 *p;
 	u32 mask;
 	s32 i;
-	u32 v;
 	u32 t;
 	s32 r;
 
-	rec = _GetUnit(unitId);
+	t = unitId;
+	rec = _GetUnit(t);
 	mask = 0x1ff;
-	r = 0;
 	i = 0;
+	r = 0;
 	p = (u16 *)(rec + 0xd8);
-	do {
-		v = *p;
-		t = v;
-		p++;
-		if (t != 0) {
-			t = mask & v;
-			if (t == itemId) {
-				t = 0xf800;
-				t &= v;
-				r = (t >> 11) + 1;
-				break;
-			}
+again:
+	t = *p;
+	p++;
+	if (t != 0) {
+		if ((mask & t) == itemId) {
+			t &= 0xf800;
+			r = (t >> 11) + 1;
+			goto out;
 		}
-		i++;
-	} while (i <= 0xe);
+	}
+	i++;
+	if (i <= 0xe)
+		goto again;
+out:
+	;
 	return r;
 }

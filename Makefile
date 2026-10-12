@@ -333,6 +333,21 @@ asm/overlays/rom_7d0e88/ovl_314_c_a_c_c.o: src/overlays/rom_7d0e88/ovl_314_c_a_c
 # NOT a general key -- do not reach for it without reading the diff first.
 GCSE_CFLAGS := $(GCC296_CFLAGS) -fno-gcse
 
+# GCSE_CFLAGS for Func_80b2720, batch 342 brief A.  -fno-gcse takes the parked body 23 of 32 -> 11
+# (found by tools/autosweep.py's flag axis), and the landing closes from there on a
+# route that does NOT touch allocation priority: the priority order is IDENTICAL in
+# both .18.greg dumps.  `return n` gives allocno 38 a preference for r0
+# (global.c:1630-1642); prune_preferences deletes a preference for any register the
+# allocno hard-conflicts with (:897-909); and find_reg's pass 0 excludes whatever a
+# lower-priority conflicting allocno prefers (:1016).  So LENGTHENING n's range
+# until it overlaps the incoming id in r0 prunes its own preference and frees r0 for
+# the dest cursor -- confirmed line for line, `;; 38 preferences: 0` vanishing and
+# hard reg 0 appearing in 38's conflicts.  All three priority levers were inert at 11.
+asm/rom_b0000/rom_b0070_c_a_a_c.o: src/rom_b0000/rom_b0070_c_a_a_c.c
+	$(GCC296_CC) $(GCSE_CFLAGS) -S -o $(@:.o=.s) $<
+	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
+	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
+
 asm/rom_8a000/rom_8ba38_a_c_b.o: src/rom_8a000/rom_8ba38_a_c_b.c
 	$(GCC296_CC) $(GCSE_CFLAGS) -S -o $(@:.o=.s) $<
 	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
@@ -971,6 +986,24 @@ asm/overlays/rom_7d768c/ovl_30_c_a_a_c_c_c_c_c_a_a.o: src/overlays/rom_7d768c/ov
 # both passes, 60 differing. Use `goto` when you want NO loop optimisation, and
 # this flag when you want pass 1 but not pass 2.
 RERUNLOOP_CFLAGS := $(GCC296_CFLAGS) -fno-rerun-loop-opt
+
+# RERUNLOOP_CFLAGS for OvlFunc_924_2009db4, batch 342 brief D.  636 bytes, 291 encodings and 23
+# relocations IDENTICAL with the park's body UNCHANGED -- the flag is the whole
+# landing.  Its park had recorded "NO FLAG GROUP HELPS", a bound stated from six of
+# the eight groups that never tried this one; autosweep's flag axis found it in one
+# command.  The park's diagnosis of the residue (a reload taking r3 for 0x90000,
+# pushing the &p reload to r2) was CORRECT; only its bound was wrong.
+#
+# Mechanism: the second loop_optimize run commons the three per-arm
+# (set (reg:SI N) (const_int 589824)) insns into one pseudo hoisted before the outer
+# loop's NOTE_INSN_LOOP_BEG, and .18.greg's conflict rows differ by EXACTLY that
+# pseudo -- 61 spill lines on both sides, so it is not pressure.  The hoist is
+# rematerialised in the emitted code, which is why reading the .s could never name
+# the pass.
+asm/overlays/rom_7ac2d8/ovl_1db4_a_a.o: src/overlays/rom_7ac2d8/ovl_1db4_a_a.c
+	$(GCC296_CC) $(RERUNLOOP_CFLAGS) -S -o $(@:.o=.s) $<
+	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
+	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
 
 asm/rom_15000/rom_1fe2c_c_a_b.o: src/rom_15000/rom_1fe2c_c_a_b.c
 	$(GCC296_CC) $(RERUNLOOP_CFLAGS) -S -o $(@:.o=.s) $<

@@ -1,3 +1,101 @@
+/* ===================== BATCH 342 (brief E, the DEPIN brief) ADDENDUM -- READ FIRST
+ *
+ * NintendoLogo -- STILL NON-MATCHING, IMPROVED 24 -> 22 BY A DEVICE-FREE ANCHOR.
+ *
+ * THE FIGURE, IN STREAM TERMS, FOR THE BODY IN THIS FILE:
+ *   22 of 202 stream encodings; 161 / 161 16-bit instructions (IN PHASE, so a
+ *   TRUE DISTANCE), 40/40 32-bit entries, 484 bytes against 484 (dsize 0),
+ *   RELOCATIONS DIFFER -- see the device paragraph, which is the whole story.
+ *   The previous body reads 24 of 202 in exactly the same columns.
+ *
+ * Verify with (NOTE: the recipes below both name files that do not exist --
+ * `src/non_matching//NintendoLogo.c` with a doubled slash, and
+ * `src/non_matching/rom_f2000/f2b70.c`.  THIS one is the installed path):
+ *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
+ *     goldensun-build python3 tools/objcmp.py \
+ *     src/non_matching/rom_f2000/NintendoLogo.c \
+ *     asm/rom_f2000/rom_f2028_c_a.s --func NintendoLogo
+ *
+ * REFERENCE, DECOMPOSED.  The header below says "202 instructions against 202".
+ * 202 IS THE STREAM LENGTH: it is 161 16-bit instructions + 40 32-bit entries
+ * (pool words AND `bl`s) + pads.  Both sides are 161/40, which is the real
+ * statement and is stronger.  CORRECTED.
+ *
+ * *** WHAT CHANGED: `do { } while (0)` AFTER THE FIRST DMA3_SET.  24 -> 22. ***
+ * Found by tools/autosweep.py's anchor axis (boundary 14) and confirmed with
+ * objcmp.  It closes residue 2 of the header's three -- the adjacent schedule
+ * swap in DecompressLZ's argument block, where the ROM emits `lsl r3, #1` before
+ * `ldr r5, =gBuffer` and gcc emitted them the other way round.  The first
+ * differing index moves 36 -> 45.  An anchor emits nothing, is not counted by
+ * shimcount and is the preferred form over a barrier (docs/elevation.md), so
+ * this is a device-free 2-encoding improvement.  **THE ANCHOR AXIS WAS CAPPED AT
+ * 40 OF 79 BOUNDARIES, so 40..78 are UNTESTED, not inert.**
+ *
+ * *** THIS FILE IS NOT SHIM-FREE, AND shimcount.py CANNOT SEE WHY. ***
+ * The header says "Shim-free" and "Shim count: 0 (tools/shimcount.py) --
+ * PIN-FREE, no fakematch.txt row".  The register-pin count IS 0 and the three
+ * DMA3_SET calls genuinely inherit include/dma.h's declarations (this file does
+ * `#include "dma.h"`, it does NOT carry a local copy -- so the batch-337
+ * copied-helper shape does not apply here, and dma.h's own comment records that
+ * none of its 82 landed users carries a fakematch row).  BUT THE BODY ALSO
+ * CARRIES `extern int _FILE_18;` AND READS `id = (int)&_FILE_18;`, AND
+ * `_FILE_18` IS DEFINED NOWHERE IN THE TREE -- not in file_table.sym, not in any
+ * .sym, not in any linker script.  An UNDEFINED EXTERN USED FOR ITS ADDRESS is a
+ * fictitious symbol, i.e. a DEVICE, and shimcount counts only
+ * `register ... __asm__` declarations, `__asm__(".equ ...")` and empty
+ * `__asm__ volatile ("")` -- THIS THIRD FORM IS A BLIND SPOT IN THE TOOL.
+ *
+ * AND THE DEVICE IS WORTH 160 ENCODINGS.  Measured: with `id = 0x18;` written as
+ * a plain literal the figure is **184 of 202, 161/160 instructions (PHASE),
+ * 40/39 32-bit entries, dsize -4** -- the pool word disappears and the whole
+ * pool shifts.  (`v4/b_devicefree.c`; with the anchor as well it is 185.)
+ * SO: THE DEVICE-FREE FIGURE FOR THIS FUNCTION IS 184 OF 202, AND THE 22 IS A
+ * FIGURE ABOUT A FUNCTION PLUS A PENDING SYMBOL-TABLE ENTRY.
+ *
+ * That measurement CONFIRMS the header's own structural argument rather than
+ * undermining it: `*thumb_movsi_insn` (arm.md:3838) lists the 8-bit `I`
+ * constraint as ALTERNATIVE 1 and the memory-or-immediate pool path as
+ * ALTERNATIVE 6, and `constrain_operands` takes the first alternative needing no
+ * reload -- so a small SImode constant can never be pooled, and the ROM's pooled
+ * 0x18 proves the source named something.  Writing it as a literal costs a pool
+ * word and 160 encodings, which is exactly what that predicts.  `_FILE_18 = 0x18`
+ * in file_table.sym is therefore the RIGHT spelling and remains CORRECTLY
+ * WITHHELD under the owner's ruling, because it fails the ruling's COMPLETION
+ * test: it does not take this function to 0.  Nothing in this batch changes that.
+ *
+ * WHAT IS LEFT, AFTER THE ANCHOR: 22 = 1 relocation form (the `_FILE_18` word)
+ * + 21 for THE r2/r3 ROTATION at the five `gKeyPress & 9` sites.  The ROM reuses
+ * the address register for the loaded value and puts the mask in r2
+ * (`ldr r3,=gKeyPress / ldr r3,[r3] / mov r2,#9 / and r3,r2`); gcc keeps the
+ * address in r3, loads into r2 and puts the mask in r3.  Same instructions, same
+ * order, same count, two hard registers transposed.  Blocker, local-alloc: both
+ * quantities record a conflict with hard register 3 in `.17.lreg`, so `k` cannot
+ * take r3.
+ *
+ * FOUR MORE LEVERS MEASURED AGAINST THE ROTATION THIS BATCH, none of them on the
+ * header's eleven-inert list, ALL INERT OR WORSE (base 22, all at 161/161 unless
+ * noted):
+ *   - `k` dropped ENTIRELY, each of the five reads its own quantity in the test
+ *     block: **106**, and 149/161 -- 12 instructions short, so this is not the
+ *     ROM's shape at all.  (The header's mechanism 1 is right: the ROM's shared
+ *     test block with the read spelled twice IS the `goto` form with explicit `k`.)
+ *   - the test as `if (!k)` instead of `if (k == 0)`: 22, INERT.
+ *   - `k` declared `short` instead of `int`: 22, INERT.
+ *   - the mask 9 held in a live `int` variable: 187, and 158/161.
+ *   - the mask in its own named local, read through a named pointer (on the
+ *     device-free body): 194 and 190.
+ * Flag axis on the 22 body: `-fno-gcse`, `-fno-strict-aliasing`,
+ * `-fno-rerun-cse-after-loop`, `-fno-rerun-loop-opt` all 22 (INERT);
+ * `-fno-schedule-insns2` 74; `-fno-strength-reduce` 124; `-O1` 162;
+ * `-ffixed-r7` 200 -- which independently re-confirms the header's recorded NO
+ * on the -ffixed-r7 row that CamelotLogo's park asks for.  DO NOT ADD IT.
+ *
+ * SPLIT SHAPE, unchanged: TWO functions in asm/rom_f2000/rom_f2028_c_a.s
+ * (NintendoLogo, CamelotLogo), so a text split is required when it lands;
+ * datacheck.py reports no required data exports.
+ * Harness: scratch_elev/b342/E (e342_sweep.py, e342_flagcross.py; v4/ v4b/).
+ * =====================================================================================
+ */
 /* NintendoLogo -- NON-MATCHING, 24 of 202 encodings differ.
  * Reference asm/rom_f2000/rom_f2028_c_a.s.
  *
@@ -222,6 +320,7 @@ int NintendoLogo(int mode)
     iwram_3001ad0[5] = 0;
     f = GetFile(id);
     DMA3_SET(f, (void *)0x5000000, 0x84000070);
+    do { } while (0);
     DecompressLZ(f + 0x1c0, gBuffer);
     DMA3_SET(gBuffer, (void *)0x6004000, 0x84002580);
     p = (short *)0x6003000;

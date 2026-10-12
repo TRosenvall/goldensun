@@ -1,3 +1,105 @@
+/* ===================== BATCH 342 (brief E, the DEPIN brief) ADDENDUM -- READ FIRST
+ *
+ * OvlFunc_885_200950c -- STILL NON-MATCHING.  BODY REPLACED WITH THE PIN-FREE
+ * ONE under the owner's PREFER-PIN-FREE policy.  The park's 20-pin body is NOT
+ * lost; it is in the tree's history and reproduced exactly by the ladder below.
+ *
+ * THE FIGURE, IN STREAM TERMS, FOR THE BODY THAT IS IN THIS FILE:
+ *   187 of 239 stream encodings as built; 180/180 16-bit instructions (IN PHASE,
+ *   so a TRUE DISTANCE), 59/59 32-bit entries, size exact, RELOCATIONS DIFFER.
+ *   THE BODY IN THIS FILE IS THE PLAIN PIN-FREE ONE, measured AS BUILT, so the
+ *   recipe below reproduces 187 with no flag and parkcheck can read it.
+ *   A BETTER PIN-FREE FIGURE EXISTS BEHIND A FLAG: 26 of 239, 180/180, also a
+ *   true distance, with the 0x808 arm written as four named `int` locals and
+ *   CSE_CFLAGS (-fno-rerun-cse-after-loop) on.  That body is at
+ *   scratch_elev/b342/E/v1c/b_locals.c and is 220 as built, which is why it is
+ *   NOT the installed one -- see the flag-control warning below.
+ *
+ * Verify with (the installed path, the body as it stands, no flag):
+ *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
+ *     goldensun-build python3 tools/objcmp.py \
+ *     src/non_matching/ovl_78603c/200950c.c \
+ *     asm/overlays/rom_78603c/ovl_30_c_c_a_c_a_c_c_a.s --func OvlFunc_885_200950c
+ *
+ * *** THE 20-PIN FIGURE OF 2 IS REPRODUCED, AND TWO OF THE 20 PINS ARE DEAD. ***
+ *
+ *   pins  body                                        flags        ndiff  insns
+ *   ----  ------------------------------------------  -----------  -----  -------
+ *    20   the previous park, verbatim                 as built       2    180/180
+ *    19   that minus the SECOND PIN1 block            as built       2    180/180
+ *    18   that minus BOTH PIN1 blocks                 CSE_CFLAGS     2    180/180
+ *    15   a808 + a87a only                            CSE_CFLAGS     4    180/180
+ *    15   spb + a808 only                             CSE_CFLAGS     5    180/180
+ *    12   a808 only                                   CSE_CFLAGS     7    180/180
+ *     0   4 named locals in the 0x808 arm (v1c/b_locals) CSE_CFLAGS    26    180/180
+ *     0   that same body                              as built     220    180/181
+ *     0   pin-free, the 0x808 arm written plainly     CSE_CFLAGS    45    180/179
+ *     0   THIS BODY -- pin-free, 0x808 arm plain      as built     187    180/180
+ *
+ *   All five `2` and `4`..`7` rows have RELOCATIONS CLEAN and dsize 0.
+ *   The 19-pin and 18-pin bodies live at
+ *     scratch_elev/b342/E/v1b/pins19_flag1-spb-a808-a87a.c   (2, as built)
+ *     scratch_elev/b342/E/v1/pins18_spb-a808-a87a.c          (2, CSE_CFLAGS)
+ *   and both are STRICT IMPROVEMENTS on the 20-pin body: same figure, same
+ *   instruction count, clean relocations, fewer pins.
+ *
+ * ONE PIN WAS DOING NOTHING.  The park pins the flag id at BOTH
+ * `__GetFlag(0x109)` sites and its ladder credits "BOTH" with 222 -> 162.  Only
+ * the FIRST site does any work: pinning it alone is worth 187 -> 45, pinning
+ * the SECOND alone is INERT at 187, and dropping the second from the full body
+ * leaves 2.  CORRECTED.
+ *
+ * *** THE PARK'S FLAG COLUMN IS NOT A VALID CONTROL, AND THIS IS THE POINT OF
+ * *** THE WHOLE ROUND.  The park records `-fno-rerun-cse-after-loop` as 2 --
+ * *** INERT.  That is true OF THE PINNED BODY ONLY.  On the pin-free body the
+ * *** same flag is worth 142 ENCODINGS (187 -> 45).  The pin and the flag do the
+ * *** same job -- they stop rerun-CSE parking the pool-loaded 0x109 in a
+ * *** callee-saved register and copying it out, which also evicts the gState
+ * *** pointer -- so with the pin in, the flag has nothing left to do and reads
+ * *** inert.  REMOVING THE PIN FIRST AND THEN SWEEPING IS A DIFFERENT SEARCH
+ * *** SPACE, NOT A HANDICAPPED ONE.  Same inversion on the source axis: four
+ * *** named `int` locals in the 0x808 arm are 220 as built (WORSE than 187, and
+ * *** one instruction long) and 26 under the flag (BETTER than 45, back in
+ * *** phase).  Neither axis alone finds either lever.
+ *
+ * WHAT EACH SURVIVING PIN GROUP BUYS, from the pin-free + CSE_CFLAGS baseline:
+ *   a808 (12 pins, the 0x808 arm's 2 SetPos + 2 Func_8092a1c)   45 -> 7
+ *   spb  (3 pins, SetPos(0xb, 0xa6<<15, 0x1090000))             7 -> 2 crossed
+ *   a87a (3 pins, SetPos(0x10, 0x84<<16, 0x84<<17))             7 -> 4 crossed
+ * The a808 arm is the whole pin cost.  The ROM REBUILDS `188<<17` at each of the
+ * three places it needs it -- twice inside ONE call -- and gcc commons it into a
+ * callee-saved register and copies with `adds r1, r5, #0`.  Hex literals, the
+ * script pointer loaded first, the second call's y through its own shifted
+ * local, and `do { } while (0)` anchors between all four calls are 45, 45, 45
+ * and 41.  Four named locals get the instruction count back but keep the copies.
+ * `cse.c:5742-5745` tests `GET_CODE (PATTERN (insn)) == ASM_OPERANDS`, so the
+ * only thing that flushes a cse equivalence is an `__asm__ ("" :: "i"(0))` --
+ * a DEVICE, not a spelling.  No source form reaches it; that is what the PIN3
+ * blocks are for.
+ *
+ * THE FLOOR IS 2 AND IT IS PIN-INDEPENDENT, SO NOTHING HERE CAN LAND.  The two
+ * encodings are `__Func_8010704` SITE 5 OF 6: the ROM emits
+ * `mov r2, r8 / movs r5, #20 / str r2, [sp, #0]` and gcc emits
+ * `mov r2, r8 / str r2, [sp, #0] / movs r5, #20` -- the sixth argument's `mov`
+ * before the fifth's `str`.  It survives all 20 pins.  The park's blocker class
+ * (ORDERING at expand-time stack-argument emission) is REPRODUCED.
+ *
+ * AUTOSWEEP, THIS BATCH, on the 20-pin body: flag axis -- `-ffixed-r7`,
+ * `-fno-strict-aliasing`, `-fno-strength-reduce`, `-fno-rerun-cse-after-loop`,
+ * `-fno-rerun-loop-opt` all 2 (inert); `-fno-schedule-insns2` 70; `-fno-gcse`
+ * 230.  Anchor axis -- 40 of 78 boundaries, all inert at 2; **CAPPED, so
+ * boundaries 40..77 are UNTESTED, not inert.**
+ * Flag PAIRS on the pin-free body, all crossed with `-fno-rerun-cse-after-loop`:
+ * `-ffixed-r7` / `-fno-strength-reduce` / `-fno-rerun-loop-opt` /
+ * `-fno-cse-follow-jumps` / `-fno-expensive-optimizations` all 45 (inert);
+ * `-fno-schedule-insns2` 93, `-O1` 95, `-fno-gcse` 225.
+ *
+ * SPLIT SHAPE, unchanged: `asmfacts.py` says WHOLE, one `.thumb_func_start`, no
+ * data, no exports, and overlays/rom_78603c/overlay.ld:28 keeps its asm/ path.
+ * Harness: scratch_elev/b342/E (e342_sweep.py, e342_flagcross.py, e342_diff.py,
+ * e342_gen_t1.py; v1/ v1b/ v1c/ hold every variant measured above).
+ * =====================================================================================
+ */
 /* OvlFunc_885_200950c -- NON-MATCHING, 2 differing STREAM encodings of 239.
  *
  * BODY RECOVERED FROM scratch/ (batch 338).  This park was PROSE -- a header,
@@ -160,11 +262,6 @@ extern void OvlFunc_885_2008964(void);
 extern unsigned char gOvl_02009c34[];
 extern unsigned char gScript_885__02009ce0[];
 
-#define PIN1 register int q0 __asm__("r0")
-#define PIN2 PIN1; register int q1 __asm__("r1")
-#define PIN3 PIN2; register int q2 __asm__("r2")
-#define PIN4 PIN3; register int q3 __asm__("r3")
-
 int OvlFunc_885_200950c(void)
 {
     unsigned char *r;
@@ -181,9 +278,8 @@ int OvlFunc_885_200950c(void)
     p = (short *)r3;
     if ((unsigned short)(*p - 5) <= 1)
         __ClearFlag(0x12f);
-    { PIN1; q0 = 0x109;
-      if (__GetFlag(q0) != 0)
-          __ClearFlag(0x242); }
+    if (__GetFlag(0x109) != 0)
+        __ClearFlag(0x242);
     if (__GetFlag(0x834) != 0) {
         __StartRain();
         __StartThunder();
@@ -194,8 +290,7 @@ int OvlFunc_885_200950c(void)
         __MapActor_SetPos(0xf, 0, 0);
         __MapActor_SetPos(5, 0, 0);
         ((struct A59 *)__MapActor_GetActor(8))->f59 |= 8;
-        { PIN3; q0 = 0xb; q1 = 0xa6 << 15; q2 = 0x1090000;
-          __MapActor_SetPos(q0, q1, q2); }
+        __MapActor_SetPos(0xb, 0xa6 << 15, 0x1090000);
         __Func_80921c4(0xb, 0x53, 0x111);
         __MapActor_SetAnim(0xb, 5);
         r = __MapActor_GetActor(0xb);
@@ -218,27 +313,21 @@ int OvlFunc_885_200950c(void)
     __MapActor_SetPos(1, 0, 0);
     __MapActor_SetPos(0xb, 0, 0);
     __CutsceneStart();
-    { PIN1; q0 = 0x109;
-      if (__GetFlag(q0) == 0 && *p == 0xa)
-          OvlFunc_885_2008964(); }
+    if (__GetFlag(0x109) == 0 && *p == 0xa)
+        OvlFunc_885_2008964();
     if (__GetFlag(0x801) != 0) {
         __MapActor_SetPos(0xd, 0, 0);
         __MapActor_SetPos(0xe, 0, 0);
         __MapActor_SetPos(0xf, 0, 0);
     } else if (__GetFlag(0x808) != 0) {
-        { PIN3; q0 = 0xe; q1 = 0xc4 << 17; q2 = 0xbc << 17;
-          __MapActor_SetPos(q0, q1, q2); }
-        { PIN3; q0 = 0xf; q1 = 0xbc << 17; q2 = 0xbc << 17;
-          __MapActor_SetPos(q0, q1, q2); }
+        __MapActor_SetPos(0xe, 0xc4 << 17, 0xbc << 17);
+        __MapActor_SetPos(0xf, 0xbc << 17, 0xbc << 17);
         sc = gScript_885__02009ce0;
-        { PIN3; q0 = 0xe; q1 = 0x80 << 9; q2 = (int)sc;
-          __Func_8092a1c(q0, q1, (unsigned char *)q2); }
-        { PIN3; q0 = 0xf; q1 = 0x80 << 9; q2 = (int)sc;
-          __Func_8092a1c(q0, q1, (unsigned char *)q2); }
+        __Func_8092a1c(0xe, 0x80 << 9, sc);
+        __Func_8092a1c(0xf, 0x80 << 9, sc);
     }
     if (__GetFlag(0x87a) != 0)
-        { PIN3; q0 = 0x10; q1 = 0x84 << 16; q2 = 0x84 << 17;
-          __MapActor_SetPos(q0, q1, q2); }
+        __MapActor_SetPos(0x10, 0x84 << 16, 0x84 << 17);
     __CutsceneEnd();
     return 0;
 }
