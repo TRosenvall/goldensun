@@ -1,6 +1,6 @@
 # Pass 4 — humanizing
 
-**4,317 landed functions are still named `Func_<addr>`** against 770 with a real name, across **4,495 split-named files** of 4,557 landed.
+**4,319 landed functions are still named `Func_<addr>`** against 770 with a real name, across **4,497 split-named files** of 4,559 landed.
 
 See `docs/humanization.md` for the method and the artifact taxonomy. Two
 structural facts bound this work:
@@ -18,7 +18,7 @@ structural facts bound this work:
 
 | bank | unnamed functions |
 |---|---|
-| overlays | 3219 |
+| overlays | 3221 |
 | rom_8a000 | 266 |
 | rom_15000 | 214 |
 | rom_b5000 | 153 |
@@ -2173,6 +2173,7 @@ structural facts bound this work:
 | `OvlFunc_915_20089e4` | [src/overlays/rom_7a2bf0/ovl_30_b.c](../../src/overlays/rom_7a2bf0/ovl_30_b.c) |
 | `OvlFunc_915_20089e8` | [src/overlays/rom_7a2bf0/ovl_30_c_b.c](../../src/overlays/rom_7a2bf0/ovl_30_c_b.c) |
 | `OvlFunc_915_20089f0` | [src/overlays/rom_7a2bf0/ovl_30_c_b.c](../../src/overlays/rom_7a2bf0/ovl_30_c_b.c) |
+| `OvlFunc_915_20089f8` | [src/overlays/rom_7a2bf0/ovl_30_c_c_a_a_a.c](../../src/overlays/rom_7a2bf0/ovl_30_c_c_a_a_a.c) |
 | `OvlFunc_915_2008aac` | [src/overlays/rom_7a2bf0/ovl_30_c_c_a_a_b.c](../../src/overlays/rom_7a2bf0/ovl_30_c_c_a_a_b.c) |
 | `OvlFunc_915_2008ba4` | [src/overlays/rom_7a2bf0/ovl_30_c_c_a_b.c](../../src/overlays/rom_7a2bf0/ovl_30_c_c_a_b.c) |
 | `OvlFunc_915_2008bf0` | [src/overlays/rom_7a2bf0/ovl_30_c_c_b.c](../../src/overlays/rom_7a2bf0/ovl_30_c_c_b.c) |
@@ -2689,6 +2690,7 @@ structural facts bound this work:
 | `OvlFunc_927_2009ac8` | [src/overlays/rom_7b4558/ovl_30_c_c_b.c](../../src/overlays/rom_7b4558/ovl_30_c_c_b.c) |
 | `OvlFunc_927_2009b84` | [src/overlays/rom_7b4558/ovl_30_c_c_c_a_a_b.c](../../src/overlays/rom_7b4558/ovl_30_c_c_c_a_a_b.c) |
 | `OvlFunc_927_2009c34` | [src/overlays/rom_7b4558/ovl_30_c_c_c_a_a_c_a_a_b.c](../../src/overlays/rom_7b4558/ovl_30_c_c_c_a_a_c_a_a_b.c) |
+| `OvlFunc_927_2009d04` | [src/overlays/rom_7b4558/ovl_30_c_c_c_a_a_c_a_a_c.c](../../src/overlays/rom_7b4558/ovl_30_c_c_c_a_a_c_a_a_c.c) |
 | `OvlFunc_927_2009de0` | [src/overlays/rom_7b4558/ovl_30_c_c_c_a_a_c_a_b.c](../../src/overlays/rom_7b4558/ovl_30_c_c_c_a_a_c_a_b.c) |
 | `OvlFunc_927_2009ef0` | [src/overlays/rom_7b4558/ovl_30_c_c_c_a_a_c_b.c](../../src/overlays/rom_7b4558/ovl_30_c_c_c_a_a_c_b.c) |
 | `OvlFunc_927_200a004` | [src/overlays/rom_7b4558/ovl_30_c_c_c_a_a_c_c_a.c](../../src/overlays/rom_7b4558/ovl_30_c_c_c_a_a_c_c_a.c) |

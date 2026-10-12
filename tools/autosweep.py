@@ -194,13 +194,30 @@ def boundaries(text, i, j):
         c = text[k]
         if c == "{":
             depth += 1
-            if depth > 1:                 # first statement of a nested block
-                out.append(k + 1)
         elif c == "}":
             depth -= 1
         elif c == ";" and depth >= 1:
+            # SKIP A BOUNDARY INSIDE THE DECLARATION PROLOGUE.  gcc-2.96 is C89,
+            # so a statement among declarations does not compile -- which is why
+            # 3 of 8 variants on one park produced no row at all.  If the next
+            # thing after this `;` opens with a type keyword, an anchor here
+            # would illegally precede a declaration.
+            nxt = text[k + 1:k + 60].lstrip()
+            if re.match(r"(?:const|static|volatile|register|unsigned|signed|"
+                        r"struct|union|enum|void|char|short|int|long|float|"
+                        r"double|u8|u16|u32|s8|s16|s32|vu8|vu16|vu32|vs32)\b",
+                        nxt):
+                continue
             out.append(k + 1)
     return out
+
+# NOTE ON WHAT IS NOT INSERTED.  An earlier version also inserted just after each
+# nested `{`, to anchor as the first statement of an `if` or loop body.  That can
+# produce invalid C -- a brace opening an initializer or an aggregate is
+# indistinguishable from one opening a block by text alone -- and on one park 6
+# variants yielded only 3 rows, silently.  Dropping it loses nothing: a `;` at any
+# depth already lands inside every nested block, which is where brief D's two
+# wins were (inside `if (v < 0)`, and inside a `for` body).
 
 
 def path_in_reloc_warn(p):
@@ -268,7 +285,7 @@ def main():
                 continue
             if label == "BARRIER" and not a.barrier:
                 continue
-            print(f"{label} AXIS -- {min(len(pts), a.max)} top-level statement "
+            print(f"{label} AXIS -- {min(len(pts), a.max)} statement "
                   f"boundaries{'  (DEVICE: fakematch-class, pass-3 debt)' if dev else '  (device-free)'}")
             d = tempfile.mkdtemp(prefix="autosweep_", dir=os.path.join(ROOT, "scratch_elev"))
             try:
@@ -300,6 +317,14 @@ def main():
                             print(f"  {line}{tag}")
                         best.append((nd, f"{label.lower()} @ {f[0]}", ""))
                 shown = [b for b in best if b[1].startswith(label.lower())]
+                written = min(len(pts), a.max)
+                if shown and len(shown) < written:
+                    # A variant that produces no row did not compile or did not
+                    # reach the encoding compare.  Say so: silently measuring
+                    # fewer variants than were written reads like a clean sweep.
+                    print(f"  !! {written - len(shown)} of {written} variant(s) produced"
+                          f" NO ROW -- they did not compile or did not measure;"
+                          f" that part of the axis is UNTESTED, not inert")
                 if not shown:
                     print(f"  !! NO ROWS PARSED from sweep_variants -- do NOT read this"
                           f" as a clean sweep; check its output by hand")

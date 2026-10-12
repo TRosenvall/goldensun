@@ -1,6 +1,6 @@
 # Parked functions
 
-**662 park files**, 557 carrying a parseable figure, 98 bodyless (prose/triage/class parks), 68 with no live verify recipe.
+**660 park files**, 555 carrying a parseable figure, 98 bodyless (prose/triage/class parks), 68 with no live verify recipe.
 
 A figure is the park's own claim. `tools/parkcheck.py` is what verifies it.
 
@@ -9,7 +9,7 @@ A figure is the park's own claim. `tools/parkcheck.py` is what verifies it.
 | differing encodings | parks |
 |---|---|
 | 0 | 1 |
-| 1–2 | 17 |
+| 1–2 | 15 |
 | 3–5 | 24 |
 | 6–10 | 25 |
 | 11–20 | 54 |
@@ -51,8 +51,6 @@ none. **Rank by (figure, pins).** Pin counts are `shimcount`'s.
 | 2 |  | 29 | `Func_80f3858` | rom_f2000/rom_f2028.s | [src/non_matching/rom_f2000/80f3858.c](../../src/non_matching/rom_f2000/80f3858.c) |
 | 2 |  | 94 | `OvlFunc_881_200b57c` | overlays/ovl_30.s | [src/non_matching/ovl_77a7c8/200b57c.c](../../src/non_matching/ovl_77a7c8/200b57c.c) |
 | 2 |  | 46 | `OvlFunc_888_200a6f0` | overlays/ovl_30.s | [src/non_matching/ovl_7892c8/200a6f0.c](../../src/non_matching/ovl_7892c8/200a6f0.c) |
-| 2 |  | 74 | `OvlFunc_915_20089f8` | overlays/ovl_30.s | [src/non_matching/ovl_7a2bf0/20089f8.c](../../src/non_matching/ovl_7a2bf0/20089f8.c) |
-| 2 |  | 86 | `OvlFunc_927_2009d04` | overlays/ovl_30.s | [src/non_matching/ovl_7b4558/2009d04.c](../../src/non_matching/ovl_7b4558/2009d04.c) |
 | 2 |  | 74 | `OvlFunc_932_20082cc` | overlays/ovl_30.s | [src/non_matching/ovl_7b9cb4/20082cc.c](../../src/non_matching/ovl_7b9cb4/20082cc.c) |
 | 2 |  | 112 | `OvlFunc_943_20090a0` | overlays/ovl_30.s | [src/non_matching/ovl_7c7b9c/20090a0.c](../../src/non_matching/ovl_7c7b9c/20090a0.c) |
 | 2 |  | 57 | `OvlFunc_947_200a1ac` | overlays/ovl_1528.s | [src/non_matching/ovl_7d0e88/200a1ac.c](../../src/non_matching/ovl_7d0e88/200a1ac.c) |
@@ -66,7 +64,7 @@ none. **Rank by (figure, pins).** Pin counts are `shimcount`'s.
 | 3 |  | 63 | `Func_80a8088` | rom_a1000/rom_a7380.s | [src/non_matching/rom_a1000/80a8088.c](../../src/non_matching/rom_a1000/80a8088.c) |
 | 3 |  | 48 | `Func_80b2ed8` | rom_b0000/rom_b0070.s | [src/non_matching/rom_b0000/80b2ed8.c](../../src/non_matching/rom_b0000/80b2ed8.c) |
 | 3 |  | 87 | `LoadGS1CreditsBG` | — | [src/non_matching/rom_f0000/LoadGS1CreditsBG.c](../../src/non_matching/rom_f0000/LoadGS1CreditsBG.c) |
-| 3 |  | 85 | `OvlFunc_896_200c260` | overlays/ovl_314.s | [src/non_matching/ovl_78ef88/200c260.c](../../src/non_matching/ovl_78ef88/200c260.c) |
+| 3 |  | 85 | `OvlFunc_896_200c260` | — | [src/non_matching/ovl_78ef88/200c260.c](../../src/non_matching/ovl_78ef88/200c260.c) |
 | 3 |  | 38 | `OvlFunc_927_2009818` | overlays/ovl_30.s | [src/non_matching/overlays/2009818.c](../../src/non_matching/overlays/2009818.c) |
 | 3 |  | 38 | `OvlFunc_927_2009818` | overlays/ovl_30.s | [src/non_matching/ovl_7b4558/2009818.c](../../src/non_matching/ovl_7b4558/2009818.c) |
 | 3 |  | 108 | `OvlFunc_932_200abe0` | overlays/ovl_30.s | [src/non_matching/ovl_7b9cb4/200abe0.c](../../src/non_matching/ovl_7b9cb4/200abe0.c) |

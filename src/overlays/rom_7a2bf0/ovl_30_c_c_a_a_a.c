@@ -1,23 +1,33 @@
-/* OvlFunc_915_20089f8 -- NON-MATCHING, 2 differing STREAM encodings of 74.
+/* OvlFunc_915_20089f8 -- MATCHING, landed in batch 338 post-pass.
  *
- * BODY RECOVERED FROM scratch/ (batch 338).  This park was PROSE -- a header,
- * a diagnosis, and no compilable body -- so it had no figure, was NO CLAIM in
- * parkcheck, and was unrankable in every band.  But its own header named a
- * candidate at scratch/N89f8_best.c, that file still existed, and it
- * compiles.  The work had been done and left in a GITIGNORED directory instead
- * of installed, so nothing in the tree could see it.
+ * 180 bytes, 74 encodings and 15 relocations identical.  Device-free and pin-free: shimcount prints no rows.
  *
- * ref 74 / ours 74 stream encodings; 58/58 16-bit instructions -- IN PHASE, so a true DISTANCE.
+ * HOW IT WAS FOUND, because the route matters more than the function.  This
+ * was a PROSE park -- a header, a diagnosis, no body -- and therefore had no
+ * figure and was invisible to every targeting instrument.  Three zero-token
+ * steps got it here, no agent involved:
  *
- * Verify with:
- *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
- *     goldensun-build python3 tools/objcmp.py src/non_matching/ovl_7a2bf0/20089f8.c \
- *     asm/overlays/rom_7a2bf0/ovl_30_c_c_a_a_a.s --func OvlFunc_915_20089f8
+ *   1. tools/scratchfill.py found that the park's own header named a candidate
+ *      in the GITIGNORED scratch/ directory, and that the file still existed
+ *      and still compiled.  70 of 133 prose parks were in that state.
+ *   2. Measuring that recovered body gave it a figure for the first time: 2.
+ *   3. tools/autosweep.py's ANCHOR axis took it 2 -> 0 on a single
+ *      `do { } while (0);` at statement boundary 16.
  *
- * 70 of the 133 prose parks were in this state; tools/scratchfill.py found them.
- * THE FIGURE IS EVIDENCE; the prose below it is a HYPOTHESIS, and across pass
- * two a park's stated blocker has been wrong roughly 40 times in 42.  The
- * original park text is preserved underneath.
+ * Step 3 only works since batch 338 fixed that axis: it had walked
+ * brace-depth-1 boundaries ONLY, so nothing inside an `if` or loop was ever
+ * anchored, and a park whose residue is nested got a full "both cheap axes are
+ * CLOSED" verdict on half an axis.
+ *
+ * The anchor is not a stronger barrier -- it works through LOOP NOTES
+ * (haifa-sched.c:3714 gates the depend-on-everything block on
+ * schedule_barrier_found, which only NOTE_INSN_LOOP_BEG/_END and friends set;
+ * a bare `__asm__ volatile ("")` sets none).  :3735-3736 hangs those notes on
+ * the FOLLOWING insn, so it fences immediately before the next insn.  It emits
+ * nothing and shimcount does not count it, so this landing carries no pass-3
+ * debt.
+ *
+ * The original prose park is preserved at the end of this file.
  */
 struct T {
     int f0;
@@ -66,6 +76,7 @@ void OvlFunc_915_20089f8(void)
             p2 = 4;
             OvlFunc_915_2008244(2, 0xc, 0x10, 1, p2, q2);
             __SetFlag(0x201);
+    do { } while (0);
             __Actor_SetSpriteFlags(__MapActor_GetActor(0xa), 0);
         }
     }

@@ -1,3 +1,20 @@
+/* ===== BATCH 338 POST-PASS: THE ANCHOR AXIS REACHES 2, NOT 3 =====
+ *
+ * tools/autosweep.py (with its nested-boundary fix) finds a single
+ * `do { } while (0);` at statement boundary 4 that takes this park from
+ * 3 of 85 to 2 of 85, first differing index moving to 6.  NOT installed here --
+ * the body below is unchanged and still reads 3 -- because the anchor is worth
+ * recording as a MEASURED ROUTE rather than shipped for one encoding before the
+ * remaining residue is understood.
+ *
+ * Whoever takes this next: start from that variant, not from the body below.
+ * Reproduce with:
+ *   python3 tools/autosweep.py src/non_matching/ovl_78ef88/200c260.c --anchor
+ *
+ * Note the anchor is device-free -- it emits nothing and shimcount does not
+ * count it -- so unlike a bare barrier it costs no pass-3 debt if it does end up
+ * in the landing.
+ */
 /* OvlFunc_896_200c260 -- 0x0200c260
  *
  * STILL NON-MATCHING, **3 differing encodings of 85** (ref 85 / ours 85, first
