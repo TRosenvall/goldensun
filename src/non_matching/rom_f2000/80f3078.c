@@ -1,3 +1,9 @@
+/* Func_80f3078 -- park. The subject line must stay FIRST: tools that identify a
+ * park by its subject (piece.py, autosweep.py, shortrefs.py, scratchfill.py)
+ * read line 1, and a note prepended above it makes them resolve the wrong
+ * function or no function at all. Notes go UNDER this line. Added in batch
+ * 341 after the pre-fix autosweep was found sweeping wrong subjects.
+ */
 /* NON-MATCHING, 805 of 839 encodings differ  (objcmp, production flags).
  *
  * SIZE and COUNT are BOTH INEXACT, so the 805 figure SATURATES and is not a

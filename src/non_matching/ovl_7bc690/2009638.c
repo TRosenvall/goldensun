@@ -1,3 +1,9 @@
+/* OvlFunc_933_2009638 -- park. The subject line must stay FIRST: tools that identify a
+ * park by its subject (piece.py, autosweep.py, shortrefs.py, scratchfill.py)
+ * read line 1, and a note prepended above it makes them resolve the wrong
+ * function or no function at all. Notes go UNDER this line. Added in batch
+ * 341 after the pre-fix autosweep was found sweeping wrong subjects.
+ */
 /* PARKED -- OvlFunc_933_2009638, --align 33 of 248 / objcmp 40 of 251
  * NON-MATCHING, 33 instructions in disagreeing regions of 248.  The SIZE and
  * the instruction count BOTH match (ref 251 encodings, ours 251), so the

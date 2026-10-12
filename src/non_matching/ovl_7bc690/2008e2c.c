@@ -1,3 +1,9 @@
+/* OvlFunc_933_2008e2c -- park. The subject line must stay FIRST: tools that identify a
+ * park by its subject (piece.py, autosweep.py, shortrefs.py, scratchfill.py)
+ * read line 1, and a note prepended above it makes them resolve the wrong
+ * function or no function at all. Notes go UNDER this line. Added in batch
+ * 341 after the pre-fix autosweep was found sweeping wrong subjects.
+ */
 /* PARKED -- OvlFunc_933_2008e2c, --align 77 of 237 / objcmp 181 of 239
  * NON-MATCHING, 181 encodings of 239.  NOT a distance (ref 552 bytes / 239 encodings against ours 568 / 242).  READ `--align`: 77 of 237.
  * Opened from nothing this batch.  No .sym needed -- the two pooled ids are already _AREA_59 and

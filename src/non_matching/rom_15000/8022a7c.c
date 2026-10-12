@@ -1,3 +1,18 @@
+/* Func_8022b44 -- park, in the Func_8022a7c region (filename is the region's
+ * address, 0x08022a7c; asm/rom_15000/rom_22a7c.s declares Func_8022a7c too).
+ * The body here defines Func_8022b44, which is why the subject line names that
+ * one -- tools resolve a park by the function it defines.
+ *
+ * NOTE FOR SCHEDULING: batch 340 brief C concluded, as the third brief to do so
+ * independently, that Func_80270ac should be worked as a PARENT-FUNCTION job
+ * with this file rather than as a park of its own -- it is a nested function
+ * whose real unit of work is this 2004-line parent. Treat this park as that
+ * parent job, not as a single function.
+ *
+ * The subject line must stay FIRST: piece.py, autosweep.py, shortrefs.py and
+ * scratchfill.py all read line 1 to identify a park, and a note prepended above
+ * it makes them resolve the wrong function or none.
+ */
 /* BACKFILLED FIGURE (batch 337) -- NOT MATCHING, a SIZE mismatch: ref 1588 bytes against ours 252.
  *
  * This park carried NO PARSEABLE FIGURE AND NO RECIPE, so it was invisible to

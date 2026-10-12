@@ -1,3 +1,9 @@
+/* Func_80ab1f4 -- park. The subject line must stay FIRST: tools that identify a
+ * park by its subject (piece.py, autosweep.py, shortrefs.py, scratchfill.py)
+ * read line 1, and a note prepended above it makes them resolve the wrong
+ * function or no function at all. Notes go UNDER this line. Added in batch
+ * 341 after the pre-fix autosweep was found sweeping wrong subjects.
+ */
 /* NOTE (batch 336): this park's reference .s was RENAMED by the split that
  * landed Func_80ab21c.  split_s.py consumed rom_aa538_c_c_a_c_c.s; this
  * function now lives in rom_aa538_c_c_a_c_c_a.s with Func_80aafb8, and the

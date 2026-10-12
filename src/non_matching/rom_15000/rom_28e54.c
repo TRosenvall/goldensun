@@ -1,3 +1,9 @@
+/* YesNoMenu2 -- park. The subject line must stay FIRST: tools that identify a
+ * park by its subject (piece.py, autosweep.py, shortrefs.py, scratchfill.py)
+ * read line 1, and a note prepended above it makes them resolve the wrong
+ * function or no function at all. Notes go UNDER this line. Added in batch
+ * 341 after the pre-fix autosweep was found sweeping wrong subjects.
+ */
 /* MEASURED FIGURE, backfilled in batch 324 (this park carried none).
  * ===== BATCH 335.  32 differing encodings of 35 (STREAM; ref 35, ours 28).
  * Aligned-equal twenty-six of thirty-five, nine differing in five hunks.

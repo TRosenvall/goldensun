@@ -1,3 +1,9 @@
+/* OvlFunc_883_20095dc -- park. The subject line must stay FIRST: tools that identify a
+ * park by its subject (piece.py, autosweep.py, shortrefs.py, scratchfill.py)
+ * read line 1, and a note prepended above it makes them resolve the wrong
+ * function or no function at all. Notes go UNDER this line. Added in batch
+ * 341 after the pre-fix autosweep was found sweeping wrong subjects.
+ */
 /* BACKFILLED FIGURE (batch 337) -- NOT MATCHING, a SIZE mismatch: ref 5240 bytes against ours 5200.
  *
  * This park carried NO PARSEABLE FIGURE AND NO RECIPE, so it was invisible to

@@ -1,3 +1,9 @@
+/* OvlFunc_896_200a27c -- park. The subject line must stay FIRST: tools that identify a
+ * park by its subject (piece.py, autosweep.py, shortrefs.py, scratchfill.py)
+ * read line 1, and a note prepended above it makes them resolve the wrong
+ * function or no function at all. Notes go UNDER this line. Added in batch
+ * 341 after the pre-fix autosweep was found sweeping wrong subjects.
+ */
 /* PARKED -- OvlFunc_896_200a27c -- 0x0200a27c
  *
  * NON-MATCHING, 17 of 160 encodings  (MEASURED, batch 319 recipe backfill).

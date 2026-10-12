@@ -1,3 +1,9 @@
+/* LoadGS1CreditsBG -- park. The subject line must stay FIRST: tools that identify a
+ * park by its subject (piece.py, autosweep.py, shortrefs.py, scratchfill.py)
+ * read line 1, and a note prepended above it makes them resolve the wrong
+ * function or no function at all. Notes go UNDER this line. Added in batch
+ * 341 after the pre-fix autosweep was found sweeping wrong subjects.
+ */
 /* NOTE (batch 336): THE SIBLING HAS LANDED, and this park's reference .s was
  * renamed by the split that did it.  Func_80f0254 is now
  * src/rom_f0000/rom_f0254_a_a_b.c (byte-identical, 92 bytes, 39 encodings);
