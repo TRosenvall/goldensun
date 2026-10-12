@@ -1,6 +1,6 @@
 # Batch 344 — the figure was never a distance
 
-**5 briefs, 20 targets, 3 landings** — and the reason this batch matters is not
+**5 briefs, 20 targets, 4 landings, 7 length gaps closed** — and the reason this batch matters is not
 the landings but the pool they came from.
 
 ## The finding
@@ -37,6 +37,19 @@ margin** — 8 of 15, 7 of 25, 8 of 25, 10 of 32 across four batches, and it
 been pointed at parks whose figure was already small, which is a tiny and (as of
 343) exhausted slice of the parks it fits.
 
+## The qualifier, and it matters as much as the finding
+
+**Closing the gap is not monotonic progress.** Brief B measured it on
+`Func_8093af8`: a change that *equalised* the instruction counts took the figure
+29 → 17 of 124 and made the **aligned** residue *worse* — 110/22 became 109/23 —
+**with the missing instruction still missing.** The figure fell because the phase
+offset went away, not because the code got closer.
+
+So the order of operations is: close the length gap and treat the figure as
+unreadable until it is; then read the **aligned** residue (`aligncmp`), not the
+raw figure, against the aligned residue of the body you started from. A falling
+figure across a length change is expected and means nothing on its own.
+
 ## Results
 
 Twenty targets drawn from the new pool, all at ±1 or ±2, split into briefs by gap
@@ -49,6 +62,7 @@ Twenty targets drawn from the new pool, all at ±1 or ±2, split into briefs by 
 | `Func_80c0228` | 21 (phase) | 50/50 | **a crossing of two of the park's own recorded negatives** |
 | `Func_80a355c` | 50 (phase) | 69/69 | two levers, **either alone inert** |
 | `Func_80a8b10` | 51 (phase) | 58/58 | loop.c **biv elimination**; refutes a standing bound |
+| `OvlFunc_924_20090c0` | 34 (phase) | 61/61 | **definition order**, not declaration order |
 
 - **`Func_80c0228`.** The park's question (`local-alloc.c:1633-1636`) was exactly
   right. The divide result must be block-local so `combine_regs` ties it to the
@@ -65,6 +79,14 @@ Twenty targets drawn from the new pool, all at ±1 or ±2, split into briefs by 
   from a park whose arithmetic was correct.
 - **`Func_80a8b10`.** Needed a text split, gated alone before the `.c` was
   written. See the refutation below.
+- **`OvlFunc_924_20090c0`.** The park's ten `-1` spellings are all
+  *bit-identical* — it was measuring nothing. The real rule: **N two-instruction
+  Thumb constants in one argument list need N names DEFINED BEFORE A CALL THEY
+  ARE LIVE ACROSS**, not N names at the call; `cse` unifies them whatever the
+  spelling, and the ROM's repetition comes from reload rematerialising a
+  `REG_EQUIV` constant once per argument. The park's bound — "the source can move
+  an allocation but cannot choose it" — falls to **definition order**; it had only
+  ever tried declaration order, which is exactly inert.
 
 ### Length gaps closed without landing — five
 
@@ -77,6 +99,11 @@ Each of these gives a park its first figure that is a real distance.
 | `StartEarthquake` | 51 (phase) | **14** | 66/66 |
 | `OvlFunc_971_2008e10` | *no figure* | **29** | — |
 | `StartThunder2` | *no figure* | **39** | 68/68 |
+| `Func_80f0614` | 38 (phase) | **17** | 45/45, relocations now clean |
+| `Func_8093304` | 29 (phase) | **15** | 37/37, relocations now clean |
+
+Brief B's four targets were all at −1, and counting pre/in/post regions
+separately **located the missing instruction on four of four**.
 
 ## A standing `docs/elevation.md` bound is retired
 
@@ -153,3 +180,32 @@ as a figure.
 - Brief C: one pin on r0 alone makes `OvlFunc_967_2008308` byte-identical; the
   device-free question now has its precondition stated (`update_equiv_regs` needs
   `REG_BASIC_BLOCK < 0`).
+
+## Brief B's mechanisms
+
+- **`cse.c:5960-6005` is an adjacency test, not a liveness test.** The gate at
+  `:5992-5994` requires `prev_nonnote_insn` of the copy to be the insn that set
+  the source — which is why naming the dividend in a local **keeps**
+  `expand_divmod`'s copy (`expmed.c:3243`). A park had bounded this as needing
+  "a second use the function has none to give": the wrong precondition entirely.
+- **A use-site `volatile` keeps an `add rD, rB, rI`** that `(plus reg reg)`
+  addressing would fold into the store (`arm.h:2133-2148`); ten non-volatile
+  spellings inert. Free version: the fold is blocked wherever the offset register
+  is written **between** the `add` and the store.
+- **Reload inheritance across an unlabelled fallthrough edge** decides whether a
+  second low copy of a high register exists — a reload-cursor parity question
+  that *produces* an instruction.
+- **`.12.life`'s refs and live-length do not predict `allocno_compare`'s sort.**
+  One park went 2.00 → 1.09, below its rival's 1.60, with the sort order and both
+  dispositions unchanged: those fields are recomputed before lreg.
+
+## The recorded-negative pattern, now three batches running
+
+Two of brief B's parks had their **decisive lever sitting in their own
+recorded-negative list** — p3's allocation bound and p4's "dividend named in an
+int local [39]", which is 40/40 once the name is **reused** for the later temp.
+Both had been closed on those rows for ten batches.
+
+**A recorded negative is a measurement of one body, and it expires silently every
+time the body changes.** Still worth recording — it saves the next agent real
+tokens — but it reads as "inert against the body of batch N", never "inert".
