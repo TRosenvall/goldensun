@@ -1,6 +1,15 @@
+/* CLAIM LINE CORRECTED (batch 343): this park measures 17, not 55.
+ *
+ * Batch 336 brief G took this park 55 -> 17 and the improvement WAS carried into
+ * the body, but this top claim line was never updated -- and the top line is what
+ * parkcheck and piece.py parse, so the park has ranked as 55 for seven batches
+ * while measuring 17.  Found by a parkcheck sweep of the 15-60 band in batch 343,
+ * prompted by brief B finding the identical defect on OvlFunc_959_200a69c (claim
+ * line 29, body 10).  A STALE TOP LINE HIDES A CLOSE PARK FROM TARGET SELECTION.
+ */
 /* OvlFunc_959_200a718 -- 0x0200a718,
  *
- * NON-MATCHING, 55 of 63 encodings  (MEASURED, batch 319 recipe backfill).
+ * NON-MATCHING, 17 of 63 encodings  (MEASURED, batch 319 recipe backfill).
  *   COUNT DIFFERS (ref 63, ours 59) -- so this positional figure measures
  *   MISALIGNMENT, not distance.  Read the count before the figure.
  *   RELOCATIONS differ, but THE SAME SYMBOLS AT A SHIFTED OFFSET -- which

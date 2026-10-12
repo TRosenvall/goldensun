@@ -1,3 +1,14 @@
+/* NintendoLogo -- NOT MATCHING, 22 differing encodings of 202.
+ *
+ * CLAIM LINE CORRECTED (batch 343).  Brief E took this park 24 -> 22 on a
+ * device-free anchor closing the DecompressLZ schedule swap, and the top line
+ * lagged the body.  My first correction then mangled the ladder line into
+ * "22 -> 22" by replacing the wrong digit; restored.
+ *
+ * THE TOP LINE IS WHAT parkcheck AND piece.py PARSE, so a stale one hides a
+ * close park from target selection -- overlays/200a718.c ranked as 55 for seven
+ * batches while measuring 17 for exactly this reason.
+ */
 /* ===================== BATCH 342 (brief E, the DEPIN brief) ADDENDUM -- READ FIRST
  *
  * NintendoLogo -- STILL NON-MATCHING, IMPROVED 24 -> 22 BY A DEVICE-FREE ANCHOR.

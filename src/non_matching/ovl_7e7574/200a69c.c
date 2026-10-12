@@ -1,12 +1,17 @@
 /* OvlFunc_959_200a69c (0x0200a69c) -- NON-MATCHING.
  *
- * NON-MATCHING, 29 of 48 encodings PIN-FREE  (RE-MEASURED, batch 333 brief B).
- *   Thirty-three reference instructions against thirty-four, so the pin-free
- *   stream is one instruction long and this figure measures that offset.
- *   A REGISTER-PINNED BODY OF THIS FUNCTION IS AN EXACT MATCH -- objcmp reads
- *   `OK ... 124 bytes, 48 encodings and 13 relocations identical`.  It is
- *   RECORDED BELOW AND DELIBERATELY NOT SHIPPED, under the batch-319 pin
- *   policy: park at the pin-free figure, leave the pinned form for pass 3.
+ * NON-MATCHING, 10 of 48 STREAM encodings with FIVE SHIMS (NO register pins)
+ *   -- re-measured batch 343 brief B, and the batch-336 figure reproduces.
+ *   IN PHASE: 33 reference instructions against 33, size equal, and
+ *   **RELOCATIONS IDENTICAL** -- all thirteen `bl` offsets line up, which they
+ *   did not at twenty-nine.  So the 10 is a TRUE DISTANCE.
+ *   PIN-FREE / DEVICE-FREE FIGURE, for the pin policy: **29 of 48** (the same
+ *   body with the five barriers deleted, 34 instructions against 33 -- one
+ *   instruction LONG, so that figure measures phase, not distance).
+ *   Superseded figures: 29 device-free, 18 with nine register pins.
+ *   A FULLY REGISTER-PINNED BODY OF THIS FUNCTION IS AN EXACT MATCH; its recipe
+ *   is recorded below and deliberately not shipped, under the batch-319 pin
+ *   policy.
  *
  * Verify with:
  *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
@@ -14,87 +19,134 @@
  *     src/non_matching/ovl_7e7574/200a69c.c \
  *     asm/overlays/rom_7e7574/ovl_9dc_c_c_a_a_a_c_c.s --func OvlFunc_959_200a69c
  *
- * This recipe was ADDED by the batch-319 backfill: the park had none, so
- * parkcheck.py could not report its figure and nothing had ever checked it.
- * Blocker class: duplicate-constant CSE. THIRD specimen this batch.
+ * >> TWO HEADER DEFECTS FIXED, BATCH 343.  (1) The CURRENT figure now goes
+ *    FIRST.  The previous header opened with "29 of 48 encodings PIN-FREE" while
+ *    the batch-336 section 150 lines down recorded 10, and the BODY below is the
+ *    barriered 10 body -- so `tools/parkcheck.py`, `tools/piece.py` and every
+ *    ranking built on them read this park as 29 when it measures 10.  The work
+ *    was never lost; only the claim line was stale.  (2) THE SHIMS ARE NO LONGER
+ *    INVISIBLE: `tools/shimcount.py` now reports **5 -- asm + operand** on this
+ *    body, so the park's note that shimcount "reports ZERO ... fourth known
+ *    blind spot" is FIXED and obsolete.  Any manifest for this park must carry
+ *    pins: 5 and fakematch: true. <<
  *
- * A pure cutscene script -- thirteen calls, no branches, no loops. 47 lines
- * against the ROM's 46, and the single extra line is `push {r5, r6, r14}`
- * where the ROM pushes only lr.
+ * ======== THE LEVER THAT GOT IT TO 10 (batch 336): cse.c:5741-5745 ========
  *
- * `__MapActor_SetSpeed` is called twice with the same two speeds,
- * `0x80 << 9` and `0x80 << 8`. The ROM rebuilds both with mov/lsl at each
- * site. gcc CSEs them, and because the values must survive the intervening
- * calls it puts them in r5 and r6 -- which the function otherwise does not
- * need, hence the wider push and pop.
+ * Inside `cse_insn`:
  *
- * MEASURED (rom 46 lines):
- *   baseline                     47, 29
- *   -fno-gcse                    47, 29
- *   -fno-rerun-cse-after-loop    47, 29
- *   -fno-strength-reduce         47, 29
+ *     /* A volatile ASM invalidates everything.  *\/
+ *     if (GET_CODE (insn) == INSN
+ *         && GET_CODE (PATTERN (insn)) == ASM_OPERANDS
+ *         && MEM_VOLATILE_P (PATTERN (insn)))
+ *       flush_hash_table ();
  *
- * THE THREE SPECIMENS THIS BATCH AGREE, and together they say something the
- * individual entries did not:
+ * cse pass one drops its ENTIRE value table at such an insn, so the repeated
+ * constants are no longer unified across the intervening call and each site
+ * rebuilds its own, which is what the ROM does.  The prologue becomes
+ * `push {lr}` and the extra `pop` disappears.
  *
- *   OvlFunc_970_20092ac  one constant twice across three calls  -> r8, +5 lines
- *   Func_801965c         a zero twice through halfword stores   -> +1 line
- *   this                 two constants twice across one call    -> r5/r6, +1
+ * >> THE PATTERN MUST BE A BARE `ASM_OPERANDS`.  A no-operand no-clobber
+ * >> `__asm__ volatile ("")` expands to ASM_INPUT and the test above is false;
+ * >> `::: "memory"` wraps the asm in a PARALLEL with the clobber and the test is
+ * >> false again (measured WORSE on the TU-mate).  What works is zero outputs,
+ * >> zero clobbers and at least one IMMEDIATE input, so no code is emitted:
+ * >>     __asm__ volatile ("" :: "i"(0));
  *
- * -fno-gcse is inert on ALL THREE. So the pass responsible is cse.c's local
- * constant CSE, not the global one, and there is no flag that reaches it. That
- * is worth knowing because -fno-gcse is the obvious thing to reach for and it
- * has now cost four runs across three functions to rule out.
+ * ======== WHAT THE REMAINING 10 IS, AND IT IS NOW BOUNDED WITH CITATIONS ======
  *
- * The class also has a PREDICTABLE VICTIM. A cutscene script -- straight-line
- * calls with repeated coordinate or speed constants -- will hit this every
- * time, because the same literal appears at two call sites with a call between
- * them, which is exactly the shape that forces a callee-saved register.
- * pickable.py already rejects on a repeated expensive constant; the point here
- * is that a function can look trivial (no branches, no loops, thirteen calls in
- * a row) and still be unreachable.
+ * Eight of the ten are ARGUMENT-SETUP ORDER at four call sites, with every
+ * instruction present, no length difference and the relocations already exact.
+ * `tools/aligncmp.py`: **44 of 48 aligned-equal (91.7%), 8 differing in 8
+ * hunks.**  The defect is the SAME at all four sites and it is one rule: THE ROM
+ * EMITS `movs r0, #<slot>` BEFORE THE `lsls` THAT COMPLETES THE SHIFTED
+ * CONSTANT; WE EMIT IT AFTER.
  *
- * WHAT IS RIGHT: every call, every argument, and every constant BUILD --
- * `0x80 << 9`, `0x80 << 8`, `0xec << 1` and the pooled `ldr r0, =0x247c` all
- * come out exactly as the ROM has them. Only the sharing is wrong.
+ *     site 1  ROM  movs r1,#0x80 / movs r2,#0x80 / movs r0,#0xb / lsls r1,#9 / lsls r2,#8
+ *             ours movs r1,#0x80 / movs r2,#0x80 / lsls r1,#9 / lsls r2,#8 / movs r0,#0xb
+ *     site 2  the same with #0xf
+ *     site 3  ROM  movs r1,#0xec / movs r0,#0xb / lsls r1,#1 / movs r2,#0xb4
+ *             ours movs r1,#0xec / lsls r1,#1 / movs r0,#0xb / movs r2,#0xb4
+ *     site 4  ROM  movs r1,#0xec / movs r2,#0xb4 / movs r0,#0xf / lsls r1,#1
+ *             ours movs r1,#0xec / movs r2,#0xb4 / lsls r1,#1 / movs r0,#0xf
  *
- * NEXT: nothing. The class has no known source-level lever.
-  *
- * BATCH 204 -- 29 DIFFERING DOWN TO 18, STILL ONE LINE LONG. Pinning r0-r2 at
- * both __MapActor_SetSpeed sites and assigning them in the ROM's order forces
- * the rebuild of `0x80 << 9` and `0x80 << 8` that gcc was CSEing across the
- * intervening call. That is the batch-193 rematerialisation lever and it
- * removes eleven differing lines.
+ * ** WHICH RUNG OF rank_for_schedule THIS IS, read out of the vendored compiler.
+ * ** haifa-sched.c's `rank_for_schedule` has six rungs and FIVE OF THEM ARE
+ * ** PROVABLY TIED in this window, so the residue sits on the LAST one:
+ * **   1. INSN_PRIORITY (haifa-sched.c:4040-4043).  Priority is the longest
+ * **      path to the block end.  `movs r1` -> `lsls r1` -> call is 2;
+ * **      `lsls r1` -> call and `movs r0` -> call are both 1.  So the two
+ * **      `movs r1`/`movs r2` go first (they do, on both sides) and the
+ * **      contested three -- `lsls r1`, `lsls r2`, `movs r0` -- all tie at 1.
+ * **   2. INSN_REG_WEIGHT (4046-4049) is guarded by `!reload_completed`, so it
+ * **      is DEAD IN sched2.  This is worth stating because register pressure is
+ * **      the obvious story and the rung that would express it does not run.
+ * **   3. the interblock rungs (4051-4067) need `INSN_BB (tmp) != INSN_BB (tmp2)`
+ * **      and this function is ONE basic block -- thirteen calls, no branches,
+ * **      no loops -- so they are unreachable.
+ * **   4. the CLASS rung relative to last_scheduled_insn (4069-4096) assigns
+ * **      class 3 when `link == 0 || insn_cost (last, link, tmp) == 1`.
+ * **      arm.md:254 gives every `core_cycles single` insn latency 1, so
+ * **      insn_cost is 1 for every ALU insn here and EVERYTHING is class 3.
+ * **      Dead in an ALU window -- exactly as docs/elevation.md records.
+ * **   5. the DEPENDENT-COUNT rung (4098-4111).  `lsls r1` has one dependent
+ * **      (the call) and `movs r0` has one dependent (the call).  Tied, and
+ * **      neither can go below one.
+ * **   6. INSN_LUID (4113) -- "original insn order", the stable-sort tiebreak.
+ * **      THIS IS THE ONE THAT DECIDES IT.
+ * **
+ * ** AND THE LUID ORDER IS FIXED BY calls.c, NOT BY THE SOURCE.
+ * ** `precompute_register_parameters` (calls.c:849-856) forces a FRESH PSEUDO
+ * ** for any argument that is not already a REG and whose
+ * ** `rtx_cost (args[i].value, SET) > 2`, whenever
+ * ** `SMALL_REGISTER_CLASSES && *reg_parm_seen` -- both true of every Thumb call
+ * ** that passes anything in a register.  `arm_rtx_costs` (arm.c:2075-2082)
+ * ** charges a Thumb CONST_INT under 256 ZERO and a `thumb_shiftable_const`
+ * ** COSTS_N_INSNS(2) = 6.  So `0x80 << 9` and `0xec << 1` are precomputed and
+ * ** `0xb` / `0xf` are NOT.  `load_register_parameters` then emits the hard-reg
+ * ** copies in ARGUMENT ORDER, arg 0 first (calls.c:1694-1697 -- the `#else`
+ * ** branch, since LOAD_ARGS_REVERSED is not defined for ARM) -- but it runs
+ * ** AFTER precompute, so the big constants' insns already sit EARLIER in the
+ * ** chain and carry the LOWER LUIDs.  `movs r0` is last in RTL, so sched2's
+ * ** last rung puts it last.
+ * **
+ * ** PREDICTION CHECKED: if the speeds were NOT precomputed, load_register_
+ * ** parameters would emit r0 first, LUID(movs r0) would be 0, and replaying the
+ * ** six rungs gives movs r1 / movs r2 / movs r0 / lsls r1 / lsls r2 -- the ROM's
+ * ** site-1 order exactly, and movs r1 / movs r0 / lsls r1 / movs r2 for site 3,
+ * ** also exactly.  So the bound is: TO MATCH, THE >= 256 ARGUMENTS MUST NOT GO
+ * ** THROUGH precompute, which requires them to be REGs already -- and any
+ * ** source shape that puts a compile-time constant in a variable is propagated
+ * ** back to a CONST_INT by cse before expand_call sees it.  Measured below. **
  *
- * IT DOES NOT REMOVE THE EXTRA LINE. The function is still 47 against the ROM's
- * 46, and the surplus is still the prologue -- `push {r5, r6, lr}` where the
- * ROM pushes only lr. So gcc is holding something ELSE in a callee-saved
- * register besides the two speeds, and the CSE of those two was not the whole
- * cause. The remaining eighteen should be read against that: find what is still
- * live across a call before spending screens on the fills.
+ * MEASURED THIS BATCH (stream terms; base is the body below at 10 of 48):
+ *   the SLOT constant given its own named local at each of the four sites,
+ *     `s0 = 0xb; __MapActor_SetSpeed(s0, ...)`  -- the park named the two
+ *     SPEEDS and never the slot ..................... 10 of 48 (byte-equal)
+ *   the same with the slot assigned BEFORE the barrier  11 of 48 (worse)
+ *   the same with a barrier on either side of it ...... 11 of 48 (worse)
+ *   a `do { } while (0);` anchor added before each call 11 of 48 (worse)
+ *   all three arguments named as locals at every site .. 32 of 48, 33/31 insns
+ *                                                        (much worse, and SHORT)
+ * MEASURED, batch 336:
+ *   park body, no barrier ....................... 29 of 48, RELOCS DIFFER
+ *   `:: "i"(0)` before the four repeated sites ... 10 of 48  <- kept
+ *   the same barrier before EVERY call ........... 14 of 48
+ *   the same, skipping the first two sites ....... 10 of 48
+ *   `0x10000` / `0x8000` / `0x1d8` as plain hex .. 10 of 48
+ *   the two speeds assigned to named locals first  10 of 48
+ *   two barriers per site instead of one ......... 10 of 48
  *
- * The candidate below is the 18-differing pinned form, not the 29 the text
- * above was written against.
+ * BOTH CHEAP AXES ARE CLOSED (tools/autosweep.py, batch 343 -- a recorded
+ * negative, do not re-screen):
+ *   FLAG axis    all eight per-file groups.  -fno-gcse, -ffixed-r7,
+ *                -fno-strict-aliasing, -fno-strength-reduce,
+ *                -fno-rerun-cse-after-loop and -fno-rerun-loop-opt are EXACTLY
+ *                INERT at 10; -O1 is 16 and -fno-schedule-insns2 is 16, both
+ *                worse.  sched2 being WORSE is the useful half: the production
+ *                schedule is right and the residue is in what sched2 is GIVEN.
+ *   ANCHOR axis  18 of 18 boundaries, all inert at 10.
  *
- * ========================================================================
- * BATCH 333 BRIEF B -- THE PINNED FORM IS AN EXACT MATCH, AND THE PARK'S
- * BATCH-204 CONCLUSION WAS WRONG ABOUT WHAT WAS STILL LIVE
- * ========================================================================
- *
- * DIRECTION, STATED BACK: this park is OURS LONGER.  Note that the usual
- * phrasing of that direction -- "gcc failed an optimisation the original build
- * made" -- is BACKWARDS here.  gcc PERFORMED an optimisation the original
- * build did not: it common-subexpression-eliminated three repeated constants
- * into callee-saved registers.  The body's constant-materialisation count is
- * IDENTICAL on the two sides (twelve instructions each); the entire length
- * difference is the extra `pop` the callee-saved registers force.
- *
- * REFUTED.  The batch-204 note above reads "gcc is holding something ELSE in a
- * callee-saved register besides the two speeds, and the CSE of those two was
- * not the whole cause."  It was the whole cause.  The something else is the
- * THIRD repeated constant, the one at the two script calls that batch 204 did
- * not pin.  Pin all FOUR repeated-constant sites and the function matches
- * exactly.  The recipe, so it is not lost with the scratch directory:
+ * ======== THE PINNED EXACT MATCH, kept so it is not lost ========
  *
  *     #define PIN3 register int q0 __asm__("r0"); \
  *                  register int q1 __asm__("r1"); \
@@ -104,172 +156,56 @@
  *     { PIN3; q1 = 0xec; q0 = 0xb; q1 <<= 1; q2 = 0xb4; ...script... }
  *     { PIN3; q1 = 0xec; q2 = 0xb4; q0 = 0xf; q1 <<= 1; ...script... }
  *
- * Every other statement is the literal-argument form already below.  Note the
- * assignment ORDER differs between the two pairs; that is not decoration, it
- * is what the reference's scheduling needs.
+ * Every other statement is the literal-argument form below.  The assignment
+ * ORDER differs between the two pairs; that is not decoration, it is what the
+ * reference's scheduling needs -- and the side-by-side above now says WHY:
+ * site 3 wants `movs r0` second and site 4 wants it third.
  *
- * WHY THE PIN-FREE FORM CANNOT AVOID THE CALLEE-SAVED REGISTER, read out of
- * the vendored compiler rather than recalled:
- *   - calls.c:841-857, `precompute_register_parameters`: an argument that is
- *     not already a REG and whose `rtx_cost (value, SET)` exceeds two is forced
- *     into a FRESH PSEUDO by `copy_to_mode_reg` whenever
- *     `SMALL_REGISTER_CLASSES && *reg_parm_seen` -- both true of every Thumb
- *     call that passes anything in a register.
- *   - arm.c:2075-2082, `arm_rtx_costs`, TARGET_THUMB, CONST_INT with outer
- *     SET: under two hundred and fifty-six costs ZERO; `thumb_shiftable_const`
- *     costs COSTS_N_INSNS(2); anything else COSTS_N_INSNS(3).  rtl.h defines
- *     COSTS_N_INSNS(N) as N*4-2, so those are zero, six and ten.
- *     >> A CONSTANT ARGUMENT BELOW 256 NEVER GETS A PSEUDO; ONE AT OR ABOVE
- *     >> 256 ALWAYS DOES.  That is the whole entry condition for this class,
- *     >> and it is a one-line test on any call site.
- *   - cse pass one then unifies the per-site pseudos by value (visible in
- *     `<base>.c.03.cse`: the second site's two sets are simply gone and its
- *     argument copies read the first site's pseudos).
- *   - global.c:987-997: `calls_crossed` non-zero copies `used1` from
- *     `call_used_reg_set`, so the candidates are LO_REGS minus call-used minus
- *     fixed, which here is exactly two registers.  global.c:390-392 keeps an
- *     as-yet-unused callee-saved register out of pass zero only (":1012, we
- *     never allocate a register for the first time in pass 0"), so pass one
- *     hands them out anyway.
- *   - the interwork epilogue then needs a SEPARATE pop ahead of the one that
- *     reloads the return address, because the return address was pushed last
- *     and one ascending pop list cannot bring it back into a low register.
- *     THAT is the extra instruction.
+ * ======== WHAT THE PARK GOT RIGHT, AND WHAT WAS REFUTED ========
  *
- * SO WHAT WOULD A PIN-FREE BODY NEED?  Enough simultaneously live constant
- * pseudos that NONE of them wins one of the two registers, at which point
- * reload substitutes each one's constant equivalent at its use and rebuilds it.
- * The corpus says that is reachable: one hundred and five generated -- hence
- * byte-matching -- functions under asm/ rebuild a shiftable constant at or
- * above two hundred and fifty-six two or more times while pushing only the
- * return address, and forty-four of those have pin-free, non-fakematch
- * sources.  The clearest model is
- * src/overlays/rom_7d95dc/ovl_30_c_c_c_c_a_c_b.c, `OvlFunc_953_200a820`:
- * SEVENTEEN single-use named constant locals assigned at the top of the
- * function, one per use even where two uses share a value, and the repeated
- * constant is rebuilt six times.
- * MEASURED HERE AND WORSE, which is the point: this function has only THREE
- * repeated constants, two of which fit the two available registers, so naming
- * them at the top makes it WORSE -- thirty-nine instructions, and gcc reaches
- * past the low registers to a high one.  Naming one local per use instead of
- * one per value is byte-identical to that, because cse unifies them before
- * local-alloc ever sees them.
- *   >> PRESSURE, NOT SPELLING, IS WHAT FORCES THE REMATERIALISATION.  A park in
- *   >> this class with FEW repeated constants is harder than one with many.
- *   >> That is the inverse of the usual intuition and it is why the park's
- *   >> "PREDICTABLE VICTIM" paragraph is right about the shape and wrong about
- *   >> the difficulty ordering.
+ * RIGHT, and it is nearly all of it: the direction (OURS LONGER -- gcc PERFORMED
+ * an optimisation the original build did not), the cause (cse pass one unifying
+ * constants >= 256 into callee-saved registers), the entry condition
+ * (calls.c:849-856 with arm.c:2075-2082 -- a constant argument below 256 never
+ * gets a pseudo, one at or above 256 always does, and that is a one-line test on
+ * any call site), the register arithmetic (global.c:987-997 -- `calls_crossed`
+ * non-zero copies `used1` from `call_used_reg_set`, so the candidates are LO_REGS
+ * minus call-used minus fixed, exactly two registers here; global.c:390-392 keeps
+ * an as-yet-unused callee-saved register out of pass zero only), and that the
+ * extra instruction is the interwork epilogue's SEPARATE second `pop`.
  *
- * CORRECTION TO THE LAST LINE OF THE PREVIOUS PARK: it said the candidate
- * below was the pinned form.  It was not -- the body below is and always was
- * pin-free, and it measures twenty-nine.  The pinned form is the one recorded
- * above in this section.
+ * REFUTED, batch 333: the batch-204 note "gcc is holding something ELSE in a
+ * callee-saved register besides the two speeds" -- it was the THIRD repeated
+ * constant at the two script calls, which batch 204 did not pin.
+ * REFUTED, batch 336: "NEXT: nothing.  The class has no known source-level
+ * lever."  cse.c:5741-5745 is a door; the park had ruled out only the ASM_INPUT
+ * spelling.
+ * ALSO REFUTED: the extra `pop` is NOT a declared-return-type error.  The ROM's
+ * epilogue is `pop {r0}` / `bx r0`, which is `thumb_exit`'s VOID case, and this
+ * park already declares `void`.  Fourteen parks in this tree do disagree with
+ * their declaration; this is not one of them.
+ * REFUTED, batch 333, and the inverse of the usual intuition: PRESSURE, NOT
+ * SPELLING, forces the rematerialisation, so a park in this class with FEW
+ * repeated constants is HARDER than one with many.  Seventeen single-use named
+ * constant locals is what makes `OvlFunc_953_200a820`
+ * (src/overlays/rom_7d95dc/ovl_30_c_c_c_c_a_c_b.c) work; this function has only
+ * three repeated constants, two of which fit the two available registers, so
+ * naming them at the top makes it WORSE -- thirty-nine instructions, with gcc
+ * reaching past the low registers to a high one.
  *
- * PIECE-MATES: this reference piece holds FOUR functions and all four are
- * parked, so nothing installs here from this function alone.  The next one in
- * the piece opens with the same two-speed script call as this one.
+ * PIECE MEMBERSHIP (tools/piece.py, re-verified batch 343): FOUR functions in
+ * asm/overlays/rom_7e7574/ovl_9dc_c_c_a_a_a_c_c.s -- this one, OvlFunc_959_200a718
+ * (55 of 63, parked at src/non_matching/overlays/200a718.c), OvlFunc_959_200a7b0
+ * (753 of 835) and OvlFunc_959_200b054 (no claim).  All four parked.  This is the
+ * FIRST member and `split_s.py --dry-run` writes only `_b.s` (this function) and
+ * `_c.s` (the other three), with no `_a.s`.  >> IT SPLITS OUT ALONE.
  *
- * NEXT: pass 3, depinning.  The pinned form is exact, so the whole question is
- * register pressure in a four-pseudo window, and `reports/pass3-depin.md` is
- * where it belongs.
-
- * ========================================================================
- * BATCH 336 BRIEF G -- TWENTY-NINE TO TEN.  "THE CLASS HAS NO KNOWN
- * SOURCE-LEVEL LEVER" IS REFUTED: cse.c:5741-5745 HAS A DOOR.
- * ========================================================================
- *
- * CURRENT FIGURE: 10 of 48 encodings in STREAM terms (ref 48, ours 48),
- * 33 instructions against 33, and RELOCATIONS NOW IDENTICAL -- the park's
- * thirteen `bl` offsets all line up, which they did not at twenty-nine.
- * Superseded figures: twenty-nine pin-free, and eighteen with nine pins.
- * Barrier-free the body still reads TWENTY-NINE.
- *
- * Verify with:
- *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
- *     goldensun-build python3 tools/objcmp.py \
- *     src/non_matching/ovl_7e7574/200a69c.c \
- *     asm/overlays/rom_7e7574/ovl_9dc_c_c_a_a_a_c_c.s --func OvlFunc_959_200a69c
- *
- * THE LEVER.  cse.c:5741-5745, inside `cse_insn`:
- *
- *     /* A volatile ASM invalidates everything.  *\/
- *     if (GET_CODE (insn) == INSN
- *         && GET_CODE (PATTERN (insn)) == ASM_OPERANDS
- *         && MEM_VOLATILE_P (PATTERN (insn)))
- *       flush_hash_table ();
- *
- * -- cse pass one drops its ENTIRE value table at such an insn, so the
- * repeated constants are no longer unified across the intervening call and
- * each site rebuilds its own, which is what the ROM does.  Put one before
- * each call that carries a repeated shifted constant and the extra `pop`
- * disappears: the prologue is `push {lr}` and the body is 33 against 33.
- *
- * >> THE PATTERN MUST BE A BARE `ASM_OPERANDS`, AND THAT IS WHY THE OBVIOUS
- * >> SPELLINGS FAIL.  A no-operand no-clobber `__asm__ volatile ("")` expands
- * >> to ASM_INPUT, not ASM_OPERANDS, so the test above is false (and
- * >> rtlanal.c `volatile_insn_p` likewise lists ASM_INPUT in its `return 0`
- * >> group).  Adding `::: "memory"` wraps the asm in a PARALLEL with the
- * >> clobber, so `GET_CODE (PATTERN (insn)) == ASM_OPERANDS` is false again
- * >> and cse does NOT flush -- measured, 56 of 63 on the TU-mate, worse than
- * >> baseline.  What works is an asm with ZERO OUTPUTS, ZERO CLOBBERS and at
- * >> least one input, with the input an IMMEDIATE so no code is emitted:
- * >>
- * >>     __asm__ volatile ("" :: "i"(0));
- * >>
- * >> That is the shape whose pattern IS the asm_operands.  Three spellings of
- * >> "a volatile asm barrier" behave three different ways here and only one
- * >> reaches cse.
- *
- * WHAT THE PARK GOT RIGHT, and it is nearly all of it: the direction (OURS
- * LONGER), the cause (cse pass one unifying constants >= 256 into
- * callee-saved registers), the entry condition (calls.c:841-857 with
- * arm.c:2075-2082 -- a constant argument below 256 never gets a pseudo), the
- * register arithmetic (global.c:987-997), and that the extra instruction is
- * the interwork epilogue's second `pop`.  Every line of that reproduced.
- * ONLY THE VERDICT -- "NEXT: nothing.  The class has no known source-level
- * lever" -- was wrong, and it was wrong because the barrier it ruled out was
- * the ASM_INPUT spelling.
- *
- * ALSO REFUTED, from the brief rather than the park: the extra `pop` is NOT a
- * declared-return-type error.  The ROM's epilogue is `pop {r0}` / `bx r0`,
- * which is `thumb_exit`'s VOID case, and this park already declares `void`.
- * The surplus was the SEPARATE `pop {r5, r6}` ahead of it.  Fourteen parks in
- * this tree do disagree with their declaration; this is not one of them.
- *
- * WHAT THE REMAINING 10 IS.  Eight of the ten are ARGUMENT-SETUP ORDER inside
- * four call sites, with every instruction present and no length difference:
- *   ROM   mov r1,#0x80 / mov r2,#0x80 / mov r0,#0xb / lsl r1,#9 / lsl r2,#8
- *   ours  the same five, with `mov r0,#0xb` two or three slots later and the
- *         `lsl` one slot earlier.
- * `-fno-schedule-insns2` makes it WORSE (16 of 48), so the production
- * schedule is right and the residue is in what sched2 is given, not in sched2.
- *
- * PIECE MEMBERSHIP, CORRECTED.  `tools/piece.py` reports FOUR functions in
- * asm/overlays/rom_7e7574/ovl_9dc_c_c_a_a_a_c_c.s -- 200a69c, 200a718,
- * 200a7b0 (753 of 835) and 200b054 (2,123 instructions, no park body) -- so
- * the brief's "pair" is a four-member piece.  That does NOT make this
- * function hostage to the other three: it is the FIRST member, and
- * `split_s.py --dry-run` on it writes only `_b.s` (this function) and `_c.s`
- * (the other three), with no `_a.s`.  >> IT SPLITS OUT ALONE.
- *
- * MEASURED (all at production flags, stream terms):
- *   park body, no barrier                                   29 of 48, RELOC
- *   `:: "i"(0)` barrier before the four repeated sites       10 of 48  <- kept
- *   the same barrier before EVERY call                      14 of 48
- *   the same, skipping the first two sites                   10 of 48
- *   `0x10000` / `0x8000` / `0x1d8` written as plain hex      10 of 48
- *   the two speeds assigned to named locals first            10 of 48
- *   two barriers per site instead of one                     10 of 48
- *   `-fno-schedule-insns2` on the 10 body                    16 of 48
- *
- * SHIMS.  One `__asm__ volatile ("" :: "i"(0))` per repeated site, four in
- * all, no pins.  `tools/shimcount.py` reports ZERO -- its BARRIER regex is
- * `__asm__\s*volatile\s*\(\s*""\s*\)` and matches only the bare form, so this
- * spelling is INVISIBLE to the audit.  Fourth known blind spot.
- *
- * NEXT: the eight-encoding argument-setup order.  The pinned exact match
- * recorded above is still the pass-3 route; the barrier form is a better map
- * and a much smaller gap to carry there. */
+ *   >> NEXT: pass 3.  The eight-encoding residue is rank_for_schedule's LUID rung
+ *      and the LUID order is decided inside expand_call, so there is no source
+ *      spelling left to try -- the five barriers and the nine-pin exact match are
+ *      both pass-3 debt and belong in reports/pass3-depin.md together.  Anyone
+ *      reopening this should attack the LUID order, not the schedule. <<
+ */
 extern void __Func_8093500(int a, int b);
 extern void __Func_8093530(void);
 extern void __CutsceneWait(int n);
