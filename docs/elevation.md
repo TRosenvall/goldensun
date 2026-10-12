@@ -9836,14 +9836,36 @@ of a single name. On `Func_80c0f98` the ROM masks its parameter in place
 `v = (val & 3) << 2`, because `val` is dead afterwards and gcc folds both to
 one rtx. Only the copy direction carries information.
 
-**A copy of an UNCHANGING value is unreachable.** On `Func_80a8b10` the ROM
-copies the output base into r12 purely to compare against it
-(`mov r12, r5 ... cmp r3, r12`), leaving us exactly one instruction short with
-everything else exact. Any local initialised from `out` is provably the same
-value, so gcc coalesces it and emits no `mov`. In the three functions where the
-tell worked, the two names held *different* values at some point — a count and
-a loop counter, a division result and an offset. **A pure duplicate of a live
-value is an allocator artifact, not a source construct.**
+**~~A copy of an UNCHANGING value is unreachable.~~ REFUTED, batch 344 brief C —
+`Func_80a8b10` LANDED, and this entry's own cited evidence was the thing it got
+wrong.** The claim was that the ROM's `mov r12, r5 ... cmp r3, r12` on
+`Func_80a8b10` is an allocator artifact, because any local initialised from `out`
+is provably the same value and gcc coalesces it. The function is now
+byte-identical in **five** spellings.
+
+What the `mov` actually is: **loop.c biv elimination.** Write the clearing loop
+as an *index* loop rather than a pointer walk —
+
+    for (i = 4; i >= 0; i--) out[i] = 0;
+
+— and strength reduction materialises the giv's `i == 0` value as a **fresh
+preheader pseudo**, which is a different pseudo from `out` and therefore one
+coalescing cannot touch. `r12` then follows from `REG_ALLOC_ORDER` (`arm.h:989`).
+The whole one-instruction gap is in the **preheader**, which is also why every
+probe aimed at the loop body measured inert.
+
+So the value was never "unchanging from the allocator's point of view" — the
+entry asserted a bound over a class from one body where the real cause was a pass
+nobody had looked at. **The transferable lesson is the failure mode, not the
+mechanism:** an observation that a particular *spelling* cannot produce a copy
+says nothing about whether some *other* spelling creates a distinct pseudo that
+has to be copied. Three functions where "the two names held different values"
+worked is evidence about those three, not a rule about duplicates.
+
+The surviving fragment worth keeping: where two names genuinely do hold one
+value with no pass splitting them, gcc coalesces and emits no `mov`. That is a
+statement about coalescing, and it is **not** a statement about whether a source
+construct exists.
 
 ## `switch` and `if / else if` are not interchangeable
 
@@ -35540,3 +35562,180 @@ pseudo 37 *is* block-local and absent from `.18.greg`'s allocno list, and it doe
 *not* cross a call — **and neither was the blocker.** Eliminating them is what
 left the overlapping zero as the only candidate. Checking a precondition is
 useful when it holds *and* when it fails; what it is never is decorative.
+
+# Batch 344 — A PARK'S FIGURE IS NOT A DISTANCE, and 192 parks were mis-ranked by it
+
+This is the most consequential measurement taken in this project's targeting, and
+it invalidates the ordering every shortlist here has used.
+
+## The mechanism
+
+A park's figure is the count of **differing encodings in the object stream**, and
+it is a **POSITIONAL** count. When the two sides' 16-bit instruction counts
+differ, the streams are compared **out of phase**, and from the first missing or
+extra instruction onward *everything after it* is offset by one slot and counts
+as differing. So the figure stops measuring distance and starts measuring
+**offset**.
+
+A park **one instruction** from matching can therefore read 109, 143, 159.
+
+## The distribution, measured over all 558 parks carrying a verify recipe
+
+    200  equal instruction length
+    358  OUT OF PHASE
+           100  within 1 instruction
+           156  within 2
+           192  within 3
+           244  within 5
+
+**192 parks are within three instructions, and their MEDIAN FIGURE IS 134**
+(range 17 to 1934). A hundred sit at a **one-instruction** gap.
+
+Those parks had sorted to the bottom of every shortlist in this tree while being
+structurally the closest work available. `tools/gapscan.py` is the instrument and
+`reports/data/gapscan-344.tsv` is the raw measurement, kept so the pool can be
+re-sliced without re-running 558 comparisons.
+
+## Why this is worth so much
+
+The **length-gap criterion** is this tree's most productive targeting rule by a
+wide margin — batches run on it closed 8 of 15, 7 of 25, 8 of 25 and 10 of 32 —
+and it *locates* the missing-or-extra instruction on essentially every target.
+It had only ever been pointed at parks whose **figure** was already small, which
+is a tiny and (as of batch 343) exhausted slice of the parks it actually fits.
+
+Batch 344 drew 20 targets from the new pool and **closed five length gaps and
+landed three**, with every park that did not land getting its first figure that
+is a real distance:
+
+| park | before | after | counts |
+|---|---|---|---|
+| `Func_80c0228` | 21 (phase) | **0 LANDS** | 50/50 |
+| `Func_80a355c` | 50 (phase) | **0 LANDS** | 69/69 |
+| `Func_80a8b10` | 51 (phase) | **0 LANDS** | 58/58 |
+| `OvlFunc_967_2008308` | 56 (phase) | **2** | 60/60 |
+| `Func_8021d88` | 40 (phase) | **7** | 47/47 |
+| `StartEarthquake` | 51 (phase) | **14** | 66/66 |
+| `StartThunder2` | *no figure* | **39** | 68/68 |
+| `OvlFunc_971_2008e10` | *no figure* | **29** | — |
+
+## AN EQUAL INSTRUCTION COUNT IS NOT AN EQUAL LENGTH
+
+Byte size is a **second, independent gap**. Brief A's p1 measured **equal at
+102/102 instructions and two bytes long**, because one of the reference's 16-bit
+`b`s is a 32-bit `bl` on our side. `gapscan` was blind to this for its first day
+and ranked the park as in-phase; it now carries a `dsize` column, and a nonzero
+`dsize` keeps a gap-0 park in the pool. **Ask for three numbers, not one:**
+encodings, instruction counts, byte size.
+
+## How to read a direction, and the two qualifiers that cost rounds
+
+- **OURS SHORTER** — gcc is not emitting something the original did. Look for a
+  missing *instruction* and **do not assume it is a missing statement.** Of four
+  measured in batch 339, three were a `pop {r5}` (an allocation-class effect), a
+  `mov r12, r3` (one extra long-lived value forcing a high register) and a `b`
+  over a literal pool. One was a statement.
+- **OURS LONGER** — gcc failed an optimisation the original made. The search is
+  **what lets it REUSE a value**, never what statement to add. Adding source here
+  is the wrong direction and has cost rounds.
+
+**COUNT EACH REGION SEPARATELY.** `Func_80167e0`'s net −1 is really **+1
+pre-loop and −2 in-loop** — two independent mechanisms cancelling in the total —
+and `OvlFunc_931_2008b2c`'s net +1 is **+1, +1, −1 across three regions**. A net
+gap of ±1 is not evidence of one site.
+
+**Close the gap before reading the figure.** A park at a 1-instruction gap whose
+figure is 143 is not "143 away"; it is one instruction away from being
+*measurable*.
+
+# Batch 344 — mechanisms
+
+## `flow.c` appends a nop that breaks `find_cross_jump`
+
+`flow.c:645-665` appends a `(use (const_int 0))` to any basic block that **ends
+in a CALL and is closed by a label**. `find_cross_jump` (`jump.c:1444-1470`)
+walks back from the label skipping **only** NOTEs and CODE_LABELs, so that nop
+makes `GET_CODE (i1) != GET_CODE (i2)` and the cross-jump at `jump.c:1469-1470`
+fails. On `OvlFunc_971_2008e10` this is what stopped two `bl __MessageID` calls
+merging — worth 2 bytes, and it also fixes the pool order. Confirmed in
+`.25.jump2`. The cure is to **duplicate the shared tail in source** and let jump2
+merge it.
+
+## A HImode pooled mask forces `create_fix_barrier` to emit the ROM's `b`
+
+`*thumb_movhi_insn` alt 1 carries `pool_range` **64** against SImode's **1020**
+(`arm.md:4353` vs `:3856`), and `movhi`'s Thumb branch `force_reg`s its source
+(`arm.md:4269-4271`). So writing a mask so that it lands in the pool **as
+HImode** forces a mid-function pool dump, which is exactly the ROM's `b` over it.
+On `OvlFunc_967_2008308`, `w = m & ~0x3fff;` in place of `m &= 0xffffc000; w = m;`
+did it, 56 → 2.
+
+**THE SIGN IS LOAD-BEARING.** `0xffffc000` is `unsigned` in C and narrows to
+`49152` (figure 3); `~0x3fff` narrows to `-16384` (figure 2). Zero of the tree's
+4,562 generated `.s` files contain this shape, so it appears to be the first
+reproduction of it here.
+
+The same rule read in reverse: feeding a HImode store from an `int` promotes it
+to a `subreg:HI` and the pool fix never appears — which is what
+`include/dma.h`'s `DMA3_FILL16` comment has been saying all along, and it is what
+closed `StartThunder2`'s length gap.
+
+## CHECK THE REFERENCE'S ARGUMENT REGISTERS BEFORE DIAGNOSING REGISTER PRESSURE
+
+`Func_8021d88` was parked on "high register versus spill, NEXT: nothing
+source-level". The actual finding: **the reference's first argument to
+`Func_8021cb8` is `a`, not `p`** — it never writes r0 after `mov r4, r0`. One
+token took it 40 → 11 and closed the length gap.
+
+The general shape, and it is worth checking first every time: **a function
+holding one extra long-lived value because its SOURCE names one is
+indistinguishable at the prologue from one where the allocator found a spare
+register.** Both look like one more callee-saved push. The disambiguator is not
+in the allocator dumps at all — it is which register the ROM feeds to each call.
+
+Four parks recorded in that same "class" (`800bbc0`, `2008f94`, `8020150`,
+`80b6a60`) have never had this checked.
+
+## `volatile` is the only escape from the halfword narrowing on Thumb
+
+`combine.c:5921-5938` with `arm.h:2287-2290`. Recorded because
+`StartEarthquake`'s park said "volatile is inert" and it is worth 1.
+
+And the counterpart, from `Func_8021d88`: **`shimcount` does not count a
+volatile access, so a park body carrying one reads as DEVICE-FREE to every
+instrument in this tree.** That is a trap. Where a volatile buys only a register
+choice, the park should record the **device-free** figure and keep the volatile
+one as an annotation — `Func_8021d88` is 7 without and 4 with, and the 7 is what
+its header leads with.
+
+# Batch 344 — two instruments were manufacturing false leads
+
+Both were found by briefs, and both had been producing clean-looking output.
+
+## `autosweep`'s flag axis had no phase guard
+
+The anchor axis was given a `dsize`/`first` guard in batch 343; **the flag axis
+was simply never given the same one** and kept ranking on raw ndiff. Brief E
+measured the cost: **three of its four targets carried a false "BETTER" flag
+row.** On T1, two rows reading 37 against a base of 49 both *raised* the real
+(LCS) residue from 9 to 12.
+
+Fixed three ways: `measure()` returns the instruction delta and first differing
+index; the flag axis applies the same three-way verdict as the anchor axis; and —
+the part that actually stops propagation — **a row failing the guard no longer
+enters `BEST`.** A phase row ranking above the base is how a false lead reaches
+the next agent.
+
+## The pattern these two share with the four before them
+
+`piece.py`, `parkcheck.py`, `directory.py`, `shimcount.py`, `autosweep.py` and
+now `gapscan.py` have each produced a **clean negative** that was really an
+unmeasured axis. `gapscan`'s first version used a separator class of `[\s\\]+`
+for a verify command that parks write across several lines of a **block
+comment**, so the continuation begins `" *     src/..."` — it matched the 56
+parks that fit the command on one line and **silently skipped 550**, better than
+90% of the tree, and reported the pool as 99 when it is 192.
+
+**A tool that reports nothing is making a claim, and the claim needs the same
+audit as a figure.** Six instruments, six clean negatives. The cheapest check is
+to run the tool on something you already know the answer to.
