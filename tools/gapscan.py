@@ -32,6 +32,15 @@ targeting rule by a wide margin -- four batches run on it closed 8 of 15, 7 of
 essentially every target.  It had been applied only to parks whose figure was
 already small, which is a tiny and now-exhausted slice of the parks it fits.
 
+## AN EQUAL INSTRUCTION COUNT IS NOT AN EQUAL LENGTH
+
+Byte size is a SECOND, independent gap.  Batch 344 brief A's p1 measured EQUAL at
+102/102 instructions and TWO BYTES LONG, because one of the reference's 16-bit
+`b`s is a 32-bit `bl` on our side.  This tool was blind to that for its first
+day and ranked the park as in-phase.  The `dsize` column is that gap; a row at
+gap 0 with a nonzero dsize is still out of phase and its figure is still partly
+counting offset.
+
 ## THE DIRECTION IS THE WHOLE KEY
 
 Batch 332's brief E called splitting a batch by gap direction "the whole key on
@@ -94,9 +103,9 @@ def main():
         if not im:
             continue
         ref, ours = int(im.group(1)), int(im.group(2))
-        if ref == ours:
-            continue
         gap = ours - ref
+        if ref == ours and dsize == 0:
+            continue
         if abs(gap) > a.max_gap:
             continue
         if a.dir == "shorter" and gap > 0:
@@ -104,15 +113,18 @@ def main():
         if a.dir == "longer" and gap < 0:
             continue
         fm = re.search(r"differ in (\d+) place\(s\)", out)
-        rows.append((abs(gap), gap, int(fm.group(1)) if fm else None, rel))
+        rows.append((abs(gap), gap, dsize, int(fm.group(1)) if fm else None, rel))
 
     rows.sort()
     print(f"{len(rows)} park(s) within {a.max_gap} instruction(s) of the reference\n")
-    print(f"{'gap':>4} {'figure':>7}  park")
-    for _, gap, fig, rel in rows:
-        print(f"{gap:+4} {str(fig) if fig is not None else '  -':>7}  "
+    print(f"{'gap':>4} {'dsize':>6} {'figure':>7}  park")
+    for _, gap, dsize, fig, rel in rows:
+        print(f"{gap:+4} {dsize:+6} {str(fig) if fig is not None else '  -':>7}  "
               f"{rel.replace('src/non_matching/', '')}")
     print("\nThe figure is a PHASE artifact on every row above. Close the gap first.")
+    print("dsize is the BYTE gap and is INDEPENDENT of the instruction gap: a row at")
+    print("gap 0 with a nonzero dsize has a 16-bit insn where the reference has a")
+    print("32-bit one (or the reverse), which no instruction count can show.")
     print("ours SHORTER (-) = a missing instruction; ours LONGER (+) = a reuse gcc missed.")
     return 0
 

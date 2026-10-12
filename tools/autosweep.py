@@ -168,20 +168,30 @@ def resolve(park):
 
 
 def measure(path, ref, fn, extra=""):
-    """One objcmp run.  -> (ndiff, total) or None when it did not get that far."""
+    """One objcmp run.  -> (ndiff, total, dinsn, first) or None if it got no verdict.
+
+    `dinsn` is ours-minus-ref 16-bit INSTRUCTION COUNT and `first` is the index
+    of the first differing encoding.  Both are returned because NDIFF ALONE IS
+    NOT COMPARABLE ACROSS VARIANTS: it is a POSITIONAL count, so a variant that
+    changes the instruction count is measured out of phase and its ndiff is
+    partly counting offset.  Batch 344 brief E found THREE OF ITS FOUR targets
+    carried a FALSE "BETTER" flag row for exactly this reason -- two rows reading
+    37 against a base of 49 both RAISED the real (LCS) residue from 9 to 12.
+    """
     cmd = DOCKER_PRE[:]
     if extra:
         cmd += ["-e", f"OBJCMP_EXTRA={extra}"]       # BEFORE the image name
     cmd += [IMAGE, "python3", "tools/objcmp.py", path, ref, "--func", fn]
     out = subprocess.run(cmd, capture_output=True, text=True).stdout
     if re.search(r"^\s+OK\b", out, re.M):
-        return (0, 0)
+        return (0, 0, 0, -1)
     m = re.search(r"differ in (\d+) place\(s\) \(ref (\d+)", out)
     if not m:
         return None
     fi = re.search(r"first at index (\d+)", out)
-    if fi:
-        globals()["_BASE_FIRST"] = int(fi.group(1))
+    first = int(fi.group(1)) if fi else -1
+    im = re.search(r"instructions are (\d+)/(\d+)", out)
+    dinsn = (int(im.group(2)) - int(im.group(1))) if im else 0
     # RELOCATIONS ARE ON THE SAME OUTPUT and a figure alone hides them: brief D's
     # 20087b0 read "14 of 71" AND "RELOCATIONS differ", two pool words transposed,
     # so its 14 was never a plain distance.  Asking for both instruction counts
@@ -196,7 +206,7 @@ def measure(path, ref, fn, extra=""):
         # So this is a flag to CHECK, never a verdict -- and the check is
         # whether the symbol is defined by value in a .sym file.
         globals().setdefault("_RELOC_WARN", set()).add(path)
-    return (int(m.group(1)), int(m.group(2)))
+    return (int(m.group(1)), int(m.group(2)), dinsn, first)
 
 
 def body_span(text, fn):
@@ -308,7 +318,9 @@ def main():
         print("\nBASE DOES NOT MEASURE -- objcmp stopped before the encoding compare.")
         print("Nothing here is meaningful until the body reaches the reference's length.")
         return 1
-    print(f"base      {base[0]} of {base[1]}")
+    print(f"base      {base[0]} of {base[1]}"
+          + (f"   INSTRUCTION GAP {base[2]:+} (ours - ref) -- THIS NDIFF IS PHASE,"
+             f" NOT A DISTANCE" if base[2] else "   instruction counts EQUAL"))
     if path_in_reloc_warn(park):
         print("          !! RELOCATIONS ALSO DIFFER -- CHECK, do not assume a defect.")
         print("             If the differing words are absolute symbols defined by")
@@ -324,14 +336,30 @@ def main():
         for flag, group in FLAGS:
             r = measure(park, ref, fn, extra=flag)
             v = f"{r[0]} of {r[1]}" if r else "NO VERDICT -- length changed, or a parse miss; CHECK BY HAND"
+            # THE SAME GUARD THE ANCHOR AXIS ALREADY CARRIES, and the flag axis
+            # went without it until batch 344 brief E measured the consequence:
+            # three of its four targets showed a FALSE "BETTER" flag row, because
+            # a lower NDIFF on a variant whose instruction count moved is phase,
+            # not progress.  A lower count only means something when the length
+            # is unchanged AND the first differing index moved.
             mark = ""
             if r and r[0] < base[0]:
-                mark = "  <-- BETTER"
+                if r[2] != base[2]:
+                    mark = (f"  <-- lower count but INSTRUCTION COUNT MOVED to "
+                            f"{r[2]:+}; this ndiff is PHASE, not progress")
+                elif r[3] == base[3]:
+                    mark = (f"  <-- lower count but `first` UNMOVED at {r[3]}; "
+                            f"CHECK with aligncmp before believing it")
+                else:
+                    mark = "  <-- BETTER"
             if r and r[0] == 0:
                 mark = "  <-- *** ZERO ***"
             print(f"  {flag:28} {group:20} {v}{mark}")
             if r:
-                best.append((r[0], f"flag {flag}", group))
+                # Only a row that passes the guard may enter BEST. A phase row
+                # ranking above the base is how a false lead gets propagated.
+                if r[0] == 0 or (r[2] == base[2] and r[3] != base[3]):
+                    best.append((r[0], f"flag {flag}", group))
         print()
 
     span = body_span(text, fn)
@@ -367,7 +395,7 @@ def main():
                 continue
             if label == "BARRIER" and not a.barrier:
                 continue
-            base_first = globals().get("_BASE_FIRST")
+            base_first = base[3]
             capped = len(pts) > a.max
             print(f"{label} AXIS -- {min(len(pts), a.max)} of {len(pts)} statement "
                   f"boundaries{'  (DEVICE: fakematch-class, pass-3 debt)' if dev else '  (device-free)'}")
