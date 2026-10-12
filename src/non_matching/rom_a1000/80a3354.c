@@ -13,7 +13,7 @@
  *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
  *     goldensun-build python3 tools/objcmp.py \
  *     src/non_matching/rom_a1000/80a3354.c \
- *     asm/rom_a1000/rom_a1814_c_a_c_c_a_c_c_c_c_c.s --func Func_80a3354
+ *     asm/rom_a1000/rom_a1814_c_a_c_c_a_c_c_c_c_c_a.s --func Func_80a3354
  *
  * This recipe was ADDED by the batch-319 backfill: the park had none, so
  * parkcheck.py could not report its figure and nothing had ever checked it.
@@ -62,7 +62,7 @@
  *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
  *     goldensun-build python3 tools/objcmp.py \
  *     src/non_matching/rom_a1000/80a3354.c \
- *     asm/rom_a1000/rom_a1814_c_a_c_c_a_c_c_c_c_c.s --whole
+ *     asm/rom_a1000/rom_a1814_c_a_c_c_a_c_c_c_c_c_a.s --whole
  *
  * ==================== THE DEFICIT IS REGISTER-OFFSET ADDRESSING ====================
  *

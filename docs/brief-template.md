@@ -44,6 +44,10 @@ figures, their park paths, what each park claims) goes on top of this.
   recorded negatives — **do not re-screen them**, and spend your round on the
   axes a script cannot reach: reading the disassembly, forming a hypothesis, and
   naming the pass from the dumps.
+- **`-da` writes compiler dumps to the COMPILER'S working directory**, not beside
+  the output file. Batch 340 brief D's first run left 21 dump files in the repo
+  root. Pass `cwd` in any helper that shells out to the compiler, and check the
+  root before you finish.
 - **Two environment facts that have each cost an agent a detour.** The
   container's gcc driver is **`/opt/gcc296/xgcc`** — there is no `bin/`
   subdirectory, so `/opt/gcc296/bin/gcc` does not exist (verified: the directory

@@ -1,216 +1,187 @@
-/* ===================== BATCH 327 (brief A) ADDENDUM -- READ FIRST =====================
- * AnimEnd -- STILL NON-MATCHING, 14 differing encodings of 142.  BODY UNCHANGED.
- * Cause 1 (12) is bounded; cause 2 (2) now has its mechanism NAMED and its
- * reason for resisting the fix MEASURED.
+/* AnimEnd -- asm/rom_c9000/rom_cd508_a_c_c.s
  *
- * FIGURE RE-MEASURED MYSELF: 14 of 142 (ref 142, ours 142), first differing
- * index 32.  Relocations differ, and this header is right that it is a
- * consequence, not a blocker -- but say what it IS:
- * *** IT IS A POOL-WORD TRANSPOSITION.  Same 16 symbols in the same order; only
- * gDMATaskCount's two ABS32 offsets move (ref 0x88/0x148, ours 0x8c/0x14c) with
- * every offset between them identical.  One non-relocated literal and
- * gDMATaskCount have SWAPPED POOL SLOTS, twice.  That is the defect class
- * tools/tryc.py is structurally blind to, so AnimEnd must never be screened
- * with tryc alone. ***
- * Verify with: docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work goldensun-build python3 tools/objcmp.py src/non_matching/rom_c9000/AnimEnd.c asm/rom_c9000/rom_cd508_a_c_c.s --func AnimEnd
+ * STILL NON-MATCHING, **2 of 142 STREAM encodings** (was 14).  MEASURED
+ * batch 340 brief E.  Instruction counts 113 / 113 -- IN PHASE -- size equal,
+ * and **RELOCATIONS ARE NOW IDENTICAL** (the pool-word transposition the park
+ * described is gone).  First differing index 90.  PINS: 0.
+ *   objcmp verbatim:
+ *     XX ENCODINGS differ in 2 place(s) (ref 142, ours 142)
+ *        [STREAM length, pool+pad INCLUDED; instructions are 113/113]
+ *        first at index 90: ref 18ff  ours 2500
+ *   tools/tryc.py --align: 6 instructions in disagreeing regions, of 126, and
+ *   four of those six are the L3/L4 LABEL RENUMBERING the anchor causes --
+ *   labels are not encodings, which is why objcmp reads 2 and align reads 6.
  *
- * ============ CAUSE 1 -- CONCLUSION SURVIVES, REASONING CORRECTED ============
- * From my own .23.sched2, basic block 0, with the insn->pattern map read off the
- * final schedule listing:
- *     130  prio 11  deps 165 144 133    r3 = 0x20
- *     133  prio 10  deps 165 154 144    [r6+0x6] = r3   (iwram_3001ad0[3]=0x20)
- *     142  prio  7  deps 165 154        r1 = [`*.LC7']  <- THE gDMATaskCount POOL LOAD
- *     143  prio 10  deps 165 154 144    r0 = 0x4000208  (REG_IME addr, BARE const_int)
- *     144  prio  8  deps 165 154 146    r3 = [r0]
- *     146  prio  6  deps 165 154        r4 = r3
- *     154  prio  5  deps 165 164        [r0] = r0       (volatile IME store)
- *     164  prio  3  deps 165            r2 = zxn([r1])
- *     165  prio  1                      the cmp/branch
+ * *** TWO CORRECTIONS TO THE PARK, BOTH LOAD-BEARING. ***
  *
- * *** THIS HEADER'S REGISTER ARGUMENT IS THE WRONG WAY ROUND.  It says "an insn
- * that READ r1 would make 142 depend on it, which is backwards."  priority()
- * (haifa-sched.c:3129-3163) is max over INSN_DEPEND of (insn_cost + priority),
- * and INSN_DEPEND is the FORWARD list -- 142 SETS r1, so a reader of r1 depends
- * ON 142 and FEEDS 142's priority.  The register lever points the way this
- * header wanted; it simply has nothing to grab. ***
+ * 1. **ITS INSTRUCTION COUNT IS THE STREAM COUNT.**  The park says
+ *    "INSTRUCTION COUNT 142 = 142 and SIZE equal, so the 14 IS a true
+ *    distance".  142 is the STREAM count; the function is **113** 16-bit
+ *    instructions plus 29 32-bit entries (pool words and `bl` calls).  The
+ *    conclusion survives -- 113 = 113, so the figure was and is a true
+ *    distance -- but the number quoted was the wrong one, and three parks in
+ *    batch 337 and two more in this one are in the same state.
  *
- * THE STRUCTURE THIS HEADER DID NOT STATE: BLOCK 0 IS ONE LINEAR CHAIN,
- * 130 -> 133 -> 144 -> 146 -> 154 -> 164 -> 165 at 11, 10, 8, 6, 5, 3, 1.  Every
- * insn's priority is just ITS ATTACH POINT'S PRIORITY PLUS ITS OWN COST.  142
- * attaches at 154 (5) and costs 2 -> 7.  143 attaches at 144 (8) and costs 2
- * -> 10.  THE WHOLE RESIDUE IS THAT THE REG_IME ADDRESS FEEDS THE CHAIN FOUR
- * LINKS HIGHER THAN THE gDMATaskCount ADDRESS DOES.
- *
- * AND THE BOUND, correctly reasoned.  prio(142) > 11 needs it to attach at 133
- * (10+2=12) or 130 (11+2=13).  Three routes, all shut:
- *   - TRUE dependence: 130 and 133 touch only r3 and r6; the only reader of r1
- *     in the block is 164, prio 3.
- *   - ANTI dependence: *** 142 IS A PC-RELATIVE POOL LOAD AND HAS NO REGISTER
- *     INPUTS AT ALL, so it can never be the SOURCE of a register
- *     anti-dependence. ***  (This is the clean statement this header was
- *     reaching for with its "backwards" sentence.)
- *   - MEMORY anti dependence onto store 133: write_dependence_p tests
- *     MEM_VOLATILE_P on BOTH operands first (so marking the store volatile buys
- *     nothing), then DIFFERENT_ALIAS_SETS_P -- pool set 9 against the u16
- *     array's -- returns 0; RTX_UNCHANGING_P refuses it a second time.
- *
- * AND A TIE DOES NOT HELP, which is worth recording because batch 326's
- * crossing pattern invites trying it.  Flatten every priority above and LUID
- * decides, lowest first -- and chain order is 130, 133, 142, 143, 144, so LUID
- * STILL puts 130 and 133 ahead.  THE ROM NEEDS 142 FIRST, WHICH NEEDS ITS CHAIN
- * POSITION TO BE FIRST, NOT MERELY A TIE.  The ROM's own order keeps the 0x20
- * store between the pool load and the IME dance, so the ROM's source had that
- * statement there too.  CAUSE 1 IS BOUNDED.
- *
- * >>> THE REUSABLE RULE, and it is the thing to carry out of this park: <<<
- * > A PC-RELATIVE LITERAL-POOL LOAD HAS NO REGISTER INPUTS AND AN UNCHANGING,
- * > PRIVATELY-ALIASED MEM.  IT CAN THEREFORE NEVER ACQUIRE A NEW FORWARD
- * > DEPENDENT BY ANY SOURCE-LEVEL EDIT -- not a true dependence, not an
- * > anti-dependence (no inputs), not a memory anti-dependence
- * > (DIFFERENT_ALIAS_SETS_P plus RTX_UNCHANGING_P).  ITS sched2 PRIORITY IS
- * > EXACTLY cost + priority(ITS CONSUMER'S CHAIN ATTACH POINT) AND IS A FIXED
- * > FUNCTION OF THE PROGRAM.  WHERE THE ROM SCHEDULES A POOL LOAD EARLIER THAN
- * > ITS CONSUMER CHAIN CAN JUSTIFY, THE DIFFERENCE IS NOT REACHABLE THROUGH THE
- * > SCHEDULER.
- * This applies unchanged to Anim_CriticalHit's runs 3 and 4 (two pool-load
- * adjacent swaps) and to every "pool load one slot early/late" park in the bank.
- *
- * ============ CAUSE 2 -- MECHANISM NAMED, AND WHY IT RESISTS, MEASURED =======
- * Cause 2 is one instance of a CLASS that also accounts for 4 of
- * Anim_CriticalHit's 15: a LICM-hoisted quantity adjacent to a constant init in
- * a loop preheader, in the wrong order.  move_movables hoists with
- * emit_insn_before (..., loop_start) -- at the preheader's END, above every
- * ordinary preheader statement.  Every such insn is a region LEAF (its consumer
- * is inside the loop, a different scheduling region), so priority = own cost for
- * all of them, every rank_for_schedule rung ties, and LUID ALONE DECIDES,
- * LOWEST FIRST.
- * >>> THE LEVER: GIVE THE HOISTED QUANTITY ITS OWN SOURCE STATEMENT AHEAD OF
- * THE LAST ORDINARY PREHEADER STATEMENT.  That moves it from the insertion point
- * to its written position and is the ONLY handle on a preheader tie. <<<
- * IT IS WORTH 2 ON Anim_CriticalHit (15 -> 13, see that park).
- *
- * *** AND IT HAS A PRECONDITION, WHICH IS WHY IT CANNOT BE USED HERE: THE
- * HOISTED QUANTITY MUST HAVE NO USE OUTSIDE THE LOOP. ***  `b + (0xc9 << 3)` is
- * also used before the loop by _Func_80c0774, so naming it folds the two
- * computations into one.  MEASURED THIS BATCH, all four with the pre-loop use
- * left written out in full:
- *     named `bp` BETWEEN the two zero inits   SIZE 332 vs 340, COUNT 138 vs 141
- *     named `bp` BEFORE both inits            SIZE 332 vs 340, COUNT 138 vs 141
- *     named `bp` AFTER both inits             SIZE 332 vs 340, COUNT 138 vs 141
- *     named only the BASE (`bq = b`)          14  EXACTLY INERT  <- candidate prereq
- * The three folds are -3 instructions and 8 bytes short, which CONFIRMS this
- * header's "LICM lever is load-bearing, do not tidy it" warning from the other
- * side.  CAUSE 2 IS BOUNDED BY THE SECOND USE, not by statement order.
- *
- * SO AnimEnd'S FLOOR IS 12, NOT 0, UNTIL THE POOL-LOAD RULE ABOVE IS BROKEN.
- * =====================================================================================
- */
-/* AnimEnd  [rom_c9000]  --  14 of 142, MEASURED batch 326 (brief H).
- *
- * NON-MATCHING, 14 of 142 encodings.  INSTRUCTION COUNT 142 = 142 and SIZE
- * equal, so the 14 IS a true distance.  objcmp verbatim:
- *     XX ENCODINGS differ in 14 place(s) (ref 142, ours 142)
- *        first at index 32: ref 4910  ours 2320
- *     XX RELOCATIONS differ
- * The relocation block is the SAME 16 SYMBOLS IN THE SAME ORDER; only the two
- * `gDMATaskCount` ABS32 offsets move (ref 0x88/0x148 against ours 0x8c/0x14c).
- * That is a CONSEQUENCE of cause 1 below, not a separate blocker.
- * `aligncmp` reads 136/142 aligned-equal (95.8%), 12 differing in 10 hunks.
+ * 2. **ITS FLOOR IS WRONG AND ITS CAUSE-1 BOUND IS REFUTED.**  The park ends
+ *    *"SO AnimEnd'S FLOOR IS 12, NOT 0, UNTIL THE POOL-LOAD RULE ABOVE IS
+ *    BROKEN."*  The measured figure is now **2**, so the floor was never 12,
+ *    and the rule was not broken -- IT WAS SIDESTEPPED.  See below; this is
+ *    the batch's main finding and it generalises.
  *
  * Verify with:
  *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
  *     goldensun-build python3 tools/objcmp.py \
  *     src/non_matching/rom_c9000/AnimEnd.c \
  *     asm/rom_c9000/rom_cd508_a_c_c.s --func AnimEnd
+ * tools/piece.py: the .s holds exactly ONE function, so this converts
+ * WHOLE-FILE and `--whole` works too (`2 of 142 differ (ours 142)`).  NO SPLIT.
  *
- * ================= TWO CAUSES, 10 + 2.  BOTH ARE sched2 ORDER. ==============
+ * ======================================================================
+ * THE LEVER: ONE `do { } while (0)` ANCHOR *AFTER* THE POOL LOAD, INSIDE THE
+ * static inline.  14 -> 2, AND IT CLEANS THE RELOCATIONS.
+ * ======================================================================
  *
- * CAUSE 1 (~10 of 12) -- the `ldr rX,=gDMATaskCount` pool load is the FIRST
- * insn of its block in the ROM and the FIFTH in ours, at BOTH SetRegAnimDest
- * sites:
- *     ref   ldr r1,=gDMATaskCount | mov r3,#0x20 | strh r3,[r6,#6] |
- *           ldr r0,=REG_IME | ldrh r3,[r0] | mov r4,r3 | strh r0,[r0] | ldrh r2,[r1]
- *     ours  mov r3,#0x20 | strh r3,[r6,#6] | ldr r0,=REG_IME | ldrh r3,[r0] |
- *           ldr r1,=gDMATaskCount | mov r4,r3 | strh r0,[r0] | ldrh r2,[r1]
- * It drags two knock-ons with it, both counted in the 12: gcc emits its pool in
- * EMISSION order, so `.word 0x04000208` and `.word gDMATaskCount` are swapped
- * against the ROM at both sites, and the two `ldr` pc-offsets read #64 (ref)
- * against #60 (ours).
+ *     queue = &gDMATaskCount;
+ *     do { } while (0);          <- the whole lever
+ *     savedIme = REG_IME;
  *
- * THE ARITHMETIC, out of `.23.sched2` (`-da -fsched-verbose=6`).  Every
- * scheduling region in this function is ONE basic block, so there is no
- * interblock priority.  Site A's priorities:
- *     130 `mov r3,#0x20`      11      146 `mov r4,r3`     6
- *     133 `strh r3,[r6,#6]`   10      154 `strh r0,[r0]`  5
- *     143 `ldr r0,=0x4000208` 10      164 `ldrh r2,[r1]`  3
- *     144 `ldrh r3,[r0]`       8      165 `cmp/bgt`       1
- *     142 `ldr r1,=gDMA...`    7
- * `rank_for_schedule` (haifa-sched.c:4029) sorts on INSN_PRIORITY first; its
- * register-pressure tie-break is gated `!reload_completed` and so is DEAD in
- * sched2; the final tie-break is INSN_LUID.  OUR ORDER IS EXACTLY DESCENDING
- * PRIORITY.  The ROM's order needs prio(142) > 11.
+ * The park's cause 1 was: the `ldr rX,=gDMATaskCount` pool load is the FIRST
+ * insn of its block in the reference and the FIFTH in ours, at BOTH
+ * SetRegAnimDest sites, dragging the pool-word order and the two `ldr`
+ * pc-offsets with it -- 12 of the 14.  Its bound was correct **as a statement
+ * about sched2 priority** and I reproduced every link of it:
+ *   - prio(pool load) = cost + priority of its consumer's chain attach point,
+ *     and it cannot acquire a new forward dependent by any source edit (no
+ *     register inputs at all, so no anti-dependence; `DIFFERENT_ALIAS_SETS_P`
+ *     plus `RTX_UNCHANGING_P` refuse a memory anti-dependence twice).
+ *   - a tie does not help, because LUID then puts the 0x20 store first.
+ * *** BUT "IT CANNOT WIN THE PRIORITY CONTEST" IS NOT "IT CANNOT ISSUE
+ * FIRST".  AN ANCHOR DOES NOT RAISE ITS PRIORITY -- IT EMPTIES THE READY
+ * LIST.  The loop notes hang on the FOLLOWING insn (haifa-sched.c:3735-3736),
+ * so an anchor written immediately after the pool load fences immediately
+ * before `savedIme = REG_IME`, which puts the pool load ALONE at the end of
+ * its region with nothing to lose a rung to. ***  This is the same correction
+ * batch 338's autosweep note records for Func_80a7440 -- *"you do not win
+ * that tie, you empty the ready list"* -- and it had not been applied here.
  *
- * AND IT CANNOT GET THERE.  prio(142) = max over forward dependents of
- * (prio + cost); 142's chain is 142 -> 154 -> 164 -> 165 at cost 2 each = 7,
- * pinned by the block TAIL (volatile store, count load, cmp/branch).  The only
- * attachments reaching 12 are 142 -> 133 and 142 -> 130, and both are refused:
- *   - MEMORY: `write_dependence_p` (alias.c, reached from `anti_dependence`)
- *     tests `MEM_VOLATILE_P(x) && MEM_VOLATILE_P(mem)` FIRST -- the pool MEM is
- *     not volatile, so marking the data store volatile does NOT help -- then
- *     `DIFFERENT_ALIAS_SETS_P` -> return 0.  The pool load is
- *     `(mem/u/f:SI (symbol_ref/u ("*.LC7")) 9)`, alias set 9, against the data
- *     store's 4 and the IO load's 5; `RTX_UNCHANGING_P` refuses it a second
- *     time.  And a volatile STORE does not flush the pending lists --
- *     haifa-sched.c:3374 flushes only at `pending_lists_length > 32`.
- *   - REGISTER: in the needed direction it is impossible.  142 writes r1 and
- *     130/133 neither read nor write r1; an insn that READ r1 would make 142
- *     depend on it, which is backwards.
+ * WHY THE ANCHOR MUST BE INSIDE THE INLINE AND AFTER THE LOAD.  Measured, all
+ * 31 top-level anchor placements plus 31 more crossed on the best of them:
+ *     anchor16, immediately BEFORE `SetRegAnimDest(0x80<<19, 0x7341)`   10
+ *       (it fences before the pool load, so the pool load leads its region
+ *        but still trails the pre-fence `mov r3,#0x20 / strh r3,[r6,#6]`
+ *        -- 2 positions late at BOTH sites, with the relocations STILL dirty)
+ *     anchor inside the inline, immediately AFTER the pool load            2
+ *     ... and BEFORE the pool load instead                               10
+ *     ... on BOTH sides of the pool load                                  5
+ *     ... after the pool load AND at the call site                         5
+ *     ... after `savedIme = REG_IME` / before `count = queue->count`     10
+ *   Every other top-level placement: 14 (inert) at 0,3-7,17,19,20,28-30;
+ *   16 at 8-11,15,18,24,25; 17 at 1,27; 18 at 2,21,22,23; 19 at 26;
+ *   20 at 12; 21 at 13,14.
+ * TWO ANCHORS ARE WORSE THAN ONE HERE (5 against 2), which is the same shape
+ * batch 336 found for the barrier in a loop body: a fence that emits nothing
+ * still lengthens every live range crossing it.
  *
- * KEEP THIS ASYMMETRY: a SYMBOL address goes through `force_const_mem` and
- * becomes a real pool MEM, so it carries memory dependences; a large INTEGER
- * constant stays a bare `(set (reg) (const_int 0x4000208))` with no memory
- * operand and no memory dependences at all.  That alone is why the
- * gDMATaskCount load (prio 7) loses to the REG_IME address (prio 10) in the
- * same block.
+ * >>> THE REUSABLE RULE, and it supersedes the park's: <<<
+ * > A PC-RELATIVE LITERAL-POOL LOAD CANNOT ACQUIRE A FORWARD DEPENDENT AND SO
+ * > CANNOT WIN A sched2 PRIORITY CONTEST -- THE PARK'S RULE IS RIGHT.  BUT
+ * > WHERE THE REFERENCE SCHEDULES ONE EARLIER THAN ITS CONSUMER CHAIN CAN
+ * > JUSTIFY, THE ANSWER IS AN ANCHOR IMMEDIATELY AFTER IT, WHICH PUTS IT
+ * > ALONE IN ITS REGION.  "NOT REACHABLE THROUGH THE SCHEDULER" WAS A
+ * > STATEMENT ABOUT PRIORITY MISTAKEN FOR ONE ABOUT ORDER.
+ * The park directs this rule at Anim_CriticalHit's runs 3 and 4 (two pool-load
+ * adjacent swaps) and at "every 'pool load one slot early/late' park in the
+ * bank".  **All of those should be re-measured with this anchor**, and
+ * AnimStart / AnimStart2 in this same `.s` inline this very queue four times
+ * over, so they inherit the fix the moment this body installs.
  *
- * CAUSE 2 (2 of 12) -- one preheader swap:
- *     ref   mov r2,#0x15 | mov r6,#0 | add r7,r3    | mov r5,#0 | mov r8,r2
- *     ours  mov r2,#21   | mov r6,#0 | mov r5,#0    | add r7,r7,r3 | mov r8,r2
- * `add r7,r3` is LICM's hoist of `b + (0xc9 << 3)`, inserted at the END of the
- * preheader, so its LUID is above `k = 0`'s.  All four are region leaves with
- * equal priority and equal in-region depend_count, so INSN_LUID decides, and
- * the ROM needs the hoisted giv's LUID BELOW `k = 0`'s -- which source order
- * cannot produce.  Its real consumer `ldrh r0,[r7]` is in the loop block, a
- * different region, so it contributes nothing to its priority.
+ * ======================================================================
+ * WHAT THE REMAINING 2 IS -- CAUSE 2, AND THE PARK'S BOUND ON IT SURVIVES
+ * ======================================================================
+ *   ref    mov r2,#0x15 | mov r6,#0 | add r7,r3 | mov r5,#0  | mov r8,r2
+ *   ours   mov r2,#0x15 | mov r6,#0 | mov r5,#0 | add r7,r3  | mov r8,r2
+ * `add r7,r3` is LICM's hoist of `b + (0xc9 << 3)`; `mov r5,#0` is `k = 0`.
+ * Both are region leaves at priority 1, `mov r2,#0x15` is the one prio-2 insn
+ * (it feeds `mov r8,r2` in region), and within the prio-1 class INSN_LUID
+ * decides, lowest first.  `move_movables` emits every hoist with
+ * `emit_insn_before (..., loop_start)`, i.e. at the preheader's END, so
+ * LUID(hoist) > LUID(k = 0) **by construction** and the reference's order is
+ * not expressible while the quantity is a hoist.
+ * The park's escape -- give the hoisted quantity its own source statement --
+ * is still blocked by its own precondition, and I re-measured the block on
+ * THIS body (the park measured it on the 14-body):
+ *     `u16 *bp` named between the two zero inits   62 of 142, dsize -8, RELOCDIFF
+ *     ... named before both inits                  62, -8, RELOCDIFF
+ *     ... named after both inits                   62, -8, RELOCDIFF
+ *     ... with the PRE-LOOP use also through bp    68, -4, RELOCDIFF
+ * `b + (0xc9 << 3)` is used before the loop by `_Func_80c0774` too, so gcse
+ * folds the two computations into one and the reference's second, independent
+ * computation is lost.  **THE p2 TRICK FROM THIS BATCH DOES NOT TRANSFER**:
+ * three distinct locals defeat gcse for a repeated CONSTANT (Func_80a33d4),
+ * because each is an independent `(set (reg) (const_int))`; they do not defeat
+ * it for a repeated EXPRESSION over a live base, where the value really is
+ * available.  Worth stating, because the two cases look identical in source.
+ * MEASURED INERT AT EXACTLY 2 (count 113/113, relocations clean): an anchor as
+ * the loop body's first statement; `bq = b` named ahead of the inits (the
+ * park's candidate prerequisite -- still exactly inert, now at 2).
+ * MEASURED WORSE: an anchor between the two inits, after `k = 0`, or before
+ * `i = 0` -- 6 each; `lim = 0x15` named ahead of the inits -- 6.
+ * ALSO REFUTED, with figures: passing the queue pointer INTO the inline so the
+ * pool load becomes an ordinary AnimEnd statement -- two distinct locals 23,
+ * one shared local 23, two locals plus the call-site anchor 19, an anchor
+ * before the first local 21.  The pool load belongs inside the inline.
  *
- * MEASURED FLAT AT EXACTLY 14 (14 variants, sweep_variants, byte-identical):
+ * ======================================================================
+ * AUTOSWEEP, AND A TOOL BUG WORTH FIXING
+ * ======================================================================
+ * `python3 tools/autosweep.py src/non_matching/rom_c9000/AnimEnd.c` prints
+ * `function  SetRegAnimDest` / `BASE DOES NOT MEASURE` and sweeps NOTHING.
+ * It takes the FIRST function definition in the park file, which here is the
+ * `static inline` helper, not the reference symbol -- so a park with a static
+ * inline above its subject reads as "too far gone to sweep" when the axis is
+ * simply UNTESTED.  Same false-clean-negative class as the three autosweep
+ * bugs batch 338's briefs found.  Both axes were run by hand instead:
+ *   FLAG AXIS (OBJCMP_EXTRA, parked body): -fno-gcse 14, -fno-strength-reduce
+ *     14 (inert); -fno-strict-aliasing 20, -fno-schedule-insns2 36 (worse);
+ *     -O1 109 insns, -ffixed-r7 117, -fno-rerun-cse-after-loop 115,
+ *     -fno-rerun-loop-opt 107 (all COUNT rows, they bound nothing).
+ *   ANCHOR AXIS: 31 boundaries, table above.
+ *
+ * PROTOTYPE AND RETURN TYPE ARE UNCHANGED: `void AnimEnd(void)`.  The brief
+ * flagged this because a return-type change rewrites `pop {rN}` at every
+ * caller (arm.c:8302, :8382) and AnimEnd has many in the battle-animation
+ * bank.  No caller is affected by this body.
+ *
+ * DEVICES: the `do { } while (0);` anchor is device-FREE by the batch-337
+ * ruling -- it emits no instruction, tools/shimcount.py does not count it
+ * (reports no rows for this body), and it carries no pass-3 depin debt.  It is
+ * not a `__asm__` barrier, not an `.equ`, not a fictitious symbol.  It does
+ * add one assembler LABEL (126 lines against 127) which costs no bytes.
+ * NO fakematch row needed.
+ *
+ * ======================================================================
+ * CARRIED FORWARD, STILL TRUE
+ * ======================================================================
+ * - KEEP THE ASYMMETRY: a SYMBOL address goes through `force_const_mem` and
+ *   becomes a real pool MEM carrying memory dependences; a large INTEGER
+ *   constant stays a bare `(set (reg) (const_int 0x4000208))` with no memory
+ *   operand and no memory dependences.  That is why the gDMATaskCount load
+ *   lost to the REG_IME address in the same block.
+ * - THE LICM LEVER IS LOAD-BEARING AND MUST NOT BE TIDIED: leaving the full
+ *   expression INSIDE the loop body makes LICM hoist it as a SECOND,
+ *   independent computation, which is what the reference has.  Hoisting it by
+ *   hand makes gcc fold both into one.
+ * - MEASURED FLAT AT 14 on the parked body (14 variants, byte-identical):
  *   `queue` initialised at its declaration; `count` read from
  *   `gDMATaskCount.count` directly; `queue` as a `u32` with casts; `queue`
  *   declared last; a `+ 0` offset on the address; `for (i=0,k=0; ...)`;
  *   `k = i = 0`; `&b[0xc9<<3]` for `b + (0xc9<<3)`.
- * MEASURED WORSE: `k = 0; i = 0;` 18; `i = k = 0;` 18; the queue assignment
- *   moved after the IME dance 18; `count` read before the IME save 23;
- *   `if (queue->count < 32)` 16; a named `vu16 *ime` for the IO accesses 68
- *   (and 8 bytes short).
- *
- * WHAT THE EARLIER HEADER CLAIMED, re-measured:
- *   "9 lines at two sites: a pool address is hoisted to the top of the block" --
- *     OBSERVATION SURVIVES; it is 10 of 12, not 9, once the pool-word order and
- *     the pc-offsets are counted with it.  The `__asm__ volatile` barrier it
- *     reports trying cannot work, for the reason above.
- *   "4 lines at two sites: an `add` and a `strh` swapped" -- REFUTED AS STATED.
- *     There is ONE such swap, `mov r5,#0` against `add r7,r3`, worth 2.
- *   "2 lines: two instructions swapped" and "1 line: a redundant label" --
- *     NOT REPRODUCED.  Count is 142 = 142 and size is equal, so there is no
- *     extra label line in this body any more.
- *
- * THE LICM LEVER IS STILL LOAD-BEARING and must not be "tidied": leaving the
- * full expression INSIDE the loop body makes LICM hoist it into the preheader as
- * a SECOND, independent computation, which is what the ROM has.  Hoisting it by
- * hand makes gcc fold both into one and costs ~15.
- *
- * AnimStart and AnimStart2 in this same .s are this function's queue inline four
- * times over; they will not close until this one does.
+ * - MEASURED WORSE on the parked body: `k = 0; i = 0;` 18; `i = k = 0;` 18;
+ *   the queue assignment moved after the IME dance 18; `count` read before the
+ *   IME save 23; `if (queue->count < 32)` 16; a named `vu16 *ime` 68.
+ * - REFUTED EARLIER AND STILL REFUTED: "4 lines at two sites: an `add` and a
+ *   `strh` swapped" -- there is ONE such swap, worth 2, and it is all that is
+ *   left.  "a redundant label" -- not reproduced.
  */
 #include "gba/types.h"
 #include "gba/io.h"
@@ -247,6 +218,7 @@ static inline void SetRegAnimDest(u32 dest, u32 src)
     u32 *task;
 
     queue = &gDMATaskCount;
+    do { } while (0);
     savedIme = REG_IME;
     SET_IO(REG_IME, REG_ADDR_IME);
     count = queue->count;

@@ -1,97 +1,120 @@
 /* OvlFunc_964_20090c4  --  0x020090c4
  *
- * NON-MATCHING, 16 of 119 encodings  (MEASURED, batch 319 recipe backfill).
- *   *** RELOCATIONS DIFFER IN THEIR SYMBOLS, NOT ONLY THEIR OFFSETS --
- *   __umodsi3, _umodsi3_RAM
- *   SO THIS FIGURE IS NOT A DISTANCE: `make compare` cannot pass a
- *   relocation difference.  Fix this before trusting the encoding count. ***
+ * NON-MATCHING, 12 differing STREAM encodings of 119.  96/96 16-bit
+ * instructions, IN PHASE, so a true DISTANCE.  Was 16 of 119.
+ *
+ *   *** THIS FIGURE IS MEASURED UNDER -fno-strict-aliasing (ALIAS_CFLAGS,
+ *   Makefile:235).  At the production -O2 this same body reads 14 of 119.  The
+ *   flag is not a device -- it is a real per-file group applied to ~20 TUs --
+ *   but no Makefile rule is needed while this stays parked, since
+ *   src/non_matching is never a build input.  Any verify recipe MUST pass it. ***
+ *
+ *   The relocation set differs ONLY in two `bl` symbol names, `__umodsi3`
+ *   against the reference's `_umodsi3_RAM`, and overlays/rom_7ed0a0/overlay.ld:111
+ *   already carries `__umodsi3 = _umodsi3_RAM;`.  THOSE TWO COST ZERO ENCODINGS
+ *   -- a `bl` with a relocation assembles to the same placeholder bytes either
+ *   way -- so the park's old "FOUR OF THE 17 ARE PHANTOM" over-counted by two:
+ *   the phantoms are two RELOCATIONS, not two instructions, and the 12 above is
+ *   already the real instruction distance.  The park also carried the
+ *   "RELOCATIONS DIFFER ... NOT A DISTANCE" banner on top of its own correct
+ *   note that they are phantom; both are now stated once, consistently.
  *
  * Verify with:
  *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
- *     goldensun-build python3 tools/objcmp.py \
+ *     -e OBJCMP_EXTRA=-fno-strict-aliasing goldensun-build python3 tools/objcmp.py \
  *     src/non_matching/ovl_7ed0a0/20090c4.c \
  *     asm/overlays/rom_7ed0a0/ovl_30_a_a_c_c_a_c_a.s --func OvlFunc_964_20090c4
  *
- * This recipe was ADDED by the batch-319 backfill: the park had none, so
- * parkcheck.py could not report its figure and nothing had ever checked it.
- * asm/overlays/rom_7ed0a0/ovl_30_a_a_c_c_a_c_a.s, line 12 (one function, no data).
+ * PIN-FREE, device-free.  Singleton piece (tools/piece.py), no split needed.
  *
- * PARKED at 17 aligned of 116, length exact (116 / 116). FOUR OF THE 17 ARE
- * PHANTOM: the two `bl __umodsi3` vs `bl _umodsi3_RAM` lines, and
- * overlays/rom_7ed0a0/overlay.ld:110 already carries `__umodsi3 = _umodsi3_RAM;`.
- * The real residual is 13, all register choice and scheduling. Instructions
- * 0-35 and the whole loop body up to the argument fill are byte-for-byte.
+ * WHAT MOVED IT, 16 -> 12, AND THE TWO HALVES COMPOSE:
+ *   -fno-strict-aliasing alone                 16 -> 14   (autosweep, flag axis)
+ *   the anchor below alone                     16 -> 14   (autosweep, boundary 26)
+ *   both together                              16 -> 12
+ * The anchor sits after `vz = -32765 + vz;`, i.e. INSIDE the `if (i & 1)` body
+ * inside the loop -- a placement the park's own ~100-spelling sweep never
+ * generated, and one autosweep could only generate after its depth>=1 fix.
+ * It removes two of the six encodings in the tail group below.
  *
- * BLOCKER CLASS: 2 (register birth order) with a 5 (scheduling) tail -- the
- * decomp-permuter class.
+ * THE RESIDUE, four groups, re-read this round:
+ *   G1 2  the two coordinate loads of __Actor_TravelTo come out in the other
+ *         order -- SAME REGISTERS: rom `ldr r1,[r6,#8] / ldr r2,[r6,#0xc]`,
+ *         ours the two swapped.
+ *   G2 4  `add r3, sp, #0x10 / mov r8, r3` is emitted BEFORE `bl __WaitFrames`;
+ *         the ROM emits it after, and in r3 where we use r1.  THIS IS THE PARK'S
+ *         "WALL" AND ITS ANALYSIS OF IT STILL HOLDS (see below).
+ *   G3 2  `ldr r2, =0xfffe0000` inside the loop, where the ROM uses r3.
+ *   G4 4  the tail of the argument build: `ldr r3, =0xffff8003` against our r2,
+ *         `add r4, r3` against `add r4, r2`, and `mov r3, #0` swapped with
+ *         `ldr r0, [r6, #0x8]`.
  *
- * THE WALL, NAMED PRECISELY. The ROM has
+ * G3 and G4 are the same single-register shift seen in two places: ours puts
+ * each pooled constant one step EARLIER in REG_ALLOC_ORDER ({3,2,1,0,...},
+ * arm.h:988-994) than the ROM.  x.c.18.greg says `;; 4 regs to allocate:
+ * 33 34 32 40`, so both constants are LOCAL-allocated quantities, which puts
+ * them in local-alloc's find_free_reg and specifically under its
+ * INSN_SCHEDULING lifetime extension (local-alloc.c:1405-1425: birth-2,
+ * death+2, "to avoid using hard registers allocated to qtys which are born
+ * immediately after this qty or die immediately before this qty", with a
+ * documented fallback to the unadjusted lifetime).  That extension is exactly
+ * what pushes a constant off r3 onto r2 when a neighbour is born next to it,
+ * and it is schedule-sensitive, which is why it moves with the anchor and the
+ * aliasing flag and not with any statement order.  NEXT AGENT: this is the
+ * claim to test, and local-alloc.c:1405-1425 is where to test it.
  *
- *      add r3, sp, #0x10       <- address into a low scratch
- *      mov r8, r3              <- committed to a callee-saved high register
- *      ldr r3, =OvlFunc_964_2009068
- *      mov r2, r10
- *      mov r0, r8              <- a SECOND reload of the same pointer
- *      ...
- *      str r3, [r0, #0x24]
+ * G2, CARRIED FORWARD FROM THE PARK BECAUSE IT WAS RIGHT.  The ROM has
  *
- * gcc emits that second reload only when the pointer's live range crosses a
- * CALL between its definition and the store. With the definition adjacent to
- * the store, reload INHERITS the scratch and stores through it directly, which
- * is one instruction shorter and drops the `mov r0, r8`. Both placements are
- * reachable and neither is the ROM's:
+ *      add r3, sp, #0x10 / mov r8, r3 / ... / mov r0, r8 / str r3, [r0, #0x24]
  *
- *      `c = &s;` after  the WaitFrames  -> address rematerialised at the store,
- *                                          no `mov r0, r8`, 115 lines
- *      `c = &s;` before the WaitFrames  -> the `mov r0, r8` appears, but the
- *                                          `add / mov r8` pair is emitted
- *                                          BEFORE the bl instead of after
- *
- * sched2 will not sink the pair past the call -- the `add` writes a
- * call-clobbered register, so the dependence pins it -- and no statement order
- * within the block produces the extra reload. GENERALISATION WORTH KEEPING:
+ * and gcc emits that second reload of the pointer only when its live range
+ * crosses a CALL between definition and store; with the definition adjacent to
+ * the store, reload INHERITS the scratch and stores through it directly, one
+ * instruction shorter.  Both placements are reachable and neither is the ROM's:
+ * `c = &s;` after the WaitFrames rematerialises the address and is 115 lines
+ * against 116; before it, the `mov r0, r8` appears but the `add / mov r8` pair
+ * lands ahead of the `bl`.  sched2 will not sink the pair past the call because
+ * the `add` writes a call-clobbered register.  GENERALISATION WORTH KEEPING:
  * `mov rLow, rHigh` immediately before a store whose base is that high register
- * is a RE-READ of a pointer already committed to a callee-saved register. It is
- * evidence that a CALL sits between the pointer's definition and its use, not
- * evidence about statement order. The remaining 9 instructions are all
- * downstream of this one allocation; every loop, tail and declaration-order
- * spelling left them unchanged.
+ * is a RE-READ of a pointer already committed to a callee-saved register -- it
+ * is evidence that a CALL sits between the pointer's definition and its use, not
+ * evidence about statement order.
  *
- * THREE LEVERS DID FIRE, and the first is a new rule.
+ * THREE LEVERS FROM THE PARK, ALL STILL IN THE BODY AND ALL STILL EARNING:
+ *   - A NEGATIVE CONSTANT MULTIPLIER IS WHAT SELECTS THE SHIFT CHAIN.
+ *     expand_mult calls synth_mult on the ABSOLUTE value and negates after, but
+ *     the cost budget comes from the negative MULT -- so `x * 6553` gives
+ *     `ldr =0x1999 / mul` and only `x * -6553` gives the seven-instruction
+ *     chain.  Read the sign off the ROM: a `neg` after a shift chain means the
+ *     source multiplier was negative.  This function multiplies twice and the
+ *     ROM spells the two differently, which is a clean internal control.
+ *   - A STATEMENT BREAK STOPS THE DISTRIBUTION.  `(r - 5) * 0x3332` folds to
+ *     `r * 0x3332 - 65530`; splitting it into `t = r; t -= 5; vx = t * 0x3332;`
+ *     gives the ROM's `sub #5 / mov / mul`.  Worth 4.
+ *   - DELETING THE BYTE-POINTER LOCAL WAS WORTH 3.  The ROM holds `&actor->f55`
+ *     in r10 across the function and writes through it three times, which reads
+ *     like the case for a named `unsigned char *p`; it is not -- gcc CSEs the
+ *     field reference into that same pseudo on its own.
+ *   Also confirmed by the park: `C - x*k` and `x*-k + C` are indistinguishable
+ *   in an isolated probe and only differ under this function's real register
+ *   pressure.  Isolated probes are not safe for sign questions.
  *
- * A NEGATIVE CONSTANT MULTIPLIER IS WHAT SELECTS THE SHIFT CHAIN. This function
- * multiplies twice and the ROM spells the two differently -- a two-instruction
- * `ldr` + `mul` for one, a seven-instruction shift chain for the other, where
- * the chain is plainly the more expensive. That is not gcc preferring shifts:
- * `expand_mult` calls `synth_mult` on the ABSOLUTE value and negates afterwards,
- * and the cost budget it passes comes from the negative MULT. So `x * 6553`
- * gives `ldr =0x1999 / mul` and only `x * -6553` gives the chain. READ THE SIGN
- * OFF THE ROM: a `neg` after a shift chain means the source multiplier was
- * negative. Two multipliers in one function is a clean internal control.
- *
- * A STATEMENT BREAK STOPS THE DISTRIBUTION. `(r - 5) * 0x3332` folds to
- * `r * 0x3332 - 65530` and emits `mul` then `ldr =0xffff0006 / add`. Splitting
- * it -- `t = r; t -= 5; vx = t * 0x3332;` -- gives the ROM's `sub #5 / mov /
- * mul`. Worth 4 aligned. This is the mirror of the one-expression-not-two rule,
- * and which way it goes is decided by whether the ROM distributed.
- *
- * DELETING THE BYTE-POINTER LOCAL WAS WORTH 3 (21 to 18), and it is the
- * converse of the standing habit. The ROM holds `&actor->f55` in r10 across the
- * whole function and writes through it three times, which reads like the
- * strongest possible case for a named `unsigned char *p`. It is not: gcc CSEs
- * the field reference into that same pseudo on its own, and the named local
- * perturbs the config pointer's allocation two statements later.
- *
- * Also confirmed: `C - x*k` and `x*-k + C` are indistinguishable in an isolated
- * probe -- both fold to `ldr C / sub` -- and only under this function's real
- * register pressure does the negative-multiplier form keep the ROM's `neg`+`add`
- * pair. Isolated probes are not safe for sign questions.
- *
- * ~100 spellings measured (34-way c-placement sweep, 28-way declaration order,
- * 7 loop forms, 6 tail forms, 4 array forms) and 8 flags; the 17 floor is
- * insensitive to all of them. -fno-gcse is much worse (32); --no-sched2 is
- * worse still (36-38), which confirms sched2 is producing the ROM elsewhere.
- * Screened with tools/tryc.py --align. Not built.
+ * MEASURED INERT THIS ROUND -- 115 variants on top of the flag, all 12:
+ *   - `c = &s;` at all 14 boundaries from the top of the function to the store,
+ *     under the flag AND without it.  (The park's 34-way sweep was at default
+ *     flags only; crossing it with the flag changes nothing.)
+ *   - all 29 compiling anchor placements as a SECOND anchor on top of this one.
+ *   - naming the TravelTo coordinates (both x/y orders, and the z sum) -- G1
+ *     does not move.
+ *   - naming the loop's -0x20000 step as a local; spelling it `a->y = a->y - k`.
+ *   - four spellings of the `-32765 + vz` fold (`vz -= 32765`, `vz = vz - 32765`,
+ *     one statement, and the random value through its own local).
+ *   - splitting the reused `vz` and the reused `t` into two locals each.
+ *   - naming the loop's `0` argument as a local.
+ *   - the other seven flag groups: -O1 112, -fno-gcse 114, --no-sched2 51,
+ *     -ffixed-r7 121, and three inert at 16 on the unchanged body.
+ *   - TWO of autosweep's 31 anchor variants DO NOT COMPILE (boundaries 17 and
+ *     18, which land among the loop's declarations); that part of the axis is
+ *     untested, not inert.
  */
 struct Actor {
     unsigned char pad00[8];
@@ -160,7 +183,7 @@ void OvlFunc_964_20090c4(void)
             t -= 5;
             vx = t * 0x3332;
             vz = (int)(__Random() % 10) * -6553;
-            vz = -32765 + vz;
+            vz = -32765 + vz; do { } while (0);
             OvlFunc_964_2008ae8(a->x, a->y, a->z, vx, 0, vz, 0x1000001, c);
         }
     }

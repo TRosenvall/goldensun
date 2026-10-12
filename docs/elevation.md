@@ -35158,6 +35158,52 @@ match. The pattern is now specific enough to state as a rule:
 > **Any tool that greps this tree's sources for an identifier must strip
 > comments first, or it will measure the documentation instead of the code.**
 
+## TO WIN AN ALLOCATION RACE, TAKE THE VALUE OUT OF IT -- ADD A DEFINITION, DO NOT SHORTEN A RANGE
+
+Batch 340 brief A landed **both** surviving members of the four-function
+callee-saved coin flip -- `OvlFunc_946_2009c84` 11 -> 0 and
+`OvlFunc_946_200a16c` 13 -> 0, byte-identical, pin-free, device-free -- on one
+token:
+
+    a -= 1;        /* parked */
+    d = a - 1;     /* lands */
+
+The emitted instruction is the same `sub r5,#1` either way. What changes is the
+**allocno set**. The long-lived value stops competing: it drops to two
+references, **dies at the new pseudo's definition so it no longer conflicts with
+it**, and both end up in r5; the new short dense pseudo sorts first in
+`allocno_compare` (`global.c:598-620`) and takes r5; the other long-lived value
+is then uncontested on r6.
+
+> **The lever is not "shorten the range so it wins the sort". It is "add a
+> definition so the range SPLITS and leaves the race."** On both of these parks
+> shortening was arithmetically unavailable -- `200a16c`'s own verdict proves its
+> carrier needs `live_length < 27` against an actual 50, and **that verdict is
+> correct for the question it asked.** The question was wrong.
+
+This is the third distinct route into `allocno_compare` found in three batches,
+and they are not interchangeable:
+
+| route | what it does | found |
+|---|---|---|
+| delete/split a reused local | makes a value **block-local**, so `local-alloc` takes the register before `global-alloc` ranks anything | 339 brief B, `2008f58` 8 -> 0 |
+| move a definition to just before its first use | shortens `live_length` directly | 339 brief D, `200b51c` lands, `20096a8` 34 -> 22 |
+| **add a definition so the range splits** | takes the value **out of the contest** | 340 brief A, both parks above |
+
+Brief A tested the first two on these parks before finding the third: the
+no-local route is **inert at identical allocno priorities** (real on `2008f58`,
+not here), and the shortening route is unavailable. So when a park proves a
+long-lived value cannot win its race, check whether it needs to *enter* the race
+at all.
+
+### And a bound that was correct and still lost
+
+Both parks carried verdicts of the form "nothing in the source reaches the
+allocator's priority order", with the arithmetic reproduced. That is now the
+**fifth** batch running where a park's numbers were right and its verdict wrong,
+which is the standing discipline restated: a figure is evidence, a diagnosis is a
+hypothesis, and the hypothesis has been wrong roughly forty times in forty-two.
+
 ## "NEITHER SHIPS ALONE" IS ALWAYS FALSE, AND THE COORDINATOR HAS WRITTEN IT THREE TIMES
 
 When two parked functions share a `.s`, it is tempting to brief them as a pair:

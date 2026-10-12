@@ -1,23 +1,108 @@
-/* OvlFunc_924_200b6ac -- NON-MATCHING, 16 differing STREAM encodings of 90.
+/* OvlFunc_924_200b6ac -- NOT MATCHING
  *
- * BODY RECOVERED FROM scratch/ (batch 338).  This park was PROSE -- a header,
- * a diagnosis, and no compilable body -- so it had no figure, was NO CLAIM in
- * parkcheck, and was unrankable in every band.  But its own header named a
- * candidate at scratch/Lb6ac.c, that file still existed, and it
- * compiles.  The work had been done and left in a GITIGNORED directory instead
- * of installed, so nothing in the tree could see it.
+ * NON-MATCHING, 4 differing STREAM encodings of 90.  69/69 16-bit instructions,
+ * IN PHASE, so a true DISTANCE.  Was 16 of 90.
  *
- * ref 90 / ours 90 stream encodings; 69/69 16-bit instructions -- IN PHASE, so a true DISTANCE.
+ *   THREE of the 4 are instructions; the FOURTH IS A PHANTOM.  It is the pool
+ *   word: ours is `.word _AREA_36` (00000000 + R_ARM_ABS32) against the
+ *   reference's `.word 0x36`.  _AREA_36 = 0x36 is an ABSOLUTE symbol at
+ *   area.sym:71 and stage1.ld INCLUDEs area.sym, so it resolves to the literal
+ *   0x36 at link.  Four landed, byte-identical files already use _AREA_*
+ *   symbols the same way.  *** THE PARK'S OLD "RELOCATIONS DIFFER ... NOT A
+ *   DISTANCE" BANNER WAS WRONG for an absolute symbol and has been removed;
+ *   tools/autosweep.py still prints it. ***
+ *
+ *   SO THE REAL RESIDUE IS THREE INSTRUCTIONS, in ONE group.
  *
  * Verify with:
  *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
  *     goldensun-build python3 tools/objcmp.py src/non_matching/overlays/200b6ac.c \
  *     asm/overlays/rom_7ac2d8/ovl_35b8_a_a_c_a_a.s --func OvlFunc_924_200b6ac
  *
- * 70 of the 133 prose parks were in this state; tools/scratchfill.py found them.
- * THE FIGURE IS EVIDENCE; the prose below it is a HYPOTHESIS, and across pass
- * two a park's stated blocker has been wrong roughly 40 times in 42.  The
- * original park text is preserved underneath.
+ * PIN-FREE.  Singleton piece (tools/piece.py), no split needed.
+ *
+ * BOTH CHEAP AXES WERE CLOSED ON THE OLD BODY and are closed on this one too:
+ * tools/autosweep.py reported all 38 anchor placements and all eight flag groups
+ * inert at 16 (-O1 73, -fno-gcse 75, --no-sched2 42, -fno-rerun-loop-opt 72);
+ * re-crossed against THIS body all eight flags are 4 or far worse (--no-sched2
+ * 35, -O1 72, -fno-gcse 71, -fno-rerun-loop-opt 60) and all 39 anchor
+ * placements are 4.
+ *
+ * WHAT MOVED IT, 16 -> 10 -> 4, two steps, and the park's own negative is what
+ * hid them:
+ *
+ *   1. 16 -> 10.  SPLIT THE BASE OF THE TWO ADDRESS CHAINS AND ONLY THE BASE:
+ *      `q` becomes q (gState chain) and q2 (iwram chain), while `off` STAYS
+ *      SHARED.  That fixes the entire first chain -- the ROM's base in r3 and
+ *      index in r1, where we had base r2 / index r3.
+ *   2. 10 -> 4.  In the iwram chain, DEFINE THE INDEX BEFORE THE BASE:
+ *          off = 0xe0; off <<= 1; q2 = (unsigned int)iwram_3001ebc; q2 += off;
+ *      which fixes the second chain's base/index roles and its interleave.
+ *      (The same reordering applied to the FIRST chain, or to both, is 17 --
+ *      so this is a per-chain lever, not a rule.)
+ *
+ *   THE PARK'S PROSE SAID THE OPPOSITE AND MUST NOT BE BELIEVED AGAIN:
+ *   "giving each address chain its own pair of locals ... makes this WORSE (84
+ *   lines, 86 differing) ... splitting them only adds pseudos.  The rule holds
+ *   for chains that overlap, not for chains that merely both exist."  The FIGURE
+ *   is right about the PAIR split -- re-measured at 85 of 90, 8 bytes SHORTER --
+ *   and the MECHANISM is now clear: a dedicated `off2` is dead after the chain,
+ *   so cprop folds `0xe0 << 1` into the address and `+ 0x43` into a constant and
+ *   the function loses instructions.  KEEPING `off` SHARED IS WHAT BLOCKS THAT
+ *   PROPAGATION.  The park then generalised one measured negative about the pair
+ *   into a rule about splitting, and the base-only split -- six encodings, the
+ *   larger half of the residue -- was never tried.  (batch 339's local-alloc
+ *   finding is the same shape: split a reused local.)
+ *
+ * THE REMAINING THREE, and the rung that decides them, from the .23.sched2 dump:
+ *
+ *      rom   ldr r2,=0x2be0000 / mov r1,#0 / mov r3,#0xdf / ldr r0,[r0,#8] / bl
+ *      ours  ldr r2,=0x2be0000 / ldr r0,[r0,#8] / mov r1,#0 / mov r3,#0xdf / bl
+ *
+ * i.e. the ROM emits the MEMORY LOAD LAST of OvlFunc_common0_18's four
+ * arguments and we emit it first -- which is what the park said, and it is
+ * correct.  -fsched-verbose=6 (in x.c.23.sched2, NOT on stderr) shows the whole
+ * window stalling 30 cycles behind `bl __MapActor_GetActor` and then
+ *
+ *      ;;  Ready list (t =211):    100  110  106  102
+ *      ;;      --> scheduling insn <<<102>>>
+ *      ;;  Ready list (t =213):    110  106  100
+ *      ;;      --> scheduling insn <<<100>>>
+ *
+ * (schedule_block pops ready[--n_ready], so the LAST name printed is the chosen
+ * one.)  Insn 100 is `r0=[r0+0x8]`, insns 106/110 are `r1=0` and `r3=0xdf`.
+ * The deciding rung is THE FIRST ONE, haifa-sched.c:4040-4043:
+ *
+ *      priority_val = INSN_PRIORITY (tmp2) - INSN_PRIORITY (tmp);
+ *      if (priority_val) return priority_val;
+ *
+ * and insn 100's priority exceeds the two movs' by EXACTLY ONE because arm.md
+ * gives `load` latency 2 and a `core_cycles single` mov latency 1
+ * (arm.md:254-294).  So this is NOT the class rung at haifa-sched.c:4068-4095 --
+ * that rung is never reached -- and it is not dependent count either.  Note the
+ * load IS one cycle later than the movs in the queue (cost=32 against cost=31
+ * off the call); what loses the gap is queue_to_ready pulling everything in
+ * during the 30-cycle stall.  So the promising question is what KEEPS THE WINDOW
+ * BUSY for one more cycle, not what reorders a tie.
+ *
+ * MEASURED INERT AGAINST THE REMAINING THREE -- 135 variants, all exactly 4:
+ *   - all 39 anchor placements (autosweep's own boundary set) on this body, and
+ *     all 39 again on each of two bodies where the load is its own statement.
+ *   - the loaded argument named as a local before the call, with the declaration
+ *     in three different places (the park reported trying this; confirmed inert).
+ *   - a separate `int *ap` for the load; a separate `unsigned char *b` for the
+ *     actor pointer.
+ *   - the other three arguments named as entry-block locals, singly and all
+ *     three together; named as locals assigned immediately before the call.
+ *   - all eight per-file flag groups.
+ *   - WORSE, recorded: hoisting `e = 3; f = 2;` (the __CopyMapTiles stack
+ *     arguments) above this call to fill the window is 16; to the entry block, 9;
+ *     swapping the GetActor call with its use, 58.
+ *
+ * Everything the old prose header claimed SOLVED is still solved and is kept:
+ * the four interleaved argument sites, the _AREA_36 symbol spelling, the two
+ * __CopyMapTiles stack arguments as named locals, and the derived
+ * iwram+0x1c0/+0x203 store.  The original prose park is preserved below.
  */
 extern unsigned int gState;
 extern int _AREA_36;
@@ -40,6 +125,7 @@ void OvlFunc_924_200b6ac(void)
 {
     unsigned char *a;
     unsigned int q;
+    unsigned int q2;
     unsigned int off;
     int v;
     int a1, a2, b1, c0, c2, d1, d2;
@@ -73,12 +159,12 @@ void OvlFunc_924_200b6ac(void)
         *(int *)(a + 0x48) = 0x80 << 8;
         __Func_8092b08(0, 2);
         __Func_8092708(0, 6, d1);
-        q = (unsigned int)iwram_3001ebc;
         off = 0xe0;
         off <<= 1;
-        q += off;
+        q2 = (unsigned int)iwram_3001ebc;
+        q2 += off;
         off += 0x43;
-        *(int *)q = off;
+        *(int *)q2 = off;
         __CutsceneWait(0x3c);
         __Func_8091e9c(8);
     } else {

@@ -127,8 +127,30 @@ def resolve(park):
             break
     code = re.sub(r"/\*.*?\*/", " ", t, flags=re.S)
     code = re.sub(r"//[^\n]*", " ", code)
-    m = DEF.search(code)
-    fn = m.group(1) if m else (SUBJ.match(t).group(1) if SUBJ.match(t) else None)
+    # THE SUBJECT COMES FIRST, NOT THE FIRST DEFINITION.  This used to take
+    # DEF.search(code), i.e. whichever function the file happens to define
+    # earliest -- so a park carrying `static inline` helpers above its subject
+    # swept the WRONG FUNCTION.  Batch 340 brief E hit it on AnimEnd, which
+    # swept as SetRegAnimDest and reported "BASE DOES NOT MEASURE": a
+    # clean-looking "too far gone" verdict on a target where the anchor axis was
+    # worth 12 encodings.  Fourth false-clean-negative in this file.
+    #
+    # Prefer the header subject, validated against the reference's own
+    # .thumb_func_start list, and fall back to a definition only if that fails.
+    names = []
+    if ref:
+        body = open(os.path.join(ROOT, ref), errors="replace").read()
+        names = re.findall(r"^\s*\.(?:thumb|arm)_func_start(?:_noalign)?\s+(\S+)",
+                           body, re.M)
+    sm = SUBJ.match(t)
+    fn = None
+    if sm and (not names or sm.group(1) in names):
+        fn = sm.group(1)
+    if fn is None:
+        for m in DEF.finditer(code):
+            if not names or m.group(1) in names:
+                fn = m.group(1)
+                break
     return ref, fn
 
 
@@ -149,6 +171,14 @@ def measure(path, ref, fn, extra=""):
     # so its 14 was never a plain distance.  Asking for both instruction counts
     # catches the phase trap; it does not catch this one.
     if re.search(r"RELOCATIONS differ", out):
+        # NOT NECESSARILY A DEFECT.  Batch 340 brief D found three of four such
+        # banners false: _CONST_2 (const.sym:53) and _AREA_36 (area.sym:71) are
+        # ABSOLUTE symbols in .sym files that stage1.ld INCLUDEs, so an
+        # R_ARM_ABS32 against them links to the literal value and the ROM's
+        # bare constant is reproduced exactly.  Several already-landed,
+        # byte-identical files spell the same pooled constants the same way.
+        # So this is a flag to CHECK, never a verdict -- and the check is
+        # whether the symbol is defined by value in a .sym file.
         globals().setdefault("_RELOC_WARN", set()).add(path)
     return (int(m.group(1)), int(m.group(2)))
 
@@ -255,8 +285,12 @@ def main():
         return 1
     print(f"base      {base[0]} of {base[1]}")
     if path_in_reloc_warn(park):
-        print("          !! RELOCATIONS ALSO DIFFER -- this figure is not a plain")
-        print("             distance; fix the relocation set before reading it")
+        print("          !! RELOCATIONS ALSO DIFFER -- CHECK, do not assume a defect.")
+        print("             If the differing words are absolute symbols defined by")
+        print("             value in a .sym file (const.sym, area.sym, size.sym,")
+        print("             message.sym), they link to the literal and the figure IS")
+        print("             a plain distance -- landed files already do this.  Only a")
+        print("             genuinely unresolved symbol makes the figure unreadable.")
     print()
     best = [(base[0], "base", "")]
 
@@ -326,7 +360,17 @@ def main():
                         if nd == 0:
                             tag = "  <-- *** ZERO ***"
                         if tag:
-                            print(f"  {line}{tag}")
+                            # PRINT THE SOURCE LINE, not just anchorNN.  Brief D
+                            # had to import boundaries() to recover which
+                            # placement a winning row meant.
+                            n = re.match(r"(?:anchor|barrier)(\d+)", f[0])
+                            where = ""
+                            if n and int(n.group(1)) < len(pts):
+                                off = pts[int(n.group(1))]
+                                where = ("  @ after: ..."
+                                         + text[max(i, off - 46):off].strip()
+                                         .replace("\n", " ")[-46:])
+                            print(f"  {line}{tag}{where}")
                         best.append((nd, f"{label.lower()} @ {f[0]}", ""))
                 shown = [b for b in best if b[1].startswith(label.lower())]
                 written = min(len(pts), a.max)

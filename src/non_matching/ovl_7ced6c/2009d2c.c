@@ -11,7 +11,7 @@
  * Verify with:
  *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
  *     goldensun-build python3 tools/objcmp.py src/non_matching/ovl_7ced6c/2009d2c.c \
- *     asm/overlays/rom_7ced6c/ovl_30_c_c_c_c_c_c_c_c_c_c_c_c_c_c_c_c_c_c_c_a_a_c.s --func OvlFunc_946_2009d2c
+ *     asm/overlays/rom_7ced6c/ovl_30_c_c_c_c_c_c_c_c_c_c_c_c_c_c_c_c_c_c_c_a_a_c_c.s --func OvlFunc_946_2009d2c
  *
  * The original prose park is preserved below.
  */
@@ -66,7 +66,7 @@ tail:
 #if 0
 /* ===== ORIGINAL PROSE PARK, PRESERVED =====
 (* OvlFunc_946_2009d2c -- 0x02009d2c,
- * asm/overlays/rom_7ced6c/ovl_30_c_c_c_c_c_c_c_c_c_c_c_c_c_c_c_c_c_c_c_a_a_c.s
+ * asm/overlays/rom_7ced6c/ovl_30_c_c_c_c_c_c_c_c_c_c_c_c_c_c_c_c_c_c_c_a_a_c_c.s
  *
  * 83 lines against the ROM's 87.  Candidate at scratch/N9d2c_best.c.
  *

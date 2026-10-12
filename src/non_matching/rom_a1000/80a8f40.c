@@ -1,4 +1,54 @@
 /*
+ * ===== BATCH 340, BRIEF A: FIGURE RE-DERIVED AT 6; THE ANCHOR AXIS IS NOW =====
+ * ===== FULLY CLOSED, INCLUDING THE PLACEMENT autosweep COULD NOT COMPILE  =====
+ *
+ * FIGURE RE-DERIVED, not inherited: 6 differing STREAM encodings of 167
+ * (ref 167 / ours 167), 143 / 143 16-bit instructions -- IN PHASE, a true
+ * DISTANCE -- relocations IDENTICAL, first differing index 139
+ * (ref 9b01 = `ldr r3,[sp,#4]`; ours 9901 = `ldr r1,[sp,#4]`).  The park's 6
+ * survives untouched for the fifth consecutive batch.  PINS: the file's one
+ * `.equ _MSG_333` shim, MEASUREMENT ONLY, unchanged and still must not land.
+ *
+ * WHAT WAS UNTESTED AND IS NOW CLOSED.  batch 340's autosweep pre-pass reported
+ * `!! 1 of 30 variant(s) produced NO ROW` on the anchor axis -- so one placement
+ * had never been measured and the "both cheap axes CLOSED" line was one short.
+ * The placement is BOUNDARY 19, the `;` after `t = 0xb;` INSIDE the if-arm:
+ * an anchor there puts a statement between `t = 0xb;` and `else`, which is not
+ * C and does not compile.  Written legally it is INERT:
+ *     if (t == 0xff) { t = 0xb; do { } while (0); } else { t = t - 1; }   6
+ *     if (t == 0xff) { t = 0xb; } else { t = t - 1; do { } while (0); }   6
+ *     if (t == 0xff) { t = 0xb; } else { t = t - 1; }   (braces only)     6
+ * THE ANCHOR AXIS IS NOW 30 OF 30 AND CLOSED.  The flag axis was already closed
+ * at the head of this batch: -fno-strict-aliasing, -fno-strength-reduce,
+ * -fno-rerun-cse-after-loop, -fno-rerun-loop-opt all INERT at 6; -fno-schedule-
+ * insns2 49, -O1 54, -fno-gcse 135, -ffixed-r7 141 (all worse).
+ *
+ * TWO MORE DEVICE-FREE ROUTES MEASURED AND CLOSED, both on the 0x741 question:
+ *     `static const int kBase[1] = { 0x741 };` indexed `kBase[0]` ..... 30 of 167
+ *               at 144 instructions of 143, SIZE 384 vs 380 -- a LENGTH
+ *               defect, so not a figure at all.  An aggregate rvalue does not
+ *               keep the value out of reload; it adds a pool word.
+ *     `0x741 + (int)unit[0x129]` (constant on the LEFT of the addition) ...... 6
+ *
+ * AND THE CROSSING THE PARK'S SEVEN NEGATIVES LEFT OPEN -- the named base
+ * crossed with each inert flag, because gcse's cprop is what folds it back:
+ *     `int base = 0x741;` + -fno-gcse ................. 144 instructions of 143
+ *               -- a LENGTH defect.  This is the POSITIVE half of the park's
+ *               claim: with cprop off the constant DOES leave reload, and it
+ *               costs an instruction the ROM does not have.  -fno-gcse alone is
+ *               135 of 167 anyway, so the flag is not available here.
+ *     `int base = 0x741;` + -fno-rerun-cse-after-loop / -fno-strict-aliasing /
+ *               -fno-strength-reduce ........................... 6, 6, 6 (inert)
+ *     `0x741 + (int)unit[0x129]` crossed with the same four ... 144, 6, 6, 6
+ *
+ * So the park's structural cap now has its mechanism measured from both sides:
+ * nothing that is a compile-time integer constant avoids reload WITH cprop on,
+ * and turning cprop off changes the instruction count.  BLOCKER CLASS AND FIGURE
+ * UNCHANGED: `allocate_reload_reg` round-robin position (reload1.c:5003) at insn
+ * 322.  PARK HELD AT 6 DEVICE-FREE; 0 of 167 at one message.sym entry, which is
+ * STILL AN OWNER DECISION and was not pre-empted here.
+ */
+/*
  * ========= BATCH 336, BRIEF B: FOUR MORE DEVICE-FREE ROUTES CLOSED, =========
  * ========= INCLUDING THE BARRIER AND THE ONE-MEMBER CARRIER         =========
  *

@@ -234,6 +234,25 @@ O1_CFLAGS := $(subst -O2,-O1,$(GCC296_CFLAGS))
 # splitting it touches all of them. See src/non_matching notes in batch 69.
 ALIAS_CFLAGS := $(GCC296_CFLAGS) -fno-strict-aliasing
 
+# ALIAS_CFLAGS for OvlFunc_931_20086f0, batch 340 brief D.  EXPLICIT, not a
+# pattern.  Third file in the tree to take this rule, same shape as the entries
+# for rom_7d0e88/ovl_314_c_a_c_c.o and rom_7e3e08.
+#
+# The residue was the signed-vs-unsigned register pair at the two halfword sites
+# plus one argument-fill order.  -fno-strict-aliasing ALONE takes the PARKED body
+# 17 of 92 -> 12 with NO source change (found by tools/autosweep.py's flag axis);
+# the two local splits then take it to 3 and naming 0xe666 to 0.  Without the
+# flag the same final body reads 5 of 92, so the flag is REQUIRED, not
+# decorative.
+#
+# Why no spelling reached it: the two reads of the halfword go through
+# `unsigned short *` and `short *` while the surrounding stores are `int`, and at
+# -O2 strict aliasing deletes the memory dependences sched2 needs.
+asm/overlays/rom_7b8cb0/ovl_30_c_c_c_c_c_c_c_c_c_a_c_c_a.o: src/overlays/rom_7b8cb0/ovl_30_c_c_c_c_c_c_c_c_c_a_c_c_a.c
+	$(GCC296_CC) $(ALIAS_CFLAGS) -S -o $(@:.o=.s) $<
+	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
+	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
+
 asm/rom_a1000/rom_ad274_a.o: src/rom_a1000/rom_ad274_a.c
 	$(GCC296_CC) $(ALIAS_CFLAGS) -S -o $(@:.o=.s) $<
 	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)

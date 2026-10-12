@@ -1,19 +1,73 @@
 /* Debug_WarpMenu_UI -- 0x08029094, asm/rom_15000/rom_23178_a_c_c_a.s
  *
- * STILL NON-MATCHING, 17 differing encodings of 163 -- RE-DERIVED batch 328
- * brief G.  Size exact (163 against 163), relocations identical, 17 IS A TRUE
- * DISTANCE.  PINS: 0.  Body below is UNCHANGED; what batch 328 adds is that
- * the residue is now closed to ONE NUMBER, with the closing arithmetic
- * confirmed end to end by a labelled instrument.
+ * STILL NON-MATCHING, **17 of 163 STREAM encodings** -- RE-DERIVED batch 340
+ * brief E and UNMOVED.  Instruction counts **155 / 155** (IN PHASE, a true
+ * distance), size 652 bytes equal, relocations IDENTICAL.  First differing
+ * index 1.  PINS: 0.  DEVICES: 0.  BODY UNCHANGED from batch 328.
+ *   objcmp verbatim:
+ *     XX ENCODINGS differ in 17 place(s) (ref 163, ours 163)
+ *        [STREAM length, pool+pad INCLUDED; instructions are 155/155]
+ *        first at index 1: ref 4e19  ours 1c07
+ *
+ * ONE FIGURE CORRECTION: the batch-328 header says "Size exact (163 against
+ * 163)".  163 is the STREAM count (pool + pad included); the SIZE is 652
+ * bytes and the INSTRUCTION count is 155, which the rest of that header uses
+ * correctly.  Nothing downstream of it changes.
  *
  * Verify with:
- *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work goldensun-build python3 tools/objcmp.py src/non_matching/rom_15000/8029094.c asm/rom_15000/rom_23178_a_c_c_a.s --whole
+ *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
+ *     goldensun-build python3 tools/objcmp.py \
+ *     src/non_matching/rom_15000/8029094.c \
+ *     asm/rom_15000/rom_23178_a_c_c_a.s --whole
+ * (`--func Debug_WarpMenu_UI` gives the same figure and also prints both
+ * instruction counts, which `--whole` does not.)  The .s holds exactly one
+ * `.thumb_func_start`, so this converts WHOLE-FILE; datacheck.py exits 0, NO
+ * SPLIT.  `Func_8029094` IS NOT A SYMBOL in this tree; the filename is an
+ * address.  tools/piece.py confirms a ONE-member piece.
  *
- * The .s holds exactly one `.thumb_func_start Debug_WarpMenu_UI`, so this
- * converts WHOLE-FILE; datacheck.py exits 0, NO SPLIT needed.  There is no
- * `--func` in the recipe because it is a `--whole` recipe -- that is correct,
- * not malformed.  `Func_8029094` IS NOT A SYMBOL in this tree; the filename is
- * an address.
+ * ======================================================================
+ * BATCH 340: BOTH CHEAP AXES CLOSED, AND THE LOOP-NOTE ROUTE CLOSED AT ALL
+ * FIVE PLACEMENTS RATHER THAN ONE.  THE DIAGNOSIS BELOW SURVIVED INTACT.
+ * ======================================================================
+ *
+ * AUTOSWEEP (tools/autosweep.py, run first -- raw in scratch_elev/b340/E/work):
+ *   FLAG AXIS, all eight per-file groups on the unchanged body:
+ *     -fno-gcse 17, -fno-strict-aliasing 17, -fno-strength-reduce 17,
+ *     -fno-rerun-cse-after-loop 17, -fno-rerun-loop-opt 17  (all INERT)
+ *     -ffixed-r7 21, -fno-schedule-insns2 31, -O1 160          (all WORSE)
+ *   ANCHOR AXIS: **26 boundaries, ALL INERT at 17** -- nested boundaries
+ *     included, so every arm of the key chain was anchored.
+ *   >> BOTH CHEAP AXES ARE CLOSED ON THIS PARK.  Do not re-screen them. <<
+ *   This matters more here than usual, because an anchor was the lever that
+ *   moved the other three targets in this brief (Func_8094154 16->8 needed a
+ *   statement split instead, AnimEnd 14->2 needed an anchor); this park is the
+ *   one where it genuinely has nothing to grab.
+ *
+ * THE ZERO-INSTRUCTION EIGHTH REFERENCE, CLOSED PROPERLY.  The park asks for
+ * "a ZERO-INSTRUCTION eighth reference to the `d` pointer pseudo" and records
+ * ONE attempt at it: *"do-while(0) around `*d ^= 1` to get loop_depth's x2 on
+ * the reference -- 119 at 164 instructions"*.  A `do { } while (0)` WRAPPER
+ * (not an anchor beside the statement -- a wrapper AROUND it) is the right
+ * instrument for that, because the loop notes give every reference inside the
+ * loop_depth weight at no instruction cost.  All five `d`-bearing statements
+ * and three combinations, measured this batch:
+ *     wrap the `*d ^= 1` arm                  119, 164 insns, +4 bytes (the
+ *                                             park's row, reproduced exactly)
+ *     wrap the 0x20 arm's `if (*d == 0)`       28  (155/155, relocs clean)
+ *     wrap the 0x200 arm's                     32  (155/155, relocs clean)
+ *     wrap the 0x100 arm's                     36  (155/155, relocs clean)
+ *     wrap the 0x10 arm's                     138, -4 bytes, RELOCDIFF
+ *     wrap the 0x100 and 0x200 arms together   50  (155/155, relocs clean)
+ *     wrap all four `if (*d == 0)` chains     137, -4 bytes, RELOCDIFF
+ *     wrap the 0x200 arm AND the xor arm      119, +4 bytes, RELOCDIFF
+ *   >> THE LOOP-NOTE ROUTE TO REG_N_REFS IS CLOSED IN THIS FUNCTION, now at
+ *   >> five placements and three crossings rather than one.  The park's
+ *   >> sentence "the REG_N_REFS loop weight is not reachable at zero cost in
+ *   >> this function" is CONFIRMED and is no longer a one-sample claim.
+ *   Note the shape of the failures: the three that keep 155/155 and clean
+ *   relocations (28, 32, 36) are pure allocation churn -- the loop weight
+ *   lands on `c` and `b` as well as `d`, so it buys p38 nothing relative to
+ *   its neighbours.  That is the reason, not the instruction cost.
  *
  * ===================== THE RESIDUE IS ONE ALLOCNO INVERSION =================
  *
