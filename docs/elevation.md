@@ -35307,6 +35307,28 @@ split instead. The useful question is never *can this piece convert whole* but
 **what is the worst member's figure**, because that is the number the whole-piece
 route is actually waiting on.
 
+## gas LOWERS A THUMB PC-RELATIVE `ldrh` TO `ldr`, SO PER-OPCODE SCREENS MUST OBJDUMP
+
+Thumb-1 has no PC-relative halfword load. gcc spells a HImode pool reference
+`ldrh r5, .L20` in the `.s`, and **gas assembles it as a plain
+`ldr rN,[pc,#imm]`**. So any screen that counts opcodes by grepping assembly
+*text* disagrees with the same screen run on the *object*, and the difference is
+not a defect in the code:
+
+    grepped from the .s:   ldr=34  ldrh=2
+    objdumped from the .o: ldr=35  ldrh=1
+
+Batch 341 brief B hit this on two targets, six sites, and reported it as a live
+defect in `tools/crossfire.py`. **That part is stale — `crossfire.py` was already
+fixed**: it assembles and objdumps the candidate precisely so both sides are
+profiled the same way, and its own comment carries the measurement above. The
+hazard is real for any *new* per-opcode screen, so the rule is worth stating
+plainly:
+
+> **Profile both sides the same way, and profile the OBJECT, not the text.** A
+> text-grep opcode screen fires on byte-identical code, which makes it misleading
+> rather than merely noisy — and it fires on the BASE row too, which is the tell.
+
 ## TWO GREPS THAT READ AS CLEAN NEGATIVES AND ARE NOT
 
 Both were hit live in batch 336, and both are the same failure shape as the

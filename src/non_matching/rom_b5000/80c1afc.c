@@ -152,6 +152,107 @@
  * Verify with (run it inside the build container; /opt/gcc296 is not on the host):
  *   python3 tools/objcmp.py src/non_matching/rom_b5000/80c1afc.c \
  *     asm/rom_b5000/rom_c1a34_a_a_a_a_b_a.s --func Func_80c1afc
+ *
+ * ========================================================================
+ * BATCH 341 BRIEF B -- THE VERDICT IS UPHELD AND SHARPENED, AND ONE HEDGE IN
+ * IT IS WRONG IN THE AGENT'S FAVOUR (WHICH STILL DOES NOT OPEN THE PARK)
+ * ========================================================================
+ *
+ * RE-DERIVED: **20 of 158**, ref 142 instructions against ours 142, 14 against
+ * 14 thirty-two-bit entries, 344 bytes against 344, **relocations IDENTICAL**,
+ * first differing entry at index 63 (ref 0x2500 `mov r5, #0` against ours
+ * 0x2600 `mov r6, #0` -- the counter's own initialiser, which is the swap).
+ * A TRUE DISTANCE.
+ *
+ * THE THREE NUMBERS RE-READ OFF .17.lreg, verbatim:
+ *     Register 38 used 7 times across 28 insns; ... crosses 2 calls
+ *     Register 66 used 5 times across 24 insns; ... crosses 2 calls; pointer
+ *     Register 133 used 9 times across 24 insns; ... crosses 2 calls
+ * and .18.greg's order is still
+ *     ;; 21 regs to allocate: 81 130 138 37 39 43 41 40 133 42 46 34 38 47 66 ...
+ * So the park reproduces exactly, for the second time.
+ *
+ * autosweep.py: both axes closed.  Flags tying at 20: -fno-gcse,
+ * -fno-strict-aliasing, -fno-rerun-cse-after-loop.  -fno-rerun-loop-opt 25,
+ * -fno-schedule-insns2 46, -fno-strength-reduce 112, -O1 122, -ffixed-r7 131.
+ * ANCHOR AXIS CAVEAT: of 40 boundaries, **8 produced no row** -- they did not
+ * compile or did not measure, so that eighth of the anchor axis is UNTESTED,
+ * not inert.
+ *
+ * ---- THE HEDGE THAT IS WRONG ----
+ *
+ * The park writes, of the giv reaching six weighted refs: "an exact tie with
+ * the counter, which would be decided by qsort on equal keys -- not something
+ * to rely on".  **A TIE IS DETERMINISTIC AND IT GOES TO THE COUNTER.**
+ * allocno_compare ends (global.c:617-619):
+ *       -- "If regs are equally good, sort by allocno, so that the results
+ *          of qsort leave nothing to chance." --
+ *       return v1 - v2;
+ * Allocnos are numbered in increasing pseudo order, so allocno(38) <
+ * allocno(66) < allocno(133) and a tie at 0.5 puts the COUNTER first.  The
+ * park's own six-ref row is therefore a WIN, not a coin flip.
+ *
+ * ---- WHY THAT DOES NOT OPEN THE PARK: THE REF COUNT IS QUANTISED ----
+ *
+ * n_refs is loop-depth weighted at (depth + 1), so every reference INSIDE the
+ * loop contributes TWO and only the preheader initialiser contributes one.  The
+ * giv's nine decompose as init(1) + increment set(2) + increment use(2) +
+ * load(2) + load(2).  The two loads are forced -- the reference shows both
+ * `ldrh r0, [r6, r7]` and the two calls make a cached single load a different
+ * program -- and the increment and the init are forced by the giv existing at
+ * all.  So the reachable ref counts with both loads are 9 and nothing else:
+ * **SIX IS NOT REACHABLE, because the in-loop contribution is always even and
+ * the odd part is the single init.**  7 would mean dropping one load, 5 both.
+ *
+ * That leaves live_length as the only free variable, and the window is exact:
+ *     pri = floor_log2(n) * n / L,  need (0.4167, 0.5]  (above the base,
+ *     at-or-below the counter, ties to the counter)
+ *     n = 9 -> L in [54, 64]      (against a measured 24)
+ *     n = 8 -> L in [48, 57]
+ *     n = 7 -> L in [28, 33]
+ *     n = 6 -> L in [24, 28]      <- unreachable n
+ *     n = 5 -> L in [20, 24)      (L = 24 gives 0.4167, a TIE WITH THE BASE,
+ *                                  and allocno 66 < 133, so the base wins:
+ *                                  that row is a LOSS, not the park's 0.417)
+ * The giv is created by loop.c's strength reduction in the preheader and dies
+ * at the loop exit, so L is bounded by the loop's own extent.  **MEASURED: 24
+ * when the giv is implicit, and TWELVE when the offset is spelled explicitly in
+ * the source -- the wrong direction, and it also folds the table base out of
+ * the race entirely.**  Raising the counter instead still needs ELEVEN weighted
+ * refs (the park's measured +8 bytes) or a live_length under 12.44 against 28.
+ *
+ *   >> CLOSED, and now closed on QUANTISATION rather than on a search.  The
+ *   >> binding inequality is pri(giv) <= pri(counter); 27/L <= 0.5 needs
+ *   >> L >= 54; the loop is eleven instructions and a preheader.
+ *
+ * MEASURED THIS BATCH, all on top of the park's own inert list (figures are
+ * objcmp differing counts; every row has 142 reference instructions):
+ *     an explicit byte offset initialised early, `off += 2`, both reads
+ *       through it                                         21, 142 insns, but
+ *       it collapses the reference's `ldrh r0, [r6, r7]` to `ldrh r0, [r5]`
+ *       -- a one-register address, a DIFFERENT program, and the table base
+ *       stops being an allocno at all
+ *     the same with `off = 0` just before the loop            97
+ *     a `do { } while` over the counter                       20 (inert; the
+ *       allocation facts are byte-identical to the base, re-read off .17.lreg)
+ *     a pointer walk `q = tbl; ... q++`                       97
+ *     the pointer walk with `q` initialised early            148
+ *     one read through `tbl[j]` and the other through an
+ *       explicit offset                                      109
+ *     `&tbl[j]` cached in a block-local pointer               97
+ *     `j` initialised before the clear loop                  149
+ *     0xffff named in an `unsigned int` (see below)       104 / 148 / 104
+ *
+ * ONE OBSERVATION THAT IS NOT A DEFECT, recorded because it looks like one and
+ * cost this agent a detour.  Our `arr[i].val |= 0xffff` emits an HImode pool
+ * load, `ldrh r1, <pc-relative label>`, where the reference's hand-written .s
+ * has `ldr r1, =0xffff`; there are three such sites in this function and a
+ * per-opcode memory screen reports `ldr-3, ldrh+3`.  **IT IS A FALSE POSITIVE.**
+ * Thumb-1 has no PC-relative LDRH, so gas lowers the form to LDR and the
+ * encodings are IDENTICAL -- objcmp's 20 differing entries are all in the
+ * counter/offset swap and NONE of them is at a zero- or mask-load site.  Naming
+ * the mask to "fix" it costs 84 encodings.  The same caveat applies to
+ * tools/crossfire.py's MEM screen.
  */
 struct U {
 	unsigned char pad00[0xf];

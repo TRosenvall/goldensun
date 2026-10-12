@@ -143,6 +143,39 @@ survivor, the duplicate retired, and `frontier.md`'s stale row removed.
   has the ROM storing immediately where we defer (an anchor fixes it), another has
   the ROM deferring where we do not (no placement helps).
 
+## Brief B: four holds, three of them closed on cost bounds
+
+Only **one** of its four targets was a phase figure, which corrects my framing —
+I had told it a figure that high is "usually phase".
+
+- **`OvlFunc_926_2008388` is closed on a cost bound, and the park's stated next
+  step is refuted.** `cse.c:4977-5002` with the cheapest-equivalent loop at
+  `:5195-5240` substitutes the register for the constant whenever
+  `COST(const) > COST(reg) = 1`; `notreg_cost` (`:725-741`) doubles `rtx_cost`,
+  and the Thumb `CONST_INT` rung returns 0 only below 256 — so `0x895` costs 20
+  and the hoist is **unconditional**. Proved by A/B: the same body with `0x95`
+  emits the reference's guarded block instruction for instruction, including the
+  `add r2, #0x18` move2add the park calls lost. A `_FLAG_895` device symbol —
+  the park's own next step — **measures 27 of 62 and is still hoisted**. Do not
+  re-propose it.
+- **`Func_80c1afc`'s verdict upheld and sharpened.** `n_refs` is loop-depth
+  quantised, so with the two loads the reference itself shows, the giv's count is
+  **exactly 9** and the park's six-ref row is unreachable; the only free variable
+  is `live_length`, needing 54..64 against a measured 24. One hedge refuted: **a
+  tie is not a coin flip** (`global.c:617-619` — allocno 38 < 133, so a tie goes
+  to the counter), and conversely the park's "5 refs → 0.417" row is a **loss**.
+- **`OvlFunc_common1_1354`'s "UNVERIFIED guess" runs the other way.** In
+  `.19.flow2`, *before* sched2, the addend's `ldrh` sits before the sign-extend,
+  which makes the `.L38` address die there; local-alloc ties the extend's
+  destination to its dying source, and the resulting anti-dependence is what
+  forbids sched2 floating the `ldrh` down. Both islands share one signature —
+  **the reference uses r4 three times, our build zero** — so the test is "does a
+  fifth low register get needed", not OR orders.
+
+Two findings worth promoting from it: **the batch-310 declaration-initialiser
+lever needs a *contested* register, not merely a long range** (measured — it still
+won r5), and **local-alloc's dying-source tie can manufacture a scheduling pin**.
+
 ## Open
 
 - Seven parks now found quoting the **stream count on the instruction line**,

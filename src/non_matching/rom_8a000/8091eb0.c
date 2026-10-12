@@ -262,6 +262,57 @@
  * plateau and the park's NEXT is still right: the remaining four are
  * local-alloc, already located, and the question is which pseudos are LIVE in
  * that arm.
+ *
+ * ========================================================================
+ * BATCH 341 BRIEF B -- FIGURE RE-DERIVED, BOTH CHEAP AXES CLOSED, AND THE
+ * HImode-POOL MECHANISM INDEPENDENTLY REPRODUCED IN A DIFFERENT OVERLAY
+ * ========================================================================
+ *
+ * RE-DERIVED FROM SCRATCH with tools/objcmp.py: **20 of 43**, ref 35
+ * instructions against ours 36, 7 against 7 thirty-two-bit entries, 100 bytes
+ * against 104.  So this is a PHASE figure, OURS LONGER, and the park's
+ * decomposition stands.
+ *
+ * THE RELOCATION LINE IS AN ORDERING, NOT A DEFECT, and here it is in full so
+ * nobody has to re-run it: the same six symbols appear in both, and the only
+ * change is that `Func_808b320`'s R_ARM_THM_CALL moves from 0x4c to 0x5c while
+ * the two R_ARM_ABS32 pool words move from 0x58/0x5c to 0x50/0x54.  That is
+ * exactly the early minipool dump this park names, read off the relocation
+ * table instead of the instruction stream.
+ *
+ * tools/autosweep.py RUN.  **BOTH CHEAP AXES ARE CLOSED** -- do not re-screen
+ * them:
+ *   FLAG AXIS, unchanged body: -fno-gcse, -fno-strict-aliasing,
+ *     -fno-strength-reduce, -fno-rerun-cse-after-loop and -fno-rerun-loop-opt
+ *     all TIE at 20; -O1 and -fno-schedule-insns2 are 22; -ffixed-r7 is 48.
+ *   ANCHOR AXIS: all 8 top-level statement boundaries inert at 20.
+ * The five tying flags are the crossing partners for any future source change.
+ *
+ * THE MECHANISM IS NOW REPRODUCED ON A SECOND, UNRELATED FUNCTION, which is
+ * what this batch adds.  While working ovl_7b2078/2008388 (a different overlay,
+ * a different symbol, a different pool) a DIAGNOSTIC variant stored a halfword
+ * constant BELOW 256 instead of 0x895, and gcc produced precisely this park's
+ * signature: a minipool dumped mid-function, an unconditional `b` over it, and
+ * one extra instruction -- 54 instructions against 53 with the pool split into
+ * two groups.  The HImode fix forces the early dump in both cases.  So the
+ * park's "pool_range 64 at arm.md:4353 cannot reach past the epilogue" is not
+ * a one-function reading; it is the behaviour of EVERY HImode pool fix in
+ * Thumb, and the constraint-order argument batch 333 added (`*thumb_movhi_insn`
+ * constrains operand 1 as "l,mn,l,*h,*r,I", so `mn` -- which `n` makes match
+ * any const_int -- is reached before the 8-bit `I`) is the reason there is no
+ * HImode constant that escapes it.
+ *
+ * NOTHING NEW TRIED ON THE REMAINING FOUR.  Eighteen spellings across batches
+ * 323, 330 and 333 are a plateau, the park's NEXT is still right, and this
+ * round's budget went to the three distance figures in the same brief.  What
+ * this round DOES add for the next reader is the local-alloc rule it had to
+ * derive for OvlFunc_common1_1354 in the same batch, because the four look like
+ * the same shape: **local-alloc ties a destination pseudo to a SOURCE pseudO
+ * THAT DIES IN THE SAME INSN**, which is why `add r2, r3, r1` (three-operand,
+ * r3 preserved) appears where the reference has `add r3, r1` (two-operand,
+ * destination = the dying base).  Attack whether the base DIES at the add --
+ * it does not in ours, because the value load was given r3 -- rather than how
+ * the store is written.
  */
 extern int iwram_3001ebc;
 extern unsigned char gState[];
