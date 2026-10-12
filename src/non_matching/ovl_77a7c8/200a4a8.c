@@ -1,3 +1,99 @@
+/* OvlFunc_881_200a4a8 -- PARKED at 14 differing encodings of 270, **AND ITS PIN
+ * COUNT IS NOW 20 WHERE IT WAS 96**, at an IDENTICAL figure.
+ *
+ * ref 270 / ours 270 stream encodings; **187 / 187** 16-bit instructions -- IN
+ * PHASE, a TRUE DISTANCE.  SIZE EXACT (704 bytes).  dsize 0.  First differing
+ * index 173, unchanged.  Relocations: ONE ours-only
+ * ('000002bc', 'R_ARM_ABS32', '_AREA_02') -- the documented absolute-symbol
+ * phantom, with landed precedent for exactly this shape in
+ * src/overlays/rom_77a7c8/ovl_30_c_c_a_c_a.c.  Every one of the reference's 67
+ * relocations is present at the same offset with the same name.
+ *
+ * Verify with:
+ *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
+ *     goldensun-build python3 tools/objcmp.py src/non_matching/ovl_77a7c8/200a4a8.c \
+ *     asm/overlays/rom_77a7c8/ovl_30_c_a_c_c_a_c_a_a_a_c_c.s \
+ *     --func OvlFunc_881_200a4a8
+ *
+ * ***tools/shimcount.py REPORTS 4 PINS FOR THIS FILE AND THE OLD BODY CARRIED
+ * 96.***  shimcount.count() expands PIN macros only when the macro NAME matches
+ * `PIN\d` (tools/shimcount.py:30), and this file names its macros R0..R3.  So
+ * `PIN_DEF.sub("", code)` left the four `#define` lines in place, DECL matched
+ * each once -> "4", and the 96 `R0; R1; R2;` EXPANSIONS were invisible.  Any
+ * figure for this file's pin count taken from shimcount is wrong; count the
+ * `\bR[0-3]\b` tokens after stripping the `#define` lines.  shimcount ALSO
+ * double-counts the one `__asm__ volatile ("" : "+r" (n));` as both a `"+r"`
+ * barrier and a bare ASM_OPERANDS, because OPERAND's `(?!"\+r")` guard is
+ * defeated by backtracking of the preceding `\s*`.
+ *
+ * ============ BATCH 341 D: 29 OF THE 36 PIN BLOCKS ARE FREE ============
+ *
+ * A single-drop sweep over all 36 blocks (tools-free harness:
+ * scratch_elev/b341/D/d_unpin.py replays each block's q-assignments symbolically
+ * and inlines them into its call) REPRODUCES the old header's claim exactly,
+ * with its numbering offset by one.  Only SEVEN blocks are load-bearing:
+ *     block  1  `__MapActor_SetSpeed(A, 0x19999, 0xcccc)`       drop -> 235
+ *     block  2  `__Func_80921c4(A, 0x1768, 0xd78)`              drop -> 236
+ *     block 14  `__Func_80921c4(A, 0x1768, 0xd48)`              drop -> 183
+ *     block 28  `__Func_80921c4(A, 0x178c, 0xd48)`              drop -> 259
+ *     block 17  `__MapActor_SetSpeed(0, 0xcccc, 0x6666)`        drop ->  16
+ *     block 21  `__Func_8092adc(0, 0x80 << 7, 0x14)`            drop ->  16
+ *     block 31  `__Func_8091a58(0xf2, 0)`                       drop ->  16
+ * The other 29 are each exactly inert.
+ *
+ * ***AND THEY ARE JOINTLY FREE TOO, WHICH tools/pinmin.py WARNS IS NOT THE
+ * DEFAULT.***  pinmin's docstring records a case where 20 individually-inert
+ * sites cost 65 when dropped together, isolated to ONE PAIR -- the only two
+ * sites materialising the same CONST_INT, because cse1 unifies two pseudos
+ * holding one constant and unification needs TWO UNPINNED PEERS.  That failure
+ * mode was expected here: 0x1768 appears at blocks 2 and 14, 0xd48 at 14, 28
+ * and 29, 0xcccc at 1 and 17, 0x1794 at 15 and 29.  It did not occur.
+ * Measured: all 29 dropped at once = **14, dsize 0, first index 173** --
+ * identical to the 96-pin body.  Halves and quarters of the 29 also 14.
+ * So the four eviction pins and the three ordering pins are the whole set, and
+ * the shared-constant pairs that matter are already covered by them.
+ *
+ * ***A `do { } while (0)` ANCHOR CANNOT REPLACE THE `"+r"` BARRIER, AND THE
+ * MEASUREMENT SAYS WHY.***  Removing the barrier entirely: 33.  Replacing it
+ * with an anchor at the same statement: **33, identical**.  The barrier's value
+ * here is NOT its fence -- it is the TWO EXTRA REFERENCES it puts on `n`,
+ * raising floor_log2(n_refs)*n_refs/live_length in local-alloc's QTY_CMP_PRI
+ * past the rebuilt `&.L679c` so the r5/r6 roles swap.  An anchor emits nothing
+ * AND REFERENCES NOTHING, so it cannot move that numerator.  This is the clean
+ * confirmation of the old header's own mechanism, and it closes the cheapest
+ * route named in the batch brief.
+ *
+ * MEASURED AND CLOSED THIS BATCH (do not re-screen): THE ANCHOR AXIS IS NOW
+ * GENUINELY CLOSED.  autosweep reported "both cheap axes CLOSED" on the 96-pin
+ * body while 10 of its 40 variants produced NO ROW -- they did not compile,
+ * because the boundaries fell INSIDE the `{ R0; ... }` blocks, after a
+ * declaration, which gcc-2.96's C89 rejects.  On this 20-pin body the body is
+ * plain statements and **all 120 boundaries compile and every one is inert at
+ * 14**.  Flag axis on the 96-pin body: `-fno-gcse`, `-fno-strict-aliasing`,
+ * `-fno-strength-reduce`, `-fno-rerun-cse-after-loop`, `-fno-rerun-loop-opt`
+ * and `-ffixed-r7` all EXACTLY INERT at 14; `-fno-schedule-insns2` 49 (it
+ * REGRESSES -- sched2 is already producing the ROM's order),  `-O1` 158.
+ *
+ * PIN-FREE FIGURE, for the record and for the pin policy: **258 of 270 vs 276,
+ * 187 / 194 instructions, +12 bytes** (all 96 pins dropped, barrier kept);
+ * 260 with the barrier dropped as well.  Body at
+ * scratch_elev/b341/D/p4_pinfree_alt.c.  Parking at 258 would discard a
+ * measured, in-phase, size-exact 14 and the whole pin map, so THIS body -- 20
+ * pins at the same 14 -- is offered as the park and the coordinator applies the
+ * policy.  The remaining 20 pins are not cosmetic: four are eviction pins
+ * against cse1 constant unification and three are ordering pins, and a hard
+ * register cannot be named in C any other way.
+ *
+ * THE TWO RESIDUE CLUSTERS AND THEIR FLOORS ARE UNCHANGED from the old header,
+ * which is preserved below: cluster 1 is 4 encodings of cprop rematerialisation
+ * needing a value high-register-resident AND opaque at once; cluster 2 is 10
+ * encodings of the gState tail, whose two halves are in tension.
+ *
+ * ref: asm/overlays/rom_77a7c8/ovl_30_c_a_c_c_a_c_a_a_a_c_c.s -- the ONLY
+ * function in that .s, no data; WHOLE conversion, no split.
+ * overlays/rom_77a7c8/overlay.ld:52 already names the asm/ path and MUST STAY
+ * VERBATIM.
+ */
 /* OvlFunc_881_200a4a8 -- NON-MATCHING, 14 differing STREAM encodings of 270.
  *
  * BODY RECOVERED FROM scratch/ (batch 338).  This park was PROSE -- a header,
@@ -313,75 +409,49 @@ void OvlFunc_881_200a4a8(void)
     __WaitMapTransition();
     __Func_808c44c();
     a0 = __MapActor_GetActor(0);
-    if (a0 != 0) {
-        R0; R1; R2;
-        q0 = A; q1 = *(int *)(a0 + 8); q2 = *(int *)(a0 + 0x10);
-        __MapActor_SetPos(q0, q1, q2);
-    }
+    if (a0 != 0) __MapActor_SetPos(A, *(int *)(a0 + 8), *(int *)(a0 + 0x10));
     { R0; R1; R2; q0 = A; q1 = 0x19999; q2 = 0xcccc;
       __MapActor_SetSpeed(q0, q1, q2); }
     { R0; R1; R2; q0 = A; q1 = 0x1768; q2 = 0xd78;
       __Func_80921c4(q0, q1, q2); }
-    { R0; R1; R2; q0 = A; q1 = 0; q2 = 0x14;
-      __Func_8092adc(q0, q1, q2); }
-    { R0; R1; R2; q1 = 0x80; q2 = 0x3c; q0 = A; q1 <<= 1;
-      __MapActor_Emote(q0, q1, q2); }
-    { R0; R1; q0 = A; q1 = 2;
-      __Func_809259c(q0, q1); }
+    __Func_8092adc(A, 0, 0x14);
+    __MapActor_Emote(A, (0x80) << 1, 0x3c);
+    __Func_809259c(A, 2);
     __MessageID(0x263c);
-    { R0; R1; R2; q0 = A | (0x80 << 5); q1 = 0; q2 = 0xa;
-      __Func_8093040(q0, q1, q2); }
-    { R0; R1; R2; q2 = 0; q0 = 0; q1 = 0;
-      __Func_8092adc(q0, q1, q2); }
+    __Func_8093040(A | (0x80 << 5), 0, 0xa);
+    __Func_8092adc(0, 0, 0);
     __Func_808c4c0();
-    { R0; R1; q0 = 0x16666; q1 = 0xa;
-      __Func_80936a0(q0, q1); }
-    { R0; R1; q0 = 0x80; q1 = 0x80; q0 <<= 12; q1 <<= 9;
-      __Func_80933d4(q0, q1); }
-    { R0; R1; R2; R3; q1 = 1; q3 = 1; q2 = 0xd680000; q1 = -q1; q0 = 0x17880000;
-      __Func_80933f8(q0, q1, q2, q3); }
+    __Func_80936a0(0x16666, 0xa);
+    __Func_80933d4((0x80) << 12, (0x80) << 9);
+    __Func_80933f8(0x17880000, -(1), 0xd680000, 1);
     __Func_8093530();
     __CutsceneWait(0x28);
     __Func_808c44c();
-    { R0; R1; q1 = 0x81; q0 = A; q1 <<= 1;
-      __MapActor_Surprise(q0, q1); }
+    __MapActor_Surprise(A, (0x81) << 1);
     __CutsceneWait(0x3c);
-    { R0; R1; q0 = A; q1 = 1;
-      __Func_80925cc(q0, q1); }
+    __Func_80925cc(A, 1);
     v = 0xc0 << 6;
-    { R0; R1; R2; q0 = A | v; q1 = 0; q2 = 0x28;
-      __Func_8093040(q0, q1, q2); }
+    __Func_8093040(A | v, 0, 0x28);
     { R0; R1; R2; q0 = A; q1 = 0x1768; q2 = 0xd48;
       __Func_80921c4(q0, q1, q2); }
-    { R0; R1; R2; q0 = A; q1 = 0x1794; q2 = 0xd48;
-      __Func_80921c4(q0, q1, q2); }
-    { R0; R1; R2; q0 = A; q1 = v; q2 = 0x14;
-      __Func_8092adc(q0, q1, q2); }
+    __Func_80921c4(A, 0x1794, 0xd48);
+    __Func_8092adc(A, v, 0x14);
     { R0; R1; R2; q2 = 0x6666; q0 = 0; q1 = 0xcccc;
       __MapActor_SetSpeed(q0, q1, q2); }
-    { R0; R1; q1 = (int)gScript_881__0200cf20; q0 = 0;
-      __MapActor_SetBehavior(q0, (void *)q1); }
+    __MapActor_SetBehavior(0, (void *)(int)gScript_881__0200cf20);
     __CutsceneWait(0x14);
-    { R0; R1; q0 = A; q1 = 1;
-      __Func_80925cc(q0, q1); }
-    { R0; R1; R2; q0 = A; q1 = 0; q2 = 0xa;
-      __Func_8093040(q0, q1, q2); }
+    __Func_80925cc(A, 1);
+    __Func_8093040(A, 0, 0xa);
     while (*(short *)(__MapActor_GetActor(0) + 0x64) == 0)
         __WaitFrames(1);
     { R0; R1; R2; q1 = 0x80; q0 = 0; q1 <<= 7; q2 = 0x14;
       __Func_8092adc(q0, q1, q2); }
-    { R0; R1; R2; q1 = 0x83; q0 = A; q2 = 0; q1 <<= 1;
-      __MapActor_Emote(q0, q1, q2); }
-    { R0; R1; q0 = A; q1 = 2;
-      __Func_80925cc(q0, q1); }
-    { R0; R1; R2; q0 = A; q1 = 0; q2 = 0xa;
-      __Func_8093040(q0, q1, q2); }
-    { R0; R1; R2; q1 = 0x80; q0 = A; q2 = 0xa; q1 <<= 8;
-      __Func_8092adc(q0, q1, q2); }
-    { R0; R1; q0 = A; q1 = 0;
-      __ActorMessage(q0, q1); }
-    { R0; R1; R2; q1 = 0; q2 = 0x14; q0 = 0;
-      __Func_8092adc(q0, q1, q2); }
+    __MapActor_Emote(A, (0x83) << 1, 0);
+    __Func_80925cc(A, 2);
+    __Func_8093040(A, 0, 0xa);
+    __Func_8092adc(A, (0x80) << 8, 0xa);
+    __ActorMessage(A, 0);
+    __Func_8092adc(0, 0, 0x14);
     n = 0xfe;
     a1 = __MapActor_GetActor(A);
     a1[0x5a] &= n;
@@ -396,26 +466,20 @@ void OvlFunc_881_200a4a8(void)
     a3 = __MapActor_GetActor(A);
     n &= a3[0x5a];
     a3[0x5a] = n;
-    { R0; R1; R2; q1 = 0x1794; q2 = 0xd48; q0 = A;
-      __Func_80921c4(q0, q1, q2); }
+    __Func_80921c4(A, 0x1794, 0xd48);
     __CutsceneWait(1);
     a4 = __MapActor_GetActor(A);
     m |= a4[0x5a];
     a4[0x5a] = m;
-    { R0; R1; q1 = 3; q0 = 0xf2;
-      __Func_808f1c0(q0, q1); }
+    __Func_808f1c0(0xf2, 3);
     { R0; R1; q1 = 0; q0 = 0xf2;
       __Func_8091a58(q0, q1); }
-    { R0; R1; q0 = A; q1 = 1;
-      __Func_80925cc(q0, q1); }
+    __Func_80925cc(A, 1);
     __MessageID(0x2642);
-    { R0; R1; R2; q0 = A; q1 = 0; q2 = 0xa;
-      __Func_8093040(q0, q1, q2); }
-    { R0; R1; R2; q1 = 0xc0; q2 = 0; q0 = A; q1 <<= 6;
-      __Func_8092adc(q0, q1, q2); }
+    __Func_8093040(A, 0, 0xa);
+    __Func_8092adc(A, (0xc0) << 6, 0);
     __Func_808c4c0();
-    { R0; R1; q0 = 0x80; q1 = 0xa; q0 <<= 9;
-      __Func_80936a0(q0, q1); }
+    __Func_80936a0((0x80) << 9, 0xa);
     __CutsceneWait(0x14);
     __SetFlag(0x8d << 2);
     __SetFlag(0x9bf);

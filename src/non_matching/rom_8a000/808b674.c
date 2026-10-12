@@ -1,3 +1,81 @@
+/* InitMapActors -- PARKED, **PIN-FREE, 50 DIFFERING ENCODINGS OF 195**.
+ * The subject line must stay FIRST: piece.py, autosweep.py, shortrefs.py and
+ * scratchfill.py identify a park by line 1.  Notes go UNDER this line.
+ *
+ * ref 195 / ours 195 stream encodings; **172 / 172** 16-bit instructions -- IN
+ * PHASE, a TRUE DISTANCE.  dsize 0.  Relocations differ in ONE entry and it is
+ * a PURE OFFSET SHIFT, not a missing symbol: `bl Func_808b9f8` at 0x4a in the
+ * reference against 0x48 here -- the same call, two bytes earlier, because one
+ * instruction moved.  No symbol appears or disappears.
+ *
+ * Verify with:
+ *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
+ *     goldensun-build python3 tools/objcmp.py src/non_matching/rom_8a000/808b674.c \
+ *     asm/rom_8a000/rom_8b674_a_a.s --func InitMapActors
+ *
+ * ============== BATCH 341 D: WHAT THE ONE PIN WAS BUYING ==============
+ *
+ * PINNED FIGURE 14 of 195, same 172/172, relocations CLEAN, with
+ * `register unsigned char *g __asm__("r8");` on the declaration of `g`.  That
+ * one line is the ONLY difference between this body and the 14 -- re-add it to
+ * rebuild the pinned alternate.  NOT INSTALLED: pin policy prefers pin-free.
+ *
+ * THE PIN BUYS EXACTLY ONE THING -- an r7/r8 ROLE SWAP BETWEEN `g` AND `id`:
+ *   rom   ldr r3,[pc] / ldr r3,[r3] / mov sl,r0 / mov r8,r3   <- g  -> r8
+ *         ... ldr r7,[r3,#0]                                  <- id -> r7
+ *   ours  ldr r3,[pc] / mov sl,r0 / ldr r7,[r3]               <- g  -> r7
+ *         ... ldr r3,[r3,#0] ... mov r8,r3                    <- id -> r8
+ * and every offset access follows: ROM `movs r5,#128 / lsls r5,#2 / add r5,r8`
+ * against ours `movs r1,#128 / lsls r1,#2 / adds r5,r7,r1`.  Same instruction
+ * COUNT (3 each), same total (172), different registers.
+ *
+ * ***CORRECTION: THE PUSH LIST DOES NOT CHANGE.***  The old header said
+ * "without it g is allocated r7, the push list changes, and the file reads 50 of
+ * 195 WITH DIRTY RELOCATIONS".  The 50 and the RELOCDIFF reproduce exactly; the
+ * push list does NOT -- both sides emit
+ * `push {r5,r6,r7,lr} / mov r7,sl / mov r6,r8 / push {r6,r7}`, byte for byte.
+ * r8 and sl are saved either way.  The dirty relocation is the 2-byte `bl`
+ * shift above, not a symbol defect.
+ *
+ * WHY r7 AND NOT r8, read in the compiler: REG_ALLOC_ORDER is
+ * `3, 2, 1, 0, 12, 14, 4, 5, 6, 7, 8, 10, 9, 11, 13, 15, ...`
+ * (config/arm/arm.h:989-995), so r7 is reached BEFORE r8 and whichever of the
+ * two quantities is allocated FIRST takes r7.  Order is decided by
+ * allocno_compare (global.c:597-621):
+ *     pri = floor_log2 (n_refs) * n_refs / live_length * 10000 * size
+ * `g` currently wins.  For the ROM's assignment `id` must win.
+ *
+ * ***AND THE REFERENCE COUNT IS NOT REACHABLE FROM THE C LEVEL HERE.***  Six
+ * spellings that lower `g`'s C-level reference count are ALL BYTE-IDENTICAL at
+ * 50 with dsize 0 and the same first differing index:
+ *     `*(struct Rec *)(g + 0x218)` written off `r + 0x18`              50
+ *     `w = (int)g + 0xc` written `w = lim + 0xc`                       50
+ *     `gl = g` written `gl = (unsigned char *)lim`                     50
+ *     all three together                                              50
+ *     `g` held as an `unsigned int` with casts at every use            50
+ * cse normalises every one of them back to the same RTL, so allocno[].n_refs is
+ * a property of the post-cse RTL and NOT of the source spelling.  Only two
+ * variants moved at all, both worse: `g = iwram_3001ebc;` after the `id` load
+ * 51, and `r = g + 0x200;` before the `id` load 166 (-4 bytes).
+ * THE BOUND IS STATED WITH ITS EVIDENCE: six spellings, byte-identical output,
+ * dsize 0 -- it is not a claim that no lever exists, it is a claim that the
+ * reference-count lever does not reach this pair.
+ *
+ * PRECEDENT FOR THE CLASS, if the owner elects the pinned form: 27 landed .c
+ * files already carry a `register ... __asm__` on a HIGH register (r8-r11/sl/
+ * fp/ip), e.g. src/overlays/rom_7a7298/ovl_30_c_c_c_c_c_c_c_c_b.c:149
+ * `register int lim __asm__("r11");`.  A hard register cannot be named in C any
+ * other way, which is why this class exists at all.
+ *
+ * MEASURED AND CLOSED THIS BATCH (do not re-screen): autosweep BOTH AXES.
+ * Flags -- `-fno-gcse`, `-fno-strict-aliasing`, `-fno-strength-reduce`,
+ * `-fno-rerun-cse-after-loop`, `-fno-rerun-loop-opt` all EXACTLY INERT at 14;
+ * `-fno-schedule-insns2` 60, `-O1` 124, `-ffixed-r7` 197.  Anchors -- all 40
+ * statement boundaries inert or worse.
+ *
+ * ref: asm/rom_8a000/rom_8b674_a_a.s -- ONE function, no data section; whole-file
+ * conversion, no split (tools/datacheck.py prints nothing).
+ */
 /* InitMapActors -- park. The subject line must stay FIRST: tools that identify a
  * park by its subject (piece.py, autosweep.py, shortrefs.py, scratchfill.py)
  * read line 1, and a note prepended above it makes them resolve the wrong
@@ -150,7 +228,7 @@ extern unsigned char *_Sprite_AddLayer(void *s, int n);
 
 void InitMapActors(unsigned char *arg)
 {
-    register unsigned char *g __asm__("r8");
+    unsigned char *g;
     unsigned char *s;
     unsigned char *s0;
     unsigned char *s2;

@@ -1,3 +1,66 @@
+/* OvlFunc_968_200a47c -- PARKED, **PIN-FREE, 26 DIFFERING ENCODINGS OF 273**.
+ *
+ * ref 273 / ours 273 stream encodings; **238 / 238** 16-bit instructions -- IN
+ * PHASE, a TRUE DISTANCE.  dsize 0.  Relocations differ in ONE entry and it is
+ * a PURE OFFSET SHIFT: `bl __Func_8092b08` at 0xae in the reference against
+ * 0xb0 here.  Same call, same symbol, two bytes later.
+ *
+ * Verify with:
+ *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
+ *     goldensun-build python3 tools/objcmp.py src/non_matching/ovl_7f2f14/200a47c.c \
+ *     asm/overlays/rom_7f2f14/ovl_30_c_c_a_a_a_c.s --func OvlFunc_968_200a47c
+ *
+ * ================ BATCH 341 D: THE FIVE PINS ARE WORTH 15 ================
+ *
+ * PINNED FIGURE 11 of 273 with FIVE register pins.  The old header's per-pin
+ * drop costs are CONFIRMED and they are EXACTLY ADDITIVE:
+ *     r2 = 2 at the first `|= 2` site              4
+ *     r5 = 0 for `a->f44 = 0`                      7
+ *     r1 = 0 at the first OvlFunc_968_2008058      2
+ *     r0, r1 at the second OvlFunc_968_2008058     2
+ *                                            sum  15   and 11 + 15 = 26 = this
+ * figure, measured directly with all five removed at once.  No pair interacts.
+ * To rebuild the pinned alternate, restore the four blocks named above.
+ * NOT INSTALLED: pin policy prefers pin-free and a pinned landing needs a
+ * fakematch.txt row.
+ *
+ * ***THE OLD HEADER'S "narrow-local is 2 WORSE THAN THE PIN" DOES NOT HOLD
+ * PIN-FREE, and the difference matters.***  It reads as though
+ * `unsigned char m = 2` at the first orr costs 2 over the pinned 11, i.e. 13.
+ * Measured on the PIN-FREE base it is 28 -- 2 worse than 26, not 2 worse than
+ * 11.  The old number was taken with the OTHER FOUR PINS STILL IN.  A per-pin
+ * figure quoted against a multi-pin base is not a figure about that pin.
+ *
+ * TEN DEVICE-FREE SPELLINGS, ALL EXACTLY INERT AT 26 -- a hard floor on this
+ * axis.  Do not re-screen:
+ *     `{ int m2 = 2; *bp = m2 | *bp; }`                       26
+ *     `*bp |= 2;`                                             26
+ *     `*bp = *bp | 2;`                                        26
+ *     `m2` declared at the top, assigned, then used           26
+ *     the load named first (`u2 = *bp; *bp = 2 | u2;`)        26
+ *     `a->f44` through a named `int` zero, block or top-level 26
+ *     `a->f8` through a named temp at either 2008058 site     26
+ *   and WORSE:
+ *     `{ unsigned char m2 = 2; ... }`                         28
+ *     anchor before or after `a->f44 = 0;`                    28
+ *     anchor after the first 2008058                          29
+ *     both 2008058 args through shared temps                  198 (+4 bytes)
+ *
+ * MEASURED AND CLOSED THIS BATCH (do not re-screen): autosweep BOTH AXES on the
+ * pinned body.  Flags -- `-fno-gcse`, `-fno-strict-aliasing`,
+ * `-fno-strength-reduce`, `-fno-rerun-cse-after-loop`, `-fno-rerun-loop-opt`
+ * all EXACTLY INERT at 11; `-fno-schedule-insns2` 64, `-O1` 66,
+ * `-ffixed-r7` 247.  Anchors -- all 40 boundaries inert or worse.
+ *
+ * The `= b->f55` readback at __Func_8093554 is SCAFFOLDING, not a pin, and it
+ * stays: the old header measures the honest `__Func_8093554()[0x55] = 0;` at
+ * 121 and +8 bytes, because gcc commons that zero with the earlier HALFWORD
+ * `b->f64 = 0` and rematerialises it from a mid-function pool.
+ *
+ * ref: asm/overlays/rom_7f2f14/ovl_30_c_c_a_a_a_c.s -- the file's ONLY function,
+ * no data; whole-TU conversion, no split.  overlay.ld:78 already names the
+ * asm/ path and MUST STAY VERBATIM.
+ */
 /* OvlFunc_968_200a47c -- NON-MATCHING, 11 differing STREAM encodings of 273.
  *
  * BODY RECOVERED FROM scratch/ (batch 338).  This park was PROSE -- a header,
@@ -158,7 +221,7 @@ loop:
                 OvlFunc_968_200894c(a);
                 __SetFlag(flag);
                 bp = &a->f23;
-                { register int m __asm__("r2"); m = 2; *bp = m | *bp; }
+                *bp = 2 | *bp;
                 a->f59 = t;
                 a->f55 = t;
                 __Func_8010704(4, 0x13, 1, 1, x, z);
@@ -170,13 +233,10 @@ loop:
         flag2 = (0x80 << 2) + i;
         if (__GetFlag(flag2) == 0) {
             __Func_8092b08(who, 1);
-            { register int z __asm__("r5"); z = 0; a->f44 = z; }
+            a->f44 = 0;
             if ((a->f10 >> 20) <= 0xc) {
-                { register int q1 __asm__("r1"); q1 = 0;
-                  e1 = OvlFunc_968_2008058(a->f8, q1, 0xe0 << 16, 0xfd); }
-                { register int q0 __asm__("r0"); register int q1 __asm__("r1");
-                  q0 = a->f8; q1 = 0;
-                  e2 = OvlFunc_968_2008058(q0, q1, 0xf0 << 16, 0xfd); }
+                e1 = OvlFunc_968_2008058(a->f8, 0, 0xe0 << 16, 0xfd);
+                e2 = OvlFunc_968_2008058(a->f8, 0, 0xf0 << 16, 0xfd);
             }
             OvlFunc_968_200894c(a);
             __MapActor_SetPos(who, 0, 0);

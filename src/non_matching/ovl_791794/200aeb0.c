@@ -1,3 +1,92 @@
+/* OvlFunc_897_200aeb0 -- PARKED, **PIN-FREE, 10 DIFFERING ENCODINGS OF 148**.
+ * ref 148 / ours 148 stream encodings; **135 / 135** 16-bit instructions --
+ * IN PHASE, so a TRUE DISTANCE.  dsize 0.  RELOCATIONS CLEAN.
+ *
+ * Verify with:
+ *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
+ *     goldensun-build python3 tools/objcmp.py \
+ *     src/non_matching/ovl_791794/200aeb0.c \
+ *     asm/overlays/rom_791794/ovl_30_c_c_c_a_a_c_c_c.s \
+ *     --func OvlFunc_897_200aeb0
+ *   XX ENCODINGS differ in 10 place(s) (ref 148, ours 148)
+ *      first at index 31
+ *
+ * ========= BATCH 341 D: THE PIN WAS WORTH 110, NOT 112, AND IS GONE =========
+ *
+ * This body is PIN-FREE and replaces a body that carried
+ * `register unsigned char *p __asm__("r3")`.  THE PIN-FREE FIGURE WAS 120 AND
+ * IS NOW 10, on one statement:
+ *
+ *     p = &a->f55;
+ *     ((struct ZB *)p)->b = 0;
+ *     p += 0xf;                      <-- THIS, as its own STATEMENT
+ *     ((struct ZH *)p)->h = 0;
+ *
+ * THE OLD HEADER'S CONTROL HAD EXPIRED.  It said "writing
+ * `p = (unsigned char *)&a->f64;` instead of `p += 0xf;` is BYTE-IDENTICAL ...
+ * which is why the walk spelling never mattered".  That was measured WITH THE
+ * PIN IN.  Pin-free the walk spelling is worth 108 encodings and 4 bytes:
+ *   installed shape / `(p + 0xf)` in the expression / no named pointer /
+ *   plain `register` (no asm) / two temps / `struct ZB *` / `char *`
+ *       ... all SEVEN measure 120 of 148 vs 150, 135/136 ins, +4 bytes, reloc shifted
+ *   `p += 0xf;` as a statement .... 12 of 148, 135/135, dsize 0, reloc CLEAN
+ *   + one `do { } while (0);` anchor .. **10**
+ * `p += 0xf` keeps a pseudo whose SOURCE is not trivially a copy (the batch-332
+ * copy law), so it survives to reload with one set and one death and passes
+ * local-alloc's gate at local-alloc.c:362
+ * (`REG_BASIC_BLOCK >= 0 && REG_N_DEATHS == 1 && (alternate == NO_REGS
+ *   || ! CLASS_LIKELY_SPILLED_P (preferred))`).  With the pin in, that pseudo is
+ * a hard register and the gate is MOOT -- which is exactly why it read inert.
+ *
+ * ***AND THE PIN AND THE STATEMENT ARE MUTUALLY EXCLUSIVE.***  `p += 0xf` on the
+ * PINNED body measures 131-141 with dsize -8/+8 across 30 anchor placements.
+ * The old header's "two-at-a-time law" (split + pin, neither alone) is the
+ * INVERSE of what holds here: either edit alone is fine, TOGETHER they regress.
+ *
+ * PINNED ALTERNATE, 6 of 148, SAME 135/135 and clean, kept at
+ * scratch_elev/b341/D/p1_pinned_alt.c.  To rebuild it from this file: drop
+ * `p += 0xf;`, write the f64 store `((struct ZH *)&a->f64)->h = 0;`, and declare
+ * `register unsigned char *p __asm__("r3");`.  IT IS NOT INSTALLED: pin policy
+ * (docs/brief-template.md, owner decision batch 319) prefers the pin-free body,
+ * and a pinned landing needs a fakematch.txt row.
+ *
+ * THE RESIDUE IS THREE ONE-SLOT sched2 TRANSPOSITIONS, in one direction, and the
+ * full aligned disassembly is the ROM's instruction for instruction:
+ *   A  `adds r3,r0,#0` then `ldr r5,[r0,#80]`  -- we issue the load one slot early
+ *   B  `strh r2,[r3,#0]` then `mov r8,r1`      -- `mov r8` one slot early
+ *   C  `negs r1,r1` then `strh r3,[r5,#8]`     -- the strh one slot early
+ * plus, pin-free only, the r2/r3 ROLE SWAP: the walk pointer takes r2 and the
+ * shared SI zero r3 (r3 heads REG_ALLOC_ORDER, config/arm/arm.h:989-995).
+ * Each contested pair is independent of the last scheduled insn, so both members
+ * score tmp_class = 3 at rank_for_schedule's class rung
+ * (haifa-sched.c:4068-4096, `if (link == 0 || insn_cost (...) == 1)`), the tie
+ * falls through dependent count (:4099-4110) to INSN_LUID (:4115).
+ *
+ * MEASURED AND CLOSED THIS BATCH (do not re-screen):
+ *  * autosweep FLAG axis on the old body: `-fno-strength-reduce`,
+ *    `-fno-rerun-cse-after-loop`, `-fno-rerun-loop-opt` EXACTLY INERT at 8;
+ *    `-fno-strict-aliasing` 28, `-fno-schedule-insns2` 84, `-O1` and
+ *    `-fno-gcse` 144, `-ffixed-r7` 152.  Not flag-conditional.
+ *  * 116-VARIANT FACTORIAL, {s/p source order} x {f8_a vs the f5_b/f5_c mask}
+ *    x 29 anchor placements: swapping `s = a->f50` with `p = &a->f55` is
+ *    EXACTLY INERT in all 29 anchor columns; the f8_a/mask swap is WORSE in
+ *    every one.  Floor 6 pinned, 10 pin-free.
+ *  * CLUSTER C, 8 spellings on this body: named `int` temp for the f8_a value
+ *    INERT at 10; `f5_c` before `f5_b` 22; `f7_b` between 23; `f5_b` last 26;
+ *    mask pair first 49 RELOCDIFF; +anchor 134; anchor before either 142 (+12B).
+ *  * THE ZERO'S QUANTITY, 7 spellings on this body: `a->f68 = c;` written
+ *    `*(struct Actor **)(p + 4) = c;` (one more ref on p) 11; `p = &a->f55;`
+ *    hoisted above the f14 store 12; and NAMING THE ZERO COSTS 8 BYTES --
+ *    `int z` 141, two separate zeros 141, `unsigned char z` 141,
+ *    `p += 0xa; p += 0x5;` 141.  A counter-example to batch 333's "a copy
+ *    survives when its DESTINATION is a named variable".
+ *
+ * CORRECTION TO THE OLD HEADER: it said "Instruction count exact (148 = 148)".
+ * 148 is the STREAM count; the instructions are 135 / 135.
+ *
+ * asm/overlays/rom_791794/ovl_30_c_c_c_a_a_c_c_c.s is ONE function, no data
+ * (datacheck prints nothing) -- no split needed, CONVERTS WHOLE.
+ */
 /* OvlFunc_897_200aeb0 (0x0200aeb0) -- NON-MATCHING, **8 ENCODINGS OF 148**,
  * DOWN FROM 12.  Instruction count exact (148 = 148), size exact (dsize 0),
  * pool identical, all relocations identical.  A TRUE DISTANCE.
@@ -175,7 +264,7 @@ void OvlFunc_897_200aeb0(struct Actor *c)
     struct Actor *a;
     struct Spr *s;
     unsigned char *w;
-    register unsigned char *p __asm__("r3");
+    unsigned char *p;
     int i;
 
     w = iwram_3001f30;
@@ -185,10 +274,12 @@ void OvlFunc_897_200aeb0(struct Actor *c)
         arr[i] = a;
         if (a != 0) {
             a->f14 = c->f14;
+    do { } while (0);
             s = a->f50;
             p = &a->f55;
             ((struct ZB *)p)->b = 0;
-            ((struct ZH *)&a->f64)->h = 0;
+            p += 0xf;
+            ((struct ZH *)p)->h = 0;
             a->f68 = c;
             if (s != 0) {
                 __Sprite_SetAnim(s, 0);

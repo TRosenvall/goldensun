@@ -37,7 +37,17 @@ does NOT treat it as a fakematch (5 of 6 landed files using one carry no row), w
 import os, re, sys
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-PIN_DEF = re.compile(r"^\s*#define\s+(PIN\d)\b(.*)$", re.M)
+# ANY macro whose body declares pins, not just ones literally named PIN<digit>.
+# This used to be `(PIN\d)`, so a file naming its macros R0..R3 reported FOUR pins
+# when it carried NINETY-SIX across 36 blocks -- batch 341 brief D found it after
+# I briefed that file as "4 pins".  The pin count is the authoritative input to
+# target selection AND to the directory's headline total, so an under-report here
+# propagates everywhere.
+#
+# Matched by SHAPE: a #define whose body contains a `register ... __asm__("rN")`
+# declaration. That cannot over-match, because a macro without such a declaration
+# contributes no pins however it is named.
+PIN_DEF = re.compile(r"^\s*#define\s+(\w+)\b(.*(?:\\\n.*)*)$", re.M)
 DECL    = re.compile(r"register\s+[^;=]*?__asm__\s*\(\s*\"(\w+)\"\s*\)")
 EQU     = re.compile(r"__asm__\s*(?:volatile\s*)?\(\s*\"\.equ\s+([A-Za-z_]\w*)")
 # Three spellings of "a volatile asm barrier" reach THREE DIFFERENT passes, decided
@@ -67,22 +77,28 @@ def count(path):
     # how many registers each PIN macro reserves, resolved through its own chaining
     arity = {}
     for name, body in PIN_DEF.findall(code):
-        arity[name] = len(DECL.findall(body)) + sum(
-            arity.get(t, 0) for t in re.findall(r"\bPIN\d\b", body))
+        own = len(DECL.findall(body))
+        chained = sum(arity.get(t, 0) for t in re.findall(r"\b\w+\b", body)
+                      if t in arity)
+        if own or chained:
+            arity[name] = own + chained
 
     body = PIN_DEF.sub("", code)          # drop the #define lines themselves
     pins = len(DECL.findall(body))        # standalone declarations
     blocks = []
-    for m in re.finditer(r"\bPIN(\d)\b", body):
-        nm = "PIN" + m.group(1)
-        blocks.append(nm)
-        pins += arity.get(nm, int(m.group(1)))
+    for m in re.finditer(r"\b(\w+)\b", body):
+        nm = m.group(1)
+        if nm in arity:
+            blocks.append(nm)
+            pins += arity[nm]
     return {
         "pins": pins, "pin_blocks": blocks,
         "equ": EQU.findall(body),
         "barriers": len(BARRIER.findall(body)),
         "clobber": len(CLOBBER.findall(body)),
         "operand": len(OPERAND.findall(body)),
+        # NOT added into `pins`: brief D found the single `"+r"` asm being counted
+        # once as a barrier and again as a declaration.
         "plus_r": len(PLUSR.findall(body)),
     }
 
