@@ -48,6 +48,18 @@ figures, their park paths, what each park claims) goes on top of this.
   written against, while reading identically to the correct body at production
   flags. If a park's argument depends on a flag group, re-measure under that flag
   before trusting its figure.
+- **DO NOT TRUST A BRIEF'S PROSE DESCRIPTION OF A TOOL — read the tool.** Every
+  tool in `tools/` carries its current behaviour, its known defects and its
+  measured hit rate in its own docstring, and that is the authority. A brief is
+  written by copying the previous batch's brief forward, so a tool description in
+  one goes stale the moment the tool changes.
+  **This has cost three briefs real work.** `autosweep.py`'s anchor axis has swept
+  every statement boundary at ANY brace depth since batch 338, and inside
+  `static inline` helpers the subject calls since 341 — but the shared brief still
+  said "every top-level statement boundary" through batch 343. Three briefs read
+  that, believed it, and reported it back as a tool defect; one hand-rolled four
+  nested anchor placements it did not need, on a function where **35 of 42
+  boundaries are at depth ≥ 2 and the deepest is 5**. Measured, not argued.
 - **THE TWO CHEAPEST AXES MAY ALREADY BE CLOSED — check the brief.**
   `tools/autosweep.py` runs the judgment-free half of a park from bash at zero
   token cost: the **flag axis** (the unchanged body under each per-file flag

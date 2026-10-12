@@ -1,23 +1,111 @@
 /* OvlFunc_903_2008fc8 -- NON-MATCHING, 31 differing STREAM encodings of 87.
  *
- * BODY RECOVERED FROM scratch/ (batch 338).  This park was PROSE -- a header,
- * a diagnosis, and no compilable body -- so it had no figure, was NO CLAIM in
- * parkcheck, and was unrankable in every band.  But its own header named a
- * candidate at scratch/hold_2008fc8.c, that file still existed, and it
- * compiles.  The work had been done and left in a GITIGNORED directory instead
- * of installed, so nothing in the tree could see it.
+ * RE-MEASURED batch 343 brief D.  31 of 87 CONFIRMED.  ref 87 / ours 87 stream
+ * encodings, 79/79 16-bit INSTRUCTIONS, 6/6 relocations with the SAME SYMBOLS
+ * IN THE SAME ORDER.
  *
- * ref 87 / ours 87 stream encodings; 79/79 16-bit instructions -- IN PHASE, so a true DISTANCE.
+ * THE RELOCATION "DIFFERENCE" IS NOT A DEFECT, AND autosweep FLAGS IT.
+ * Exactly one relocation OFFSET differs -- `__EquipItem` at 0x000000a4 in the
+ * ROM against 0x0000009e in ours.  Every symbol, kind and order is identical.
+ * That 6-byte shift is a CONSEQUENCE of the single residue below, not a second
+ * problem: no symbol is unresolved and no .sym literal is involved.
  *
  * Verify with:
  *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
  *     goldensun-build python3 tools/objcmp.py src/non_matching/overlays/2008fc8.c \
  *     asm/overlays/rom_798dc4/ovl_314_c_c_c_c_b.s --func OvlFunc_903_2008fc8
  *
- * 70 of the 133 prose parks were in this state; tools/scratchfill.py found them.
- * THE FIGURE IS EVIDENCE; the prose below it is a HYPOTHESIS, and across pass
- * two a park's stated blocker has been wrong roughly 40 times in 42.  The
- * original park text is preserved underneath.
+ * PINS: 0 (tools/shimcount.py).  datacheck.py: no data under the reference.
+ * tools/piece.py: the reference .s holds THIS FUNCTION ALONE.
+ *
+ * ================= THE 31 ARE *ONE* DECISION, NOT 31 CHOICES =================
+ *
+ * Index-aligned side-by-side disassembly shows the two streams are IDENTICAL
+ * except that THE LITERAL POOL IS IN A DIFFERENT PLACE:
+ *
+ *   ROM    ...  59 b.n <top>   60 .short 0 (align fill)  61 .word 0x000008ff
+ *               62 adds r6,#1  ...  86 bx r0            END
+ *   ours   ...  59 b.n <top>   60 adds r6,#1  ...  84 bx r0
+ *               85 .short 0    86 .word 0x000008ff      END
+ *
+ * The ROM dumps the pool at the BARRIER AFTER THE `found:` BLOCK'S `goto top`;
+ * we dump it after the epilogue.  Of the 31 differing encodings, 27 are the
+ * resulting 2-encoding rotation of the tail, and the other FOUR are its
+ * arithmetic consequences: the pool-load displacement at index 42
+ * (`ldr r2,[pc,#40]` vs `[pc,#92]`) and three branch displacements at indices
+ * 28, 52 and 55.  FIX THE POOL POSITION AND THE FUNCTION LANDS.
+ *
+ * -------------------------------- THE MECHANISM, WITH LINE NUMBERS ----------
+ * For Thumb the pool is NOT `output_constant_pool` (varasm.c:1101 puts that
+ * AFTER the function).  It is arm_reorg's minipool: MACHINE_DEPENDENT_REORG at
+ * arm.h:2524 calls arm_reorg (arm.c:5459), which emits via dump_minipool
+ * (arm.c:5132) -- and dump_minipool's `gen_label_rtx / align_4 /
+ * minipool_vector_label / consttable_4` is exactly the `.L17: .align 2,0 /
+ * .L16: .word 2303` our .s carries.
+ *
+ * arm_reorg chooses the dump point at arm.c:5517-5534: it walks the fix list
+ * forward and sets `last_barrier` to the LAST natural barrier whose address is
+ * still below `minipool_vector_head->max_address`, then dumps there.
+ * max_address is `fix->address + fix->forwards` (add_minipool_forward_ref,
+ * arm.c:4825) and `fix->forwards` is the insn's `pool_range` attribute
+ * (push_minipool_fix, arm.c:5372).
+ *
+ * MEASURED FROM THE .26.mach DUMP of this very body:
+ *     ;; SImode fixup for i105; addr 100, range (0,1020): 0x8ff
+ *     ;; Emitting minipool after insn 289; address 254
+ *     ;;  Offset 0, min -65536, max 1120 0x8ff
+ * and the pre-reorg barriers are insns 146, 159 and 289 (289 is the one after
+ * the epilogue; 295 is dump_minipool's OWN barrier).  Barrier 146 is the ROM's
+ * position.  With max_address 1120 in a 188-byte function, EVERY barrier is in
+ * range, so the loop necessarily selects the last one -- 289.
+ *
+ * SO WITH ONE SImode FIX THIS PLACEMENT IS UNREACHABLE, and the reason is a
+ * SINGLE NUMBER: `*thumb_movsi_insn` has pool_range 1020 (arm.md:3856).
+ *
+ * ------------------------------ WHAT THE CORPUS SAYS, AND IT IS DECISIVE ----
+ * scratch_elev/b343/D/d_poolscan.py scans the GENERATED half of asm/ (every
+ * such .s is byte-matching by construction).  There are 448 mid-function pool
+ * dumps, 34 of them single-word; classified by whether the `b` in front of the
+ * pool TARGETS THE LABEL JUST AFTER IT (i.e. gcc inserted it) there are
+ * 244 INSERTED and 145 NATURAL.  So the ROM's shape IS producible.
+ *
+ * EVERY natural-barrier single-word example read by hand is driven by an
+ * HImode pool load, e.g. asm/overlays/rom_7cb2c0/ovl_30_a_c_c_a_b.s
+ * (OvlFunc_945_2008284, `ldrh r3, .L11` then the pool after a natural `b .L2`)
+ * and asm/overlays/rom_7d6418/ovl_30_c_c_c_a_c_c.s.  THAT IS THE QUANTIFIED
+ * DIFFERENCE: `*thumb_movhi_insn` has pool_range **64** (arm.md:4353) against
+ * SImode's 1020.  64 puts max_address at ~164 here, which falls between
+ * barrier 146 and the next one -- precisely the window that makes 146 the last
+ * barrier in range.
+ *
+ * THE NEXT PROBE IS THEREFORE NAMED: the ROM's load is `ldr` (encoding 4a0a,
+ * SImode) so the mask itself cannot be HImode, which means the body must be
+ * carrying a SECOND pool fix with a small max_address, after barrier 146.
+ * arm.c:5536-5551 then decrements that fix's refcount and pushes it into the
+ * NEXT pool -- so a second fix can move the 0x8ff pool to barrier 146 WITHOUT
+ * adding a word to it.  Find a legitimate second pooled constant (an HImode one
+ * is the shape the corpus shows) in the l2 loop or the `__EquipItem` loop.
+ * DO NOT re-derive the arm_reorg walk; it is above with line numbers.
+ *
+ * BOTH CHEAP AXES ARE CLOSED (tools/autosweep.py, batch 343):
+ *   -fno-gcse 31, -fno-strict-aliasing 31, -fno-strength-reduce 31,
+ *   -fno-rerun-cse-after-loop 31, -fno-rerun-loop-opt 31,
+ *   -fno-schedule-insns2 42, -O1 55, -ffixed-r7 73.
+ *   All 36 top-level anchor placements inert or worse.
+ *
+ * MEASURED THIS ROUND, all aimed at the pool position:
+ *   nested anchor at `l2:`                                         31  inert
+ *   nested anchor at `found:`                                      31  inert
+ *   nested anchor before the second `p = unit; mask = 0x8ff;`       31  inert
+ *   `unsigned int mask` instead of `int mask`                       31  inert
+ *   DUPLICATING the `found:` block into both call sites             31  inert
+ *       -- gcc cross-jumps it straight back, which is the same datum the
+ *          piece-mate Func_80a3ef0's park records: the merged tail is the
+ *          COMPILER'S, not the source's.
+ *   `info[0xc] == 1` tested before the mask test                    36  worse
+ *   `mask` hoisted above the `top:` label                           75  worse
+ *   the mask written inline with no local                           80  worse
+ *                                                      AND 8 BYTES SHORT
  */
 extern unsigned char *__GetUnit(int i);
 extern int __GiveItemTo(int who, int item);
