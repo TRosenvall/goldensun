@@ -56,6 +56,55 @@
  * exists to record the test rather than to be improved.  Do not spend a round
  * spelling it; the spelling is not what is wrong.
  *
+ * ============================================================
+ * RE-VERIFIED BATCH 338, brief A.  THE FIGURE REPRODUCES AND IT IS NOT A
+ * DISTANCE -- both numbers, because they are not the same number:
+ *     STREAM ENCODINGS  ref 12, ours 7   -- 11 differ, first at index 0
+ *     INSTRUCTION COUNT ref 11, ours 5   <-- A GAP OF SIX
+ *     SIZE              ref 24 bytes, ours 16
+ *     RELOCATIONS       ref none; ours one THM_CALL to memset
+ * The instruction counts DIFFER, so "11 of 12" measures LENGTH, not distance,
+ * and no spelling and no crossed sweep can act on it.  A brief that reads this
+ * park as "almost the whole function, so the entire body is in play" has the
+ * arithmetic backwards; the length arithmetic above has been in this header
+ * since batch 330 and is the reason not to spend a round here.
+ *
+ * ALL FOUR OF THE BATCH-330 COMPILER CLAIMS WERE CHECKED AGAINST THE SOURCE ON
+ * DISK AND ALL FOUR HOLD.  Line numbers so the next agent need not re-derive:
+ *   1. `grep -rn clrstr config/arm` -> nothing.  No clrstr pattern exists, so
+ *      clear_storage has no target pattern and every struct-to-zero of any size
+ *      becomes a memset call.
+ *   2. arm.md:5097-5102 -- movstrqi for TARGET_THUMB is
+ *      `if (INTVAL (operands[3]) != 4 || INTVAL (operands[2]) > 48) FAIL;`.
+ *      This is 64 bytes.
+ *   3. arm.c:9478-9526 thumb_expand_movstrqi emits only movmem12b / movmem8b
+ *      and mov pairs; arm.md:5112-5148 shows both movmem patterns are
+ *      mem-to-mem.  AND THE STORE-ONLY FORM DOES NOT EXIST FOR THUMB AT ALL:
+ *      store_multiple (arm.md:4997-5001) is `"TARGET_ARM"`, and all three
+ *      store_multiple_sequence peepholes (arm.md:7844, :7856, :7866) are
+ *      `"TARGET_ARM && ..."`.
+ *   4. `mov ip, r4` / `mov r4, ip`.  THE PARK MISSES THE PORT`S NEAREST MISS
+ *      AND IT IS WORTH RECORDING, because the claim as written ("the thumb
+ *      prologue`s ONLY IP_REGNUM shuffle ... saves LAST_ARG_REGNUM") is false.
+ *      There is a SECOND one: arm.c:8972-8990, the thumb prologue`s large-frame
+ *      path, really does emit `mov ip, reg` ... `mov reg, ip` round a stack
+ *      decrement.  It still cannot produce this function, for two independent
+ *      reasons, and the verdict is STRONGER for being stated against it:
+ *        - the register is hard-coded LAST_LO_REGNUM, i.e. **r7**, not r4
+ *          (arm.c:8977 "Choose an arbitary, non-argument low register");
+ *        - the path is gated at arm.c:8972 on `regno > LAST_LO_REGNUM`, the
+ *          "Very unlikely" case where NO callee-saved low register is live,
+ *          inside a frame too large for an immediate subtract.  This function
+ *          has no frame at all.
+ *
+ * AUTOSWEPT (tools/autosweep.py, batch 338) -- recorded negative, do not
+ * re-run: flag axis all eight per-file groups 11 of 12, anchor axis its single
+ * top-level boundary 11 of 12.  Both cheap axes closed, as they must be -- no
+ * flag invents six instructions.
+ *
+ * SELECTION NOTE FOR THE COORDINATOR: this is an IMPORT-TRACK / NOT-C park, not
+ * a spelling target.  The equal-instruction-count criterion excludes it.
+ *
  * Parked: logic faithful, does NOT byte-match.
  * Candidate: tools/runs/run_20260607T170736Z/SoundMainBTM-iter-4.c
  * TODO(residual): rom_f9000 Sappy/m4a region: inline unrolled 64-byte zero-init

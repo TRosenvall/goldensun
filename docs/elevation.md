@@ -35006,12 +35006,14 @@ want stopped — and then pick the spelling for *that* pass:
 > **CORRECTION (batch 337 brief A): for a purely SCHEDULING residue, reach for
 > `do { } while (0)` before any `__asm__` form.** The first version of this table
 > listed only the asm spellings, which points agents at the one option that costs
-> a pass-3 artifact. The anchor is strictly better on every axis that matters:
+> a pass-3 artifact. The anchor is preferable on every axis that matters:
 >
-> - **same reach**, and in the compiler it is *stronger* — `haifa-sched.c:3744-3757`
->   adds a dependence on every register's last uses (`REG_DEP_ANTI`), last sets
->   and last clobbers, **and then calls `flush_pending_lists`**, so it orders
->   memory too, which a bare `ASM_INPUT` does not;
+> - **it reaches further** — `haifa-sched.c:3744-3757` adds a dependence on every
+>   register's last uses (`REG_DEP_ANTI`), last sets and last clobbers, **and then
+>   calls `flush_pending_lists`**, so it orders memory too, which a bare
+>   `ASM_INPUT` does not. **But it gets there by a DIFFERENT MECHANISM than this
+>   document first claimed — see "THE ANCHOR IS NOT A STRONGER BARRIER" below,
+>   which also makes its placement predictable;**
 > - it **emits nothing**, like the barrier;
 > - **`shimcount` does not count it**, so it is not fakematch-class and carries no
 >   depin debt.
@@ -35023,6 +35025,39 @@ want stopped — and then pick the spelling for *that* pass:
 > nothing. **This is the rare lever that pays a figure and reduces pass-3 debt at
 > the same time**, so prefer it, and consider retrofitting it wherever a park
 > already ships a bare barrier.
+
+#### THE ANCHOR IS NOT A STRONGER BARRIER — IT IS A LOOP NOTE, AND THAT MAKES PLACEMENT PREDICTABLE
+
+Batch 338 brief A corrected the mechanism, and the correction changes how you
+place one. This document cited `haifa-sched.c:3744-3757` as though an anchor
+reached it the way an `ASM_INPUT` does. **It does not.** Those lines sit inside
+
+    if (loop_notes)                       /* haifa-sched.c:3714 */
+      ...
+      if (schedule_barrier_found)         /* set only by NOTE_INSN_LOOP_BEG,
+                                             _LOOP_END, _EH_REGION_*, _SETJMP */
+
+so the depend-on-everything block is reached **only when a loop note is
+present**. A `do { } while (0)` emits `NOTE_INSN_LOOP_BEG` / `_CONT` / `_END`
+(confirmed in `.00.rtl`); a bare `__asm__ volatile ("")` emits none and never
+enters that branch. The two are **different mechanisms that overlap in effect**,
+not a weak and a strong version of one thing.
+
+Two practical consequences:
+
+1. **It is not a basic-block split.** Brief A verified the block count is **3 on
+   both sides**, with `.19.flow2` block 0 insn-for-insn identical. Nothing is
+   cut in two; notes are hung on an insn.
+2. **Placement is predictable, where the barrier's is not.** `:3735-3736` hangs
+   the accumulated notes on the *following* insn —
+   `XEXP (link, 1) = REG_NOTES (insn); REG_NOTES (insn) = loop_notes;` — so an
+   anchor fences **immediately before the next insn**. Brief A's ladder shows it:
+   `anchor03` reaches **0** while the adjacent `anchor02` measures **4**.
+
+> **So for an anchor, reason about which boundary you want: it fences the insn
+> that follows it.** For a bare `ASM_INPUT` you still cannot, because that one
+> depends on every register's last set, `sp` included, and names nothing.
+
 >
 > Use an `__asm__` form only when you need a reach the anchor lacks — the `cse`
 > flush or the `combine` fence, which need an `ASM_OPERANDS` pattern.

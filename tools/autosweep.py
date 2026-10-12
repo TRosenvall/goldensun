@@ -31,10 +31,24 @@ the park alone finds nothing."  A blind flag sweep would NOT have found it.
 Measured since, on parks no agent had swept:
 
     FLAG axis    0 landings / 0 improvements in 6 parks
-    ANCHOR axis  0 landings / 0 improvements in 2 parks
+    ANCHOR axis  1 LANDING in 7 parks  (batch 338 brief A, Func_80a7440 4 -> 0)
 
-So do not expect this tool to land functions.  **Its value is the recorded
-NEGATIVE**, which is worth real tokens for a different reason: an agent that
+THE ANCHOR AXIS HAS NOW PAID ONCE.  Brief A's Func_80a7440 came to 0 on
+`do { } while (0);` after `s = iwram_3001f2c;`, found by this tool while the
+agent was mid-derivation of the same answer -- and the park it refuted had
+arithmetic that was entirely CORRECT: both chains at 3+P, the class rung at
+haifa-sched.c:4069-4094 reproduced.  Its verdict ("nothing semantics-preserving
+reaches it") was wrong anyway, because you do not win that tie, you empty the
+ready list.  So the sequencing advice is now: RUN THIS AND READ THE TABLE BEFORE
+forming a hypothesis, not after.
+
+Placement is predictable for the anchor, which makes a full sweep slightly
+wasteful but still cheap: the notes hang on the FOLLOWING insn
+(haifa-sched.c:3735-3736), so an anchor fences immediately before the next insn.
+See docs/elevation.md, "THE ANCHOR IS NOT A STRONGER BARRIER".
+
+Do not expect a landing per park.  **The rest of this tool's value is the
+recorded NEGATIVE**, which is worth real tokens for a different reason: an agent that
 knows both cheap axes are closed does not spend part of its round re-screening
 them, and every brief so far has burned some of its round on exactly that.  The
 secondary value is as a CROSSING PARTNER -- a flag that is inert alone may not be

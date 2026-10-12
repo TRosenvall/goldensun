@@ -1,4 +1,42 @@
 /* Func_80a8578  --  NON-MATCHING, 11 of 60 encodings
+ *
+ * RE-MEASURED BATCH 338, brief A.  THE FIGURE REPRODUCES: 11 of 60 STREAM
+ * encodings, INSTRUCTION COUNT 50 both sides, size 140 both, relocations clean.
+ * So it IS a distance.  Pins 0.  (Both numbers are given because they are not
+ * the same number: 60 stream = 50 instructions + 9 32-bit entries + 1 pad.)
+ *
+ * AUTOSWEPT (tools/autosweep.py) -- RECORDED NEGATIVES, DO NOT RE-RUN:
+ *   flag axis   -O1 18, SCHED2_CFLAGS 18, FIXEDR7_CFLAGS 63 (longer than the
+ *               reference), and GCSE / ALIAS / STRENGTH / CSE / RERUNLOOP all
+ *               inert at 11.
+ *   anchor axis 10 top-level boundaries, 7 measured, ALL inert at 11.
+ * The anchor is specifically worth recording closed here: it is the lever that
+ * landed Func_80a7440 in this same batch, and it cannot touch cause A because
+ * cause A is decided in greg, before sched2 exists.
+ *
+ * BATCH 338 ADDED SEVEN MORE BODIES, screened on `.18.greg`'s published order
+ * exactly as batch 322 did.  Four are inert and three are worse:
+ *   p feeds _GetUnit only, the else arm reads base[0x21a] ..... 11  greg order
+ *       UNCHANGED (`37 33 36 35 32`) -- CSE commons the two reads, so this edit
+ *       never reached the allocator
+ *   the else arm reads *p into a local first .................. 11  order
+ *       UNCHANGED -- p still dies at block 6's first insn
+ *   *p spelled p[0] in both places ............................ 11  order
+ *       UNCHANGED
+ *   ONE pointer for both roles (unit = base + 0x21a, p = _GetUnit(*unit))
+ *       ...................................................... 11  order
+ *       `36 33 37 35 32` -- THE PSEUDO NUMBERS MOVE AND THE ROLE ORDER DOES
+ *       NOT.  b is still allocated before p.  This is the "remove an allocno /
+ *       change the numbering" idea stated as the next step in the 80a6794 park;
+ *       measured here, it does not reach the rung, because allocno_compare
+ *       decides on priority and only TIES fall through to `v1 - v2`.
+ *   *p cached in an int used in both places ................... 54, dsize +4
+ *   unit[0xf] cached in an int (NOT unit[0xf]+1) .............. 44, RELOCDIFF
+ *   the 0x63 test written as if/else with the arms swapped .... 23, RELOCDIFF
+ *
+ * So the batch-322 rung analysis below stands in full, and the live-range target
+ * it names is unchanged: p's live_length must reach 7 (it is 8) or n_refs(p)
+ * must reach 4 (it is 3).  Nothing measured in 338 moved either.
  *                   (ref 60, ours 60 -- COUNT EQUAL, so the figure IS a
  *                    distance.  SIZE EXACT at 140 bytes.  RELOCATIONS CLEAN.)
  *

@@ -1,9 +1,11 @@
 /* Func_80a40ac (DiscardFirstUnlockedItem) -- NON-MATCHING, 14 of 47 encodings.
  *
- *   STREAM LENGTHS AGREE (ref 47, ours 47), INSTRUCTION COUNT AGREES (44 both),
- *   SIZE 100 both sides, and THE RELOCATIONS ARE CLEAN -- both objects carry
- *   exactly the two call relocations and nothing else.  So this figure IS a
- *   distance.  Pin-free and device-free: no symbol-table entry is referenced.
+ *   RE-MEASURED BATCH 338, brief A, and the figure reproduces EXACTLY.  Both
+ *   numbers, because they are not the same number:
+ *     STREAM ENCODINGS  ref 47, ours 47   -- 14 differ
+ *     INSTRUCTION COUNT ref 44, ours 44   (one 32-bit pool word and two `bl`)
+ *     SIZE 100 both sides; relocations clean (the two calls, nothing else).
+ *   So this figure IS a distance.  Pin-free and device-free (`shimcount`: no rows).
  *
  * Verify with:
  *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
@@ -11,31 +13,122 @@
  *     src/non_matching/rom_a1000/80a40ac.c \
  *     asm/rom_a1000/rom_a1814_c_c_a_a.s --func Func_80a40ac
  *
- * Walks the inventory from slot 0, skipping any slot whose bit 9 is set, and
- * stops at the first empty one.  For the first unlocked slot it finds it calls
- * _Func_80788c4 (quantity + 1) times -- the whole stack -- and then stops.
- * Returns 1 when it ran off the end of the list without finding anything to
- * drop, or when that final consume answered 2; 0 otherwise.  The epilogue is
- * `pop {r5,r6,r7} / pop {r1} / bx r1`, and a single-register pop into r1
- * encodes a one-to-four-byte declared return, so the int return is confirmed
- * by the bytes.
+ * AUTOSWEPT (tools/autosweep.py, batch 338) -- RECORDED NEGATIVES, DO NOT RE-RUN.
+ *   flag axis:   -O1 37, SCHED2_CFLAGS 18, FIXEDR7_CFLAGS 51 (worse than the
+ *                reference length), and GCSE / ALIAS / STRENGTH / CSE /
+ *                RERUNLOOP all inert at 14.
+ *   anchor axis: 29 top-level boundaries, 25 measured, ALL inert at 14.
+ * Both cheap axes are closed.
  *
- * WHAT THE RESIDUE IS.  Two things, both allocation and layout, nothing
- * expression-level:
+ * ============================================================
+ * BATCH 338: THE RESIDUE IS NOW ONE MECHANISM, NOT THREE, AND IT IS CLOSED
+ * WITH LINE NUMBERS.  The batch-335 header below is correct in every
+ * observation and its three-part residue description is right; what it did not
+ * have is the index-level decomposition and the ONE question all of it reduces
+ * to.  Index-aligned side-by-side (helper kept at
+ * scratch_elev/b338/A/a_sbs.py, which imports objcmp rather than forking it):
  *
- *  - THE TWO SCAN VARIABLES HOLD EACH OTHER'S REGISTERS.  The reference keeps
- *    the tested word in r3 and the body's own load in r2; ours has them the
- *    other way round, and with that goes the body's load order -- the
- *    reference has `ldrh v,[r0] / ldr mask,pool / and`, ours has
- *    `ldrh mask,pool / and / ldrh v,[r0]`.  Eight encodings.  The reference's
- *    AND reads the BODY load, which is live afterwards, and reaching that
- *    needs a copy-free AND and a same-block load at once -- and those two are
- *    mutually exclusive here, for the reason set out under THE THIRD RESIDUE.
+ *     idx  ref                         ours
+ *      3 X movs r3,#0xd8               movs r2,#0xd8
+ *      4 X ldrh r3,[r0,r3]             ldrh r2,[r0,r2]
+ *      9 X ldrh r2,[r0]                ldr  r3,[pc,#40]
+ *     10 X ldr  r3,[pc,#40]            ands r3,r2
+ *     11 X ands r3,r2                  cmp  r3,#0
+ *     12 X cmp  r3,#0                  bne  .next
+ *     13 X bne  .next                  ldrh r3,[r0]
+ *     14 X lsrs r3,r2,#11              lsrs r3,r3,#11
+ *     31 X movs r0,#0                  cmp  r1,#2
+ *     32 X cmp  r1,#2                  beq  .one
+ *     33 X bne  .pop                   movs r0,#0
+ *     34 X e006 b .one                 e008 b .pop
+ *     39 X ldrh r3,[r0]                ldrh r2,[r0]
+ *     40 X cmp  r3,#0                  cmp  r2,#0
  *
- *  - THE DONE BLOCK'S BRANCH POLARITY, four encodings.  The reference is
- *    `mov r0,#0 / cmp r1,#2 / bne epilogue / b one`; ours is
- *    `cmp r1,#2 / beq one / mov r0,#0 / b epilogue`.  Same four instructions,
- *    inverted test.  Seven spellings were measured and every one inverts.
+ * Everything else, including the pool word at index 30 and the whole inner
+ * do-while, is byte-identical.  Note `ands r3,r2` (0x4013) is ALREADY present
+ * and copy-free in our body -- the AND is not the problem.
+ *
+ * THE WHOLE OF INDICES 3,4,9-14,39,40 COLLAPSES TO ONE QUESTION, measured:
+ * read the halfword DIRECTLY in the body block (`*p & 0x200`, no cached `t`,
+ * no cast) and indices 0 THROUGH 9 GO EXACT -- the ROM`s `ldrh r2,[r0]` at the
+ * top of the body block, in the ROM`s register, with the ROM`s copy-free
+ * `ands r3,r2` at index 12 and the ROM`s `lsrs r3,r2,#11`.  The ONLY thing
+ * wrong in that body is how 0x200 is materialised:
+ *
+ *     ref   ldr  r3,[pc,#40]  +  .word 0x200       (1 insn + 1 pool word)
+ *     ours  movs r3,#128 / lsls r3,r3,#2           (2 insns, NO pool)
+ *
+ * so it reads 38 of 47 at 46 encodings -- ONE INSTRUCTION LONG and ONE POOL
+ * WORD SHORT.  Candidate kept at scratch_elev/b338/A/v40ac/d_plain.c.
+ *
+ * AND THAT ONE QUESTION IS CLOSED BY THE COMPILER, four citations:
+ *
+ *  1. IN SImode 0x200 CAN NEVER POOL.  `thumb_shiftable_const`
+ *     (arm.c:8579-8593) returns 1 whenever `(val & (0xff << i)) == val` for
+ *     some i in 0..24; 0x200 is 0x80 << 2, so it qualifies.  arm.c:2082 and the
+ *     `K` constraint (arm.h:1098) then take the two-insn mov/shift path.  There
+ *     is no spelling of an SImode 0x200 that reaches the minipool.
+ *  2. IN HImode 0x200 MUST POOL.  `*thumb_movhi_insn` (arm.md:4318-4358) offers
+ *     exactly one non-register source for a constant: alternative 1, `mn`, with
+ *     `pool_range 64` and length 4, emitting `ldrh %0, %1`.  Its only immediate
+ *     alternative is 5, constraint `I` (0..255), and 0x200 does not fit.  There
+ *     is NO shiftable-const alternative in HImode.  (gas assembles gcc`s
+ *     `ldrh rd, .Lpool` into the ROM`s `ldr rd,[pc,#n]` over a `.word`, which is
+ *     why the two sides agree byte-for-byte at index 10/9 and at index 30 --
+ *     checked, not assumed.)
+ *     >> So the batch-335 header`s claim that the HImode cast is what buys the
+ *        pool is CORRECT.  Its stated mechanism -- pool_range 64 forcing an
+ *        early dump -- is the wrong half: pool_range is not what decides
+ *        POOLING-versus-SPLITTING, the absence of a shiftable alternative is.
+ *  3. SO THE AND MUST BE HImode, WHICH NEEDS A TRUNCATION, WHICH NEEDS THE
+ *     HALFWORD IN AN int FIRST.  `*p` is already `unsigned short`, so
+ *     `(unsigned short)*p` is a no-op and the AND stays SImode (measured: 38,
+ *     identical to the cast-free body).
+ *  4. AND A SAME-BLOCK TRUNCATION COSTS A COPY.  `v = *p;` then
+ *     `(unsigned short)v & 0x200` in the same block: combine`s LOG_LINK
+ *     substitutes the single-use cast chain into the AND, canonicalisation
+ *     (combine.c:3492-3505) swaps because the substituted operand`s class is not
+ *     `o`, and regmove cannot swap back (regmove.c:1153 needs a bare REG in
+ *     operand 1; regmove.c:1199-1205 needs operands_match_p, which a SUBREG
+ *     fails), so fixup_match_1 inserts the copy.  MEASURED +1 INSTRUCTION:
+ *     41 of 47 at dsize +4, in both the `unsigned int` and the `int` spelling.
+ *
+ * THE MUTUAL EXCLUSION, STATED AS A BOUND WITH ITS EVIDENCE ATTACHED:
+ *   HImode AND  => pools (good) but needs a same-block truncation => +1 copy.
+ *   SImode AND  => right registers, right load placement, copy-free (indices
+ *                  0-9 exact) but 0x200 splits into mov/lsl => -1 pool word,
+ *                  +1 instruction.
+ *   Cross-block truncation (the body below) => pools AND copy-free, but the AND
+ *                  then reads the PREVIOUS iteration`s halfword, so the
+ *                  body-block load falls after the branch and r2/r3 swap.
+ *   Those are the three corners and every spelling measured lands on one of
+ *   them.  The batch-335 header`s sentence "reaching that needs a copy-free AND
+ *   and a same-block load at once -- and those two are mutually exclusive here"
+ *   is CONFIRMED, and the reason is now a compiler citation rather than an
+ *   observation.
+ *
+ * MEASURED AND WORSE IN BATCH 338 -- sixteen more bodies, do not re-run.  All
+ * are differing encodings of the reference`s 47; dsize is ours minus ref.
+ *   mask the body load, four spellings of `v = *p` + (u16) cast ..... 41, +4
+ *   mask the body load, `(unsigned short)w` with `int w = *p` ........ 41, +4
+ *   `*p & 0x200` read directly, and `0x200 & *p` ..................... 38, -4
+ *   `(unsigned short)*p & 0x200` (the cast is a no-op) ............... 38, -4
+ *   `(*p & 0xffff) & 0x200` .......................................... 38, -4
+ *   `v = *p;` then `unsigned short w = v;` masked (cast named) ....... 32
+ *   mask `*p`, shift the cached `t` .................................. 40, -4
+ *   mask the cached `t`, shift `*p` directly ......................... 14 INERT
+ *   mask the cached `t`, with `v = *p` live before the test .......... 18
+ *   mask and shift both from the cached `t` .......................... 17
+ *
+ * WHAT IS LEFT, and it is NOT an expression-level question.  Indices 31-34, the
+ * done block`s branch polarity, are a separate and smaller residue (4 of the
+ * 14) and seven spellings of it were already measured inert in batch 335.  The
+ * reference`s `movs r0,#0` sits in the SAME basic block as `cmp r1,#2`, ours
+ * sits in the branch target, so no scheduling lever can reach it -- the
+ * question is which block gcc puts the constant in, and that is settled before
+ * sched2.  If this park is reopened, reopen it on index 9: a body that pools an
+ * SImode 0x200 would land the function, and `thumb_shiftable_const` says no
+ * body does.
  *
  * ============================================================
  * REWRITTEN IN BATCH 335.  Everything above the line is new.  The two

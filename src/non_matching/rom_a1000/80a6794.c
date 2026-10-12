@@ -1,5 +1,24 @@
 /* Func_80a6794  --  PARK, 14 differing encodings of 102.
  *
+ * RE-MEASURED BATCH 338, brief A.  THE FIGURE REPRODUCES: 14 of 102 STREAM
+ * encodings, INSTRUCTION COUNT 92 both sides, 224 bytes both, relocations
+ * identical.  So it IS a distance.  Pins 0.  (Both numbers, because they are
+ * not the same number: 102 stream = 92 instructions + 10 32-bit entries.  The
+ * header below says "102 instruction rows" on both sides, which is the stream
+ * count on the instruction line -- the data-quality fault batch 337 flagged
+ * across five park headers.  CORRECTED HERE: 92.)
+ *
+ * AUTOSWEPT (tools/autosweep.py) -- RECORDED NEGATIVES, DO NOT RE-RUN:
+ *   flag axis   -O1 61, SCHED2_CFLAGS 61, FIXEDR7_CFLAGS 108 (longer than the
+ *               reference), GCSE / ALIAS / STRENGTH / CSE / RERUNLOOP inert at 14.
+ *   anchor axis 35 top-level boundaries, 26 measured, ALL inert at 14.
+ * The anchor being closed is not a surprise and the reason is already in this
+ * header: `REG_N_REFS` is weighted by loop_depth (flow.c:4948) and loop_depth
+ * comes from real CFG back edges (flow.c:7295-7322), so a `do { } while (0)`
+ * adds no reference -- AND the whole residue is decided in greg, which runs
+ * before sched2, where the anchor's only reach is (haifa-sched.c:3714-3759).
+ * That is now measured as well as derived.
+ *
  * RE-MEASURED batch 325, brief F.  ref 224 bytes / 102 encodings / 102
  * instruction rows; ours 224 bytes / 102 encodings / 102 instruction rows;
  * RELOCATIONS IDENTICAL.  So the figure IS a distance, not a misalignment.
