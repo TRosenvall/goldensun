@@ -1,4 +1,81 @@
-/* Func_8096ddc -- NON-MATCHING, 11 differing encodings of 146.
+/* Func_8096ddc -- asm/rom_8a000/rom_96cdc_a_a_c_c.s
+ *
+ * NON-MATCHING, 10 differing STREAM encodings of 146  (ref 146, ours 146;
+ *   16-bit INSTRUCTIONS 133 on BOTH sides, so this is a TRUE DISTANCE).
+ *   SIZE 312 bytes both.  Relocations clean.  First difference at index 32.
+ *   MEASURED batch 338 brief D, down from 11.
+ *
+ * Verify with:
+ *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
+ *     goldensun-build python3 tools/objcmp.py \
+ *     src/non_matching/rom_8a000/8096ddc.c \
+ *     asm/rom_8a000/rom_96cdc_a_a_c_c.s --func Func_8096ddc
+ *
+ * PINS 0.  DEVICES 0 -- the one `do { } while (0);` anchor is device-free.
+ * SHIP SHAPE: one function in the reference, datacheck.py silent, converts
+ * whole.  No split, no exports.
+ *
+ * ====================================================================
+ * BATCH 338 BRIEF D -- 11 -> 10.  INDEX 31 FALLS TO ONE ANCHOR INSIDE THE
+ * LOOP BODY, FREE, WHERE THE PARK'S OWN HALF-FIX COST FIVE.
+ * ====================================================================
+ *
+ * Fifth independent reproduction of the 11, then:
+ *
+ *   ONE `do { } while (0);` BETWEEN `o->f14 = e->f14;` AND `s = o->f50;`
+ *   TAKES 11 -> 10 and moves the first difference from index 31 to 32.
+ *
+ * That is the SAME difference the header below closes with "BOTH 0x1999 stores
+ * hoisted above the walk -- first diff moves to 32, so this DOES close index
+ * 31 ... and costs 5 elsewhere.  A HALF-FIX worth crossing against."  Measured
+ * again this batch: that hoist still reads 15.  The anchor closes index 31 and
+ * costs NOTHING, so it SUPERSEDES the half-fix -- and the two do not compose
+ * (hoist + anchor is also 15).
+ *
+ * WHY THE PARK NEVER FOUND IT.  The whole residue lives inside the `for` body,
+ * at brace depth 2.  `tools/autosweep.py`'s `boundaries()` walks only
+ * `depth == 1`, so the anchor axis it reports "closed" on this park never
+ * placed a single anchor inside the loop.  All 17 of its placements, and all
+ * eight flag groups, are genuinely inert at 11 -- they were just all outside
+ * the window.
+ *
+ * MEASURED THIS BATCH, every statement boundary inside the loop body:
+ *   anchor after `o->f14 = e->f14;`                    10   <- kept
+ *   anchor after `arr[i] = o;` / `continue;`           13
+ *   anchor after `s = o->f50;` / the walk stores / `o->f68 = e;`
+ *                                                     11 (inert)
+ *   anchor after the sprite stores                    11-13
+ *   the same 24 positions as a `__asm__ volatile ("" :: "i"(0))` cse flush --
+ *     the SAME position gives 10 and no other position beats it, so the
+ *     mechanism is scheduling and NOT a cse equivalence.  (That spelling is
+ *     the only one that reaches cse: `cse.c:5742-5745` tests
+ *     `GET_CODE (PATTERN (insn)) == ASM_OPERANDS`.)  The device is therefore
+ *     NOT NEEDED and is not shipped.
+ *   the kept anchor crossed with a second anchor at every other position
+ *                                                     never better than 10
+ *   the kept anchor crossed with `s = o->f50` after the walk      10 (inert)
+ *   the kept anchor crossed with `zero = 0;` moved                10 (inert)
+ *
+ * WHAT REMAINS, 10 in two windows:
+ *   8  indices 32-40.  The park's causes (A) and (B) have MERGED into one
+ *      window: the q / zero r2-r3 swap and the placement of `s = o->f50`'s
+ *      load are now interleaved in the same eight slots --
+ *        rom   adds r3,r0,#0 / adds r3,#85 / movs r2,#0 / ldr r5,[r0,#80]
+ *              / strb r2,[r3] / adds r3,#15 / strh r2,[r3] / ldr r1,=...
+ *        ours  ldr r5,[r0,#80] / adds r2,r0,#0 / movs r3,#0 / adds r2,#85
+ *              / strb r3,[r2] / adds r2,#15 / ldr r1,=... / strh r3,[r2]
+ *      so the NEXT STEP below is unchanged: this is still the walk pointer's
+ *      preferred class, and still one question.
+ *   2  indices 83-84, the negs/strh tie, decided at INSN_LUID.  Unchanged.
+ *
+ * NEXT STEP, UNCHANGED FROM THE PARK: suppress cse's rebase of `q += 0xf`
+ * onto `o`.  Nothing this batch touched it; the anchor closed a SCHEDULING
+ * difference sitting on top of it.
+ *
+ * ===== CARRIED FORWARD: the batch-315/322/325/330 header, verbatim apart from the
+ * ===== [SUPERSEDED FIGURE] markers, which stop parkcheck reading an
+ * ===== old figure as this park's claim.
+ *
  *   RE-DERIVED batch 325 brief E: ref 146 / ours 146, SIZE 312 bytes against
  *   312, relocations identical, first diff at index 31.  PRODUCTION FLAGS.
  *   So the figure is a TRUE DISTANCE and it has now been reproduced in three
@@ -168,6 +245,7 @@
  * NEXT: unchanged and still the park's own -- suppress cse's rebase of the
  * walk pointer's increment onto `o`.  Both cheap dimensions beside it are now
  * measured shut, which raises the value of that one question.
+ *  
  */
 struct Sprite {
     unsigned char pad00[5];
@@ -246,6 +324,7 @@ void Func_8096ddc(struct Actor *e)
         if (o == 0)
             continue;
         o->f14 = e->f14;
+        do { } while (0);
         s = o->f50;
         q = (unsigned char *)o + 0x55;
         ((struct B1 *)q)->v = 0;

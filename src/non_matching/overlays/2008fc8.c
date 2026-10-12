@@ -1,4 +1,94 @@
-/* OvlFunc_903_2008fc8 -- 0x02008fc8,
+/* OvlFunc_903_2008fc8 -- NON-MATCHING, 31 differing STREAM encodings of 87.
+ *
+ * BODY RECOVERED FROM scratch/ (batch 338).  This park was PROSE -- a header,
+ * a diagnosis, and no compilable body -- so it had no figure, was NO CLAIM in
+ * parkcheck, and was unrankable in every band.  But its own header named a
+ * candidate at scratch/hold_2008fc8.c, that file still existed, and it
+ * compiles.  The work had been done and left in a GITIGNORED directory instead
+ * of installed, so nothing in the tree could see it.
+ *
+ * ref 87 / ours 87 stream encodings; 79/79 16-bit instructions -- IN PHASE, so a true DISTANCE.
+ *
+ * Verify with:
+ *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
+ *     goldensun-build python3 tools/objcmp.py src/non_matching/overlays/2008fc8.c \
+ *     asm/overlays/rom_798dc4/ovl_314_c_c_c_c_b.s --func OvlFunc_903_2008fc8
+ *
+ * 70 of the 133 prose parks were in this state; tools/scratchfill.py found them.
+ * THE FIGURE IS EVIDENCE; the prose below it is a HYPOTHESIS, and across pass
+ * two a park's stated blocker has been wrong roughly 40 times in 42.  The
+ * original park text is preserved underneath.
+ */
+extern unsigned char *__GetUnit(int i);
+extern int __GiveItemTo(int who, int item);
+extern unsigned char *__GetItemInfo(int id);
+extern void __Func_8078948(int who, int slot);
+extern void __EquipItem(int who, int slot);
+
+void OvlFunc_903_2008fc8(void)
+{
+    unsigned char *unit;
+    unsigned char *p;
+    unsigned char *info;
+    int n, j, item, mask, v, z;
+    unsigned char *q;
+
+    item = 0x41;
+    unit = __GetUnit(2);
+    n = 0;
+top:
+    n = n + 1;
+    if (n > 0xfa << 2) {
+        q = unit;
+        q += 0xf4;
+        z = 0;
+        *(unsigned short *)q = z;
+    }
+    if (__GiveItemTo(2, 0x41) == -1) {
+        p = unit;
+        j = 0;
+        p += 0xd8;
+    l1:
+        info = __GetItemInfo(*(unsigned short *)p);
+        p += 2;
+        if (info[2] == 1)
+            goto found;
+        j++;
+        if (j <= 0xe)
+            goto l1;
+        p = unit;
+        mask = 0x8ff;
+        j = 0;
+        p += 0xd8;
+    l2:
+        info = __GetItemInfo(*(unsigned short *)p);
+        if ((*(unsigned short *)(info + 2) & mask) == 0 && info[0xc] == 1) {
+        found:
+            __Func_8078948(2, j);
+            goto top;
+        }
+        j++;
+        p += 2;
+        if (j > 0xe)
+            goto top;
+        goto l2;
+    }
+    p = unit;
+    j = 0;
+    p += 0xd8;
+l3:
+    v = *(unsigned short *)p;
+    p += 2;
+    if (v == item)
+        __EquipItem(2, j);
+    j++;
+    if (j <= 0xe)
+        goto l3;
+}
+
+#if 0
+/* ===== ORIGINAL PROSE PARK, PRESERVED =====
+(* OvlFunc_903_2008fc8 -- 0x02008fc8,
  * asm/overlays/rom_798dc4/ovl_314_c_c_c_c_b.s
  *
  * FAKEMATCH, and a more alarming one than DecodeMetatileset because it passed
@@ -29,4 +119,7 @@
  * byte-neutral with the function still in asm BEFORE any .c was introduced,
  * which is what let the fakematch be attributed to the C rather than to the
  * layout.  Do that check in that order every time.
- */
+ *)
+
+*/
+#endif

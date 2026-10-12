@@ -1,4 +1,75 @@
-/* OvlFunc_943_2009684 -- 0x02009684, asm/overlays/rom_7c7b9c/ovl_30_c_a_a_c_a_c_a_c_a_c_a.s
+/* OvlFunc_943_2009684 -- NON-MATCHING, 16 differing STREAM encodings of 111.
+ *
+ * BODY RECOVERED FROM scratch/ (batch 338).  This park was PROSE -- a header,
+ * a diagnosis, and no compilable body -- so it had no figure, was NO CLAIM in
+ * parkcheck, and was unrankable in every band.  But its own header named a
+ * candidate at scratch/Y9684_F.c, that file still existed, and it
+ * compiles.  The work had been done and left in a GITIGNORED directory instead
+ * of installed, so nothing in the tree could see it.
+ *
+ * ref 111 / ours 111 stream encodings; 80/80 16-bit instructions -- IN PHASE, so a true DISTANCE.
+ *
+ * Verify with:
+ *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
+ *     goldensun-build python3 tools/objcmp.py src/non_matching/ovl_7c7b9c/2009684.c \
+ *     asm/overlays/rom_7c7b9c/ovl_30_c_a_a_c_a_c_a_c_a_c_a_a_a_c.s --func OvlFunc_943_2009684
+ *
+ * 70 of the 133 prose parks were in this state; tools/scratchfill.py found them.
+ * THE FIGURE IS EVIDENCE; the prose below it is a HYPOTHESIS, and across pass
+ * two a park's stated blocker has been wrong roughly 40 times in 42.  The
+ * original park text is preserved underneath.
+ */
+extern unsigned char gScript_943__0200c4d8[];
+
+extern int __GetFlag(int id);
+extern unsigned int __Random(void);
+extern unsigned char *__MapActor_GetActor(int slot);
+extern void __MapActor_SetPos(int slot, int x, int y);
+extern void __MapActor_SetBehavior(int slot, unsigned char *s);
+extern void __Func_8092b08(int a, int b);
+
+void OvlFunc_943_2009684(void)
+{
+    unsigned char *q;
+    unsigned char *s;
+    int f;
+    int v;
+
+    __Func_8092b08(0x1b, 1);
+    __Func_8092b08(0x17, 1);
+    __Func_8092b08(0x16, 1);
+    __Func_8092b08(0x1a, 1);
+    __Func_8092b08(0x18, 1);
+    if (__GetFlag(0x92 << 4)) {
+        __MapActor_SetPos(0x16, 0xa2 << 16, 0x29a0000);
+        v = 0x80 << 8;
+        *(unsigned short *)(__MapActor_GetActor(0x16) + 6) = v;
+        __MapActor_SetPos(0x17, 0, 0);
+        __MapActor_SetPos(0x14, 0, 0);
+    }
+    f = __GetFlag(0x922);
+    if (f != 0) {
+        __MapActor_SetPos(0x15, 0x84 << 17, 0x2be0000);
+        v = 0xa0 << 7;
+        *(unsigned short *)(__MapActor_GetActor(0x15) + 6) = v;
+        q = __MapActor_GetActor(0x15);
+        s = gScript_943__0200c4d8;
+        *(short *)(q + 0x64) = __Random() % 0x5a + 0x3c;
+        __MapActor_SetBehavior(0x15, s);
+        __MapActor_SetPos(0x18, 0xf8 << 16, 0xaa << 18);
+        q = __MapActor_GetActor(0x18);
+        *(short *)(q + 0x64) = __Random() % 0x5a + 0x3c;
+        __MapActor_SetBehavior(0x18, s);
+        __MapActor_SetPos(0x16, 0, 0);
+    } else if (__GetFlag(0x923)) {
+        __MapActor_SetPos(0x14, 0xf6 << 16, 0x80 << 18);
+        *(short *)(__MapActor_GetActor(0x14) + 6) = f;
+    }
+}
+
+#if 0
+/* ===== ORIGINAL PROSE PARK, PRESERVED =====
+(* OvlFunc_943_2009684 -- 0x02009684, asm/overlays/rom_7c7b9c/ovl_30_c_a_a_c_a_c_a_c_a_c_a.s
  *
  * 109 of 109 lines, 17 differing -- of which TWO are not real: `bl __umodsi3`
  * against the ROM's `bl _umodsi3_RAM` is the linker alias this overlay already
@@ -39,4 +110,7 @@
  * ALSO LEFT: the argument-setup interleave at the last __MapActor_SetPos, and
  * the placement of the gScript pool load relative to `mov r5, r0`.  Those are
  * downstream of the register question and are not worth attacking until it moves.
- */
+ *)
+
+*/
+#endif

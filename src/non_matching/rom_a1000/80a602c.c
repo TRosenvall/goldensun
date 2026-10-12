@@ -1,4 +1,4 @@
-/* Func_80a602c -- 0x080a602c, asm/rom_a1000/rom_a5534_c_a_a.s (6 functions).
+/* Func_80a602c -- 0x080a602c, asm/rom_a1000/rom_a5534_c_a_a_c.s (6 functions).
  *
  * NON-MATCHING, 72 of 76 encodings  (MEASURED, batch 319 recipe backfill).
  *   COUNT DIFFERS (ref 76, ours 78) -- so this positional figure measures
@@ -12,7 +12,7 @@
  *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
  *     goldensun-build python3 tools/objcmp.py \
  *     src/non_matching/rom_a1000/80a602c.c \
- *     asm/rom_a1000/rom_a5534_c_a_a.s --func Func_80a602c
+ *     asm/rom_a1000/rom_a5534_c_a_a_c.s --func Func_80a602c
  *
  * This recipe was ADDED by the batch-319 backfill: the park had none, so
  * parkcheck.py could not report its figure and nothing had ever checked it.

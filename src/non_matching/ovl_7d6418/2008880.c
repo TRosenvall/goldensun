@@ -1,4 +1,58 @@
-/* OvlFunc_951_2008880 -- asm/overlays/rom_7d6418/ovl_30_c_c_c_a_c_a.s
+/* OvlFunc_951_2008880 -- NON-MATCHING, 4 differing STREAM encodings of 51.
+ *
+ * BODY RECOVERED FROM scratch/ (batch 338).  This park was PROSE -- a header,
+ * a diagnosis, and no compilable body -- so it had no figure, was NO CLAIM in
+ * parkcheck, and was unrankable in every band.  But its own header named a
+ * candidate at scratch_elev/b272/B/BEST_OvlFunc_951_2008880.c, that file still existed, and it
+ * compiles.  The work had been done and left in a GITIGNORED directory instead
+ * of installed, so nothing in the tree could see it.
+ *
+ * ref 51 / ours 51 stream encodings; 42/42 16-bit instructions -- IN PHASE, so a true DISTANCE.
+ *
+ * Verify with:
+ *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
+ *     goldensun-build python3 tools/objcmp.py src/non_matching/ovl_7d6418/2008880.c \
+ *     asm/overlays/rom_7d6418/ovl_30_c_c_c_a_c_a_a_a_c.s --func OvlFunc_951_2008880
+ *
+ * 70 of the 133 prose parks were in this state; tools/scratchfill.py found them.
+ * THE FIGURE IS EVIDENCE; the prose below it is a HYPOTHESIS, and across pass
+ * two a park's stated blocker has been wrong roughly 40 times in 42.  The
+ * original park text is preserved underneath.
+ */
+#include "gba/io.h"
+
+extern unsigned char *iwram_3001e70;
+extern unsigned short L1fc0[] __asm__(".L1fc0");
+extern void __PlaySound(int id);
+extern void __WaitFrames(int n);
+
+void OvlFunc_951_2008880(void)
+{
+    unsigned char *p;
+    unsigned short *t;
+    int i, v;
+
+    p = iwram_3001e70;
+    __PlaySound(0xd8);
+    p += 0x164;
+    for (i = 15; i >= 0; i--) {
+        *(int *)(p + 0xc) -= 0x10000;
+        __WaitFrames(4);
+    }
+    v = 0x3f42;
+    t = L1fc0;
+    i = 7;
+    do {
+        REG_BLDCNT = v;
+        REG_BLDALPHA = *t++;
+        i--;
+        __WaitFrames(8);
+    } while (i >= 0);
+}
+
+#if 0
+/* ===== ORIGINAL PROSE PARK, PRESERVED =====
+(* OvlFunc_951_2008880 -- asm/overlays/rom_7d6418/ovl_30_c_c_c_a_c_a.s
  *
  * BLOCKER: INSTRUCTION SCHEDULING (two adjacent swaps in one loop)
  *
@@ -13,9 +67,9 @@
  * preheader assignments; swapping i-- and t++; a named int d = 8 for the
  * __WaitFrames argument; -fno-rerun-cse-after-loop, -fno-schedule-insns,
  * -fno-strength-reduce, -fno-gcse.  Best is 4.
- */
+ *)
 
-/* ==================== BATCH 272: UNREACHABLE, WITH THE ARITHMETIC ====================
+(* ==================== BATCH 272: UNREACHABLE, WITH THE ARITHMETIC ====================
  *
  * Still 4 of 47, but reached from a BETTER-CONDITIONED shape -- prologue, both
  * pool-load orders, the whole first loop and the epilogue are byte-exact, and the
@@ -84,4 +138,7 @@
  * though the elevated sibling in the same directory calls it `__CutsceneWait`.
  *
  * DO NOT SWEEP THIS AGAIN without a compiler-side change.
- */
+ *)
+
+*/
+#endif

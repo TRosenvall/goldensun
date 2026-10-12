@@ -1,4 +1,93 @@
-/* OvlFunc_943_20090a0 -- 0x020090a0, asm/overlays/rom_7c7b9c/ovl_30_c_a_a_c_a_c_a_c_a_a.s
+/* OvlFunc_943_20090a0 -- NON-MATCHING, 2 differing STREAM encodings of 112.
+ *
+ * BODY RECOVERED FROM scratch/ (batch 338).  This park was PROSE -- a header,
+ * a diagnosis, and no compilable body -- so it had no figure, was NO CLAIM in
+ * parkcheck, and was unrankable in every band.  But its own header named a
+ * candidate at scratch/W90a0_D.c, that file still existed, and it
+ * compiles.  The work had been done and left in a GITIGNORED directory instead
+ * of installed, so nothing in the tree could see it.
+ *
+ * ref 112 / ours 112 stream encodings; 75/75 16-bit instructions -- IN PHASE, so a true DISTANCE.
+ *
+ * Verify with:
+ *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
+ *     goldensun-build python3 tools/objcmp.py src/non_matching/ovl_7c7b9c/20090a0.c \
+ *     asm/overlays/rom_7c7b9c/ovl_30_c_a_a_c_a_c_a_c_a_a_a_c.s --func OvlFunc_943_20090a0
+ *
+ * 70 of the 133 prose parks were in this state; tools/scratchfill.py found them.
+ * THE FIGURE IS EVIDENCE; the prose below it is a HYPOTHESIS, and across pass
+ * two a park's stated blocker has been wrong roughly 40 times in 42.  The
+ * original park text is preserved underneath.
+ */
+extern int __GetFlag(int id);
+extern void __CutsceneStart(void);
+extern void __CutsceneEnd(void);
+extern void __CutsceneWait(int n);
+extern unsigned char *__MapActor_GetActor(int slot);
+extern void __MapActor_SetSpeed(int slot, int a, int b);
+extern void __MapActor_SetPos(int slot, int x, int y);
+extern void __MapActor_Emote(int slot, int a, int b);
+extern void __Func_808e118(void);
+extern void __Func_80921c4(int a, int b, int c);
+extern void __Func_809259c(int a, int b);
+extern void __Func_8092adc(int a, int b, int c);
+extern void OvlFunc_943_20092f0(void);
+extern void OvlFunc_943_200b9ec(int slot);
+
+void OvlFunc_943_20090a0(void)
+{
+    unsigned char *p;
+    int m;
+    int b;
+    int s1, s2, t1, u1, v1, w1, w2, e1;
+
+    s1 = 0x33333;
+    s2 = 0x19999;
+    t1 = 0x30a;
+    u1 = 0xc9 << 2;
+    v1 = 0xaf << 2;
+    w1 = 0xf6 << 16;
+    w2 = 0x80 << 18;
+    e1 = 0x101;
+    if (__GetFlag(0x911)) {
+        if (__GetFlag(0x922) == 0) {
+            __CutsceneStart();
+            __Func_808e118();
+            OvlFunc_943_20092f0();
+            __MapActor_SetSpeed(0x14, 0x6666, 0x3333);
+            p = __MapActor_GetActor(0x14) + 0x5a;
+            m = 0xfe;
+            *p = m & *p;
+            __Func_80921c4(0x14, 0xe8, 0xcc << 2);
+            __CutsceneWait(1);
+            p = __MapActor_GetActor(0x14) + 0x5a;
+            b = 1;
+            *p = *p | b;
+            __CutsceneWait(0x14);
+            __Func_809259c(0x14, 2);
+            OvlFunc_943_200b9ec(0x14);
+            __MapActor_SetSpeed(0x14, 0x13333, 0x9999);
+            p = __MapActor_GetActor(0x14) + 0x5a;
+            *p = m & *p;
+            __Func_80921c4(0x14, 0xf4, u1);
+            __CutsceneWait(1);
+            p = __MapActor_GetActor(0x14) + 0x5a;
+            *p = *p | b;
+            __CutsceneWait(0x14);
+            __MapActor_SetSpeed(0x14, s1, s2);
+            __Func_80921c4(0x14, 0xf8, t1);
+            __Func_80921c4(0x14, 0xf8, v1);
+            __MapActor_SetPos(0x14, w1, w2);
+            __Func_8092adc(0x14, 0, 0);
+            __MapActor_Emote(0, e1, 0x3c);
+            __CutsceneEnd();
+        }
+    }
+}
+
+#if 0
+/* ===== ORIGINAL PROSE PARK, PRESERVED =====
+(* OvlFunc_943_20090a0 -- 0x020090a0, asm/overlays/rom_7c7b9c/ovl_30_c_a_a_c_a_c_a_c_a_a.s
  * Twin of OvlFunc_943_20091c8 -- 0x020091c8, SAME .s file.
  *
  * A clean twin family: the two differ in FOUR immediates (0xe8/0xca, 0xf4/0xc0,
@@ -39,4 +128,7 @@
  *
  * Same class as 200a5c0.c, where seven spellings also failed.  Do not spend a
  * round on it; the note above about the mask is the new information.
- */
+ *)
+
+*/
+#endif

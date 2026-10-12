@@ -1,9 +1,10 @@
-/* Func_80788c4 (0x080788c4) -- NON-MATCHING.
+/* Func_80788c4 (0x080788c4) -- asm/rom_77000/rom_78414_c_c_a_c_a_c_c_c.s
  *
- * NON-MATCHING, 14 of 62 encodings  (MEASURED, batch 332 D).
+ * NON-MATCHING, 8 of 62 encodings  (MEASURED, batch 338 C).  Was 14 of 62.
  *   SIZE EXACT: 132 bytes both sides, 62 encodings both sides, 57 instructions
- *   both sides.  Relocations identical.  So this figure IS A DISTANCE; the
- *   park's older claim was not, and is retracted below.
+ *   both sides, relocations identical.  THE FIGURE IS A DISTANCE -- batch 332
+ *   D's claim that the lengths agree was re-verified at the head of batch 338
+ *   and holds.
  *
  * Verify with:
  *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
@@ -11,168 +12,168 @@
  *     src/non_matching/rom_77000/80788c4.c \
  *     asm/rom_77000/rom_78414_c_c_a_c_a_c_c_c.s --func Func_80788c4
  *
- * PINS: 0.  No shim, no fakematch row, no flag group.  No device.
- * PIECE: shares asm/rom_77000/rom_78414_c_c_a_c_a_c_c_c.s with Func_8078870,
- * which is held at five.  Both have to land before the piece can convert, and
- * at these two figures a split is not worth taking.
+ * PINS: 0.  shimcount.py prints no rows.  No flag group, no fakematch row, no
+ * device.  PIECE: tools/piece.py at the head of batch 338 -- this function is
+ * the ONLY member of the reference .s, confirming batch 335 A's note and
+ * RETIRING the older header line about Func_8078870 having to land first.
+ *
+ * ===========================================================================
+ * WHAT BATCH 338 C CHANGED: 14 -> 8, AND THE COMPACTION LOOP IS NOW EXACT
+ *
+ * The 14 split 7/7 between the two loops, not 8/6 as the old header's (a)/(b)
+ * guessed, and the whole of it was register fields -- the batch-335 addendum
+ * was right and the older line (b) claiming "plus one opcode: the reference
+ * brings its zero in through a word-sized pool load and we bring it in through
+ * a halfword one" IS REFUTED.  Both sides emit `ldr rN, [pc, #16]` off the same
+ * `.word 0x00000000`; only the destination register differed.  (The underlying
+ * fact is still worth keeping: a HImode constant HAS no `mov Rd,#imm`
+ * alternative in Thumb, so it always reaches its register through the minipool.
+ * That is why a zero is pooled here at all, on both sides.)
+ *
+ * THE LEVER: REUSE `i`, THE COMPACTION COUNTER, AS THE ZERO-FILL COUNTER.
+ *
+ *     if (n <= 0xe) {
+ *         p = base + n;
+ *         i = 0xf - n;            <-- was a separate `k`
+ *         do { i--; *p++ = 0; } while (i != 0);
+ *     }
+ *
+ * This closes all seven of the compaction loop's differences -- indices 26-40
+ * are now byte-identical, including the `src` / counter exchange the old header
+ * called (a) and left as the next question.  IT IS NOT A LIFETIME TRICK IN THE
+ * COMPACTION LOOP AT ALL; it is a priority change in `allocno_compare`
+ * (global.c:598-620), measured from `-da`'s `.17.lreg` (`dump_flow_info`,
+ * flow.c:5743-5756) and `.18.greg` (`dump_conflicts`, global.c:1862):
+ *
+ *   PARKED BODY   i   = reg 44, 7 refs / 22 insns -> pri 2*7/22*10000 =  6363
+ *                 src = reg 36, 7 refs / 13 insns -> pri 2*7/13*10000 = 10769
+ *                 dst = reg 37, 7 refs / 12 insns -> pri 2*7/12*10000 = 11666
+ *     allocno_order `55 45 38 37 42 36 49 34 40 44 43 41 35 63 32`
+ *     -- src and dst are allocated 4th and 6th and take r0/r1; i is 10th and
+ *     is left r4, which is the exchange, because REG_ALLOC_ORDER reaches
+ *     3, 2, 1, 0, 12, 14, 4, 5, ... (arm.h:989-995) and r4 is call-used here.
+ *
+ *   THIS BODY     i absorbs k's references and its live range spans both
+ *     loops, so its priority rises past both cursors and it is allocated 4th:
+ *     allocno_order `55 38 37 44 42 36 49 34 40 43 41 35 63 32` -- i takes r0,
+ *     src is pushed to r4, and the reference's assignment falls out whole.
+ *
+ * `src` is live only over the FIRST block of the loop body (it dies at
+ * `adds src, #2`), while the counter is live over all three, which is exactly
+ * why the counter loses the sort on equal reference counts.  Worth knowing as
+ * a shape: **a cursor that dies early in a loop body outranks the counter that
+ * spans it, so the counter gets the late register unless something lengthens
+ * the cursor or widens the counter.**
  *
  * ---------------------------------------------------------------------------
- * THE SUPERSEDED CLAIM AND WHAT REPLACED IT
+ * WHAT THE REMAINING EIGHT ARE -- one three-register rotation, 9 instructions
  *
- * This park used to claim thirty-nine differing of sixty-two with the
- * reference one instruction LONGER, so that count was comparing two streams
- * out of phase and was measuring the offset, not the decisions.  The one
- * missing instruction was the compaction loop's widening shift, exactly where
- * the park said it was:
+ *   rom   lsl r3, r5, #1 / add r0, r3, r6 / ldr r2, =0 / mov r3, #15
+ *           / sub r5, r3, r5 / sub r5, #1
+ *           / strh r2, [r0] / add r0, #2 / cmp r5, #0 / bne
+ *   ours  lsl r3, r5, #1 / add r2, r6, r3 / mov r3, #15 / sub r0, r3, r5
+ *           / ldr r3, =0 / sub r0, #1
+ *           / strh r3, [r2] / add r2, #2 / cmp r0, #0 / bne
  *
- *     rom    ldrh r2, [r4] / lsl r3, r2, #16 / add r4, #2 / cmp r3, #0
- *     old    ldrh r3, [r1] / add r1, #2 / cmp r3, #0
+ * So: p is r0 in the reference and r2 here; the pooled zero is r2 there and r3
+ * here; the counter is **r5 -- `n`'s own register** there and r0 here.  `n` is
+ * r5 on both sides and dies at the subtract, so the reference's
+ * `sub r5, r3, r5` writes the trip count back into the register it just freed.
  *
- * The park's verdict was that gcc knows the loaded value's range and folds a
- * narrowing shift before a zero test, that this is the same wall as
- * rom_15000/801f730.c one width up, and that there is therefore nothing
- * source-level.  THE FOLD IS REAL AND THE BOUND IS NOT.
- *
- * THE FOLD, WITH ITS GATE NAMED.  combine.c:10749-10774 is simplify_comparison's
- * ASHIFT case: a comparison of a left shift against zero becomes a comparison
- * of the shift's operand only when nonzero_bits of that operand fits the
- * shifted mask (the test is at :10763-10765).  A halfword load zero-extends,
- * so for any value living in an `int` gcc can always prove the fit and the
- * shift always dies.  Confirmed here against the compiler, EXACTLY INERT at
- * the old body's length, every one of them:
- *
- *     a cast of the int to unsigned short before the test        INERT
- *     a cast to short, and to signed short                       INERT
- *     either cast used as the whole condition                    INERT
- *     an explicit shift left by sixteen as the condition         INERT
- *     that shift compared against zero                           INERT
- *     a multiply by the same power of two                        INERT
- *     a mask with the low sixteen bits                           INERT
- *
- * So the park was right that no SPELLING OF THE TEST defeats the fold, and
- * wrong that nothing does.  What defeats it is THE TYPE OF THE HOLDER, because
- * nonzero_bits is a property of the value's definition, not of the comparison.
- *
- * TWO COMPILER FACTS DECIDE IT, AND THEY PULL AGAINST EACH OTHER.
- *
- *   * arm.h:597-606 defines PROMOTE_MODE, and for HImode it sets the
- *     unsignedness from TARGET_MMU_TRAPS, which this object does not enable.
- *     So EVERY DECLARED HALFWORD LOCAL is promoted to a word with a SIGN
- *     extension regardless of how it was declared.  That does produce the
- *     shift -- but the load becomes a sign-extending one, and Thumb-1's
- *     sign-extending halfword load has no immediate-offset form, so
- *     arm.md:3239 with :3289 emits a scratch move alongside it.  Net cost one
- *     instruction, so a halfword local lands one instruction LONG rather than
- *     one short.  Measured: a halfword local reads the reference's length plus
- *     one, in five spellings.
- *
- *   * explow.c:896-913 is promote_mode, and only the scalar type codes reach
- *     PROMOTE_MODE at :898-901; RECORD, UNION and ARRAY fall out of the
- *     default arm at :912 UNPROMOTED.  So a one-member aggregate holds the
- *     halfword in a pseudo of its own width, which is the thing a declared
- *     local cannot be.
- *
- * AND THE FIELD'S SIGNEDNESS DECIDES WHICH WAY COMBINE FOLDS.  With an
- * unsigned field the widening pair is a zero extension, combine collapses it
- * to a bare subreg copy and the reference's shift becomes a register move --
- * right length, wrong opcode.  With a SIGNED field the pair is a sign
- * extension, which does not collapse, so combine cannot merge the two insns
- * and instead reaches the comparison, where the ASHIFT gate above fails and
- * only the RIGHT shift is dropped.  What survives is the reference's
- * `ldrh / lsl #16 / add / cmp` byte for byte, including the pointer increment
- * sitting between the shift and the compare.
- *
- * The aggregate is doing real work and is not a device -- its member is read
- * and written and nothing fictitious ships -- but it IS the load-bearing part
- * of this body, and anyone landing this function should say so.  Note also
- * that the structure size boundary is a word by default (arm.h:686-701, and
- * only a command-line option moves it), so the aggregate must be used as a
- * HOLDER ONLY: the cursors have to stay halfword pointers or the stride
- * becomes four and the program is wrong.  That mistake measures the right
- * length and is worth knowing about.
+ * WHERE THE BOUND IS, WITH THE ARITHMETIC.  For `p` to be handed r0 the three
+ * registers REG_ALLOC_ORDER reaches first (r3, r2, r1) must all already
+ * conflict with it when `find_reg` runs.  r3 does: the literal 15 is
+ * block-local, so local-alloc hands it r3 before global-alloc starts.  r2 does
+ * NOT here, because the pooled zero (reg 63, 3 refs / 10 insns -> pri 1*3/10
+ * *10000 = 1000) is allocated THIRTEENTH of fifteen, long after p (reg 38,
+ * 7 refs / 9 insns -> 15555, allocated second).  For the zero to take r2 ahead
+ * of p it would need pri > 15555, i.e. four references inside five insns --
+ * it has three inside ten, and loading it inside the loop to raise the count
+ * costs an instruction.  So **this residue is not reachable by changing the
+ * zero**, and the open question is whether anything makes `p` sort late or
+ * makes `dst`'s r1 conflict with it.
  *
  * ---------------------------------------------------------------------------
- * WHAT THE REMAINING FOURTEEN ARE
+ * MEASURED IN BATCH 338 C, all 62 encodings and 57 instructions unless noted
  *
- *   (a) a src-against-counter register swap in the compaction loop.  The
- *       reference holds the source cursor in r4 and the countdown in r0; we
- *       hold them the other way round.  The destination cursor and the kept
- *       count already match.
- *   (b) the same rotation through the tail-zeroing loop, plus one opcode: the
- *       reference brings its zero in through a word-sized pool load and we
- *       bring it in through a halfword one.  arm.md:3037-3038 and :3258 both
- *       return the word load for a label address, so the reference's zero
- *       reaches its register as a WIDENED halfword constant; ours is a plain
- *       halfword move, and arm.md:4348 returns the halfword load there with no
- *       choice in it.  Same length, one differing encoding, and it is a
- *       separate question from (a).
+ *    8  THIS BODY
+ *    8  `p = n + base;` (the add's operands written the other way)    INERT
+ *    8  `*p = 0; p++;` split out of `*p++ = 0`                        INERT
+ *    8  the zero-fill cursor taken from `dst` instead of a fresh `p`  INERT
+ *   14  THE PARKED BODY (separate `k`)
+ *   14  the zero-fill counter taken from `v` instead of `i`
+ *   14  a `q = base;` copy inserted at each of five boundaries in the
+ *       else branch -- cse2 removes all five, no allocno appears
+ *   14  `p = (unsigned short *)((unsigned char *)base + n * 2)`
+ *   14  `p = &base[n]`
+ *   15  `i = 0xf - n;` written BEFORE `p = base + n;`
+ *   15  `i` counter with the store and increment split
+ *   16  the counter as `0xe - n` with a `>= 0` test
+ *   18  the zero-fill counter taken from `n` IN PLACE (`n = 0xf - n`) --
+ *       this gets the reference's `sub r5, r3, r5` but gives back the whole
+ *       compaction loop, because i's priority falls to 6363 again.  THE TWO
+ *       HALVES PULL AGAINST EACH OTHER THROUGH ONE SORT.
+ *   18  ... the same with the store before the decrement
+ *   18  ... the same plus `i = n;` kept alive in the tail
+ *   18  the zero-fill as `for (i = n; i <= 0xe; i++) base[i] = 0;`  (58 insns)
+ *   18  ... as a `while` (58 insns)
+ *   19  ... as `for (k = n; ...)` (58 insns)
+ *   19  `i = n; n = 0xf - n; p = base + i;` (58 insns)
+ *   20  ... the index loop with no `if` guard (58 insns)
+ *   21  the zero-fill cursor taken from `src` with `n` as the counter
+ *   22  `p = base + n; i = n; do { i++; ... } while (i <= 0xe);` (56 insns)
+ *   23  the index-loop zero-fill as a do/while (56 insns)
+ *   30  the index-loop zero-fill with the guard inside (56 insns)
+ *   42  the zero-fill cursor left as `dst` where it already stands -- drops
+ *       the reference's `lsl`/`add`, 53 instructions, A DIFFERENT PROGRAM
+ *       SHAPE and not a candidate
+ *   45  the zero named in an `int` or an `unsigned short` local (56 insns)
+ *   64  `off = n * 2` named and the cursor built from it (61 insns)
+ *   65  `src++` moved to the bottom of the compaction body (62 insns)
  *
- * MEASURED IN BATCH 332 D, all at the reference's length unless marked:
- *   14   THIS BODY -- the four cursor inits as count, source, destination,
- *        counter
- *   17   the same four as source, count, destination, counter
- *   18   fourteen other orderings of those four
- *   20   the remaining six orderings
- *   14   all 24 permutations of the four pointer declarations -- EXACTLY FLAT
- *   14   all 720 permutations of the six integer declarations -- EXACTLY FLAT
- *   18   the aggregate's field left unsigned (the collapse described above)
- *   +1   a halfword local instead of the aggregate, five spellings, all one
- *        instruction LONG
- *
- * The two declaration sweeps are 744 rows and they are the useful negative:
- * declaration order is not a dimension in this function at all, and the
- * initialisation order is worth three.
- *
- * STILL RIGHT AND KEPT, from the park: the quantity decrement through the
- * packed high bits, the register-offset load and store at the slot's byte
- * offset, the three return values reaching one shared CalcStats tail through a
- * single result variable, the fifteen-iteration compaction with separate
- * cursors, and the tail-zeroing loop's counted form.
- *
- * NEXT: (a) is a live-range question of the same shape as the one in
- * src/non_matching/rom_77000/8079664.c -- see that park's note on
- * global.c:598-621, which is the sort that decides both.  Do not spend a round
- * on declaration order; that product is exhausted above.
+ * AUTOSWEEP (batch 338, recorded negatives on the PARKED body -- do not
+ * re-screen): flags -fno-gcse, -fno-strict-aliasing, -fno-strength-reduce,
+ * -fno-rerun-cse-after-loop, -fno-rerun-loop-opt all INERT at 14;
+ * -fno-schedule-insns2 20, -O1 51, -ffixed-r7 65 with the length broken.
+ * Anchor axis, 18 top-level boundaries: all inert at 14.
  *
  * ---------------------------------------------------------------------------
- * BATCH 335 A.  FIGURE RE-DERIVED AND UNCHANGED AT THE CLAIM ABOVE, BODY
- * UNTOUCHED -- BUT THE PIECE HAS BEEN SPLIT AND THIS IS NOW THE ONLY PARK IN IT.
+ * EVERYTHING BELOW IS CARRIED FORWARD FROM THE PARK AND STILL HOLDS
  *
- * TWO THINGS A READER NEEDS BEFORE ANYTHING ELSE.
+ * THE ONE-MEMBER AGGREGATE `struct Held w` IS LOAD-BEARING and must not be
+ * simplified to a declared halfword local.  simplify_comparison's ASHIFT case
+ * (combine.c:10749-10774, the fit test at :10763-10765) folds a shift-against-
+ * zero away whenever nonzero_bits of the operand fits the shifted mask, and no
+ * SPELLING OF THE TEST defeats it (casts to unsigned short / short / signed
+ * short, either cast as the whole condition, an explicit `<< 16`, that shift
+ * compared against zero, a multiply by the same power of two, a low-16 mask --
+ * all measured EXACTLY INERT).  What defeats it is THE TYPE OF THE HOLDER:
+ * arm.h:597-606's PROMOTE_MODE widens every declared HImode local to a word
+ * with a SIGN extension (TARGET_MMU_TRAPS is off here), and Thumb-1's
+ * sign-extending halfword load has no immediate-offset form, so arm.md:3239
+ * with :3289 emits a scratch move beside it -- a halfword local therefore lands
+ * one instruction LONG, in five spellings.  explow.c:896-913's promote_mode
+ * reaches PROMOTE_MODE only for the scalar type codes at :898-901; RECORD,
+ * UNION and ARRAY fall through at :912 UNPROMOTED, so a one-member aggregate
+ * is the only way to hold the halfword in a pseudo of its own width.  The
+ * field must stay SIGNED: unsigned makes the widening pair a zero extension,
+ * combine collapses it to a subreg copy, and the reference's `lsl` becomes a
+ * register move (18 differing).  The aggregate is used as a HOLDER ONLY -- the
+ * cursors stay halfword pointers, because the structure size boundary is a
+ * word (arm.h:686-701) and making them `struct Held *` gives a stride of four
+ * and a wrong program that still measures the right length.
  *
- * (1) THE PIECE-MATE Func_8078870 MATCHES.  Its park's "language-level bound"
- * -- that no C spelling of its 0x200 mask can be both narrow enough to keep
- * three `ldrh` and durable enough as a pseudo to fix the prologue order -- was
- * refuted this batch by the one-member-aggregate escape that park itself had
- * written down as an untried dimension, which is the same construct THIS body
- * already uses for `struct Held w`.  So the first function in
- * asm/rom_77000/rom_78414_c_c_a_c_a_c_c_c.s landed on its own and the file was
- * split: _b.s carried Func_8078870 away (now src/rom_77000/
- * rom_78414_c_c_a_c_a_c_c_b.c) and _c.s holds Func_80788c4 alone.  The recipe
- * above names the pre-split path, so it is repointed by tools/repoint_parks.py.
- * THE "both functions must land for this piece to convert" COUPLING IS GONE:
- * this park is now a single function in its own piece and lands the moment its
- * residue closes.
+ * ALSO STILL RIGHT: the quantity decrement through the packed high bits, the
+ * register-offset load and store at the slot's byte offset, the three return
+ * values reaching one shared CalcStats tail through a single result variable,
+ * the fifteen-iteration compaction with separate cursors, and the tail loop's
+ * counted form.  Batch 332 D's 744-row declaration sweeps (24 pointer
+ * permutations and 720 integer permutations, both EXACTLY FLAT) stay closed;
+ * initialisation order is worth three (14 / 17 / 18 / 20) and is also closed.
  *
- * (2) THE BATCH-335 BRIEF HANDED THIS OUT AS THIRTY-NINE ON STREAMS ONE
- * INSTRUCTION APART.  It is not; the claim at the top of this header is right
- * and measures exactly, lengths equal and instruction counts equal both sides.
- * That stale pair presumably predates the batch-332 re-pricing.  Measure before
- * believing any figure quoted for this function outside this file.
- *
- * NOTHING ELSE HERE IS NEW AND NOTHING IS REFUTED.  The declaration-order
- * product really is exhausted -- the two sweeps in this header are the reason
- * not to re-run it -- and the residue is still what (a) says: the whole
- * compaction loop's register assignment is a permutation of the reference's,
- * with the roles of the source cursor and the loop counter exchanged and the
- * tail loop's cursor, counter and pooled zero rotated with them.  Every one of
- * the differing encodings is the same opcode with different register fields,
- * which is the signature of an allocation question and not a spelling one.
- * The brief's own general levers were checked against that and none applies:
- * there is no length gap to find, no missing statement to add, and the
- * empty-asm barrier that closed three functions in this family and both
- * functions of the rom_c0 piece this batch cannot help, because a barrier
- * reorders insns and this residue does not need any insn moved.
+ * NEXT: `p`'s allocation order, per the bound above.  The compaction loop is
+ * finished and should not be touched -- any change that shortens `i`'s live
+ * range or its reference count gives it straight back.
  */
 extern unsigned char *GetUnit(int who);
 extern void CalcStats(int who);
@@ -192,7 +193,6 @@ int Func_80788c4(int who, int slot)
     int v;
     int n;
     int i;
-    int k;
 
     u = GetUnit(who);
     off = slot * 2 + 0xd8;
@@ -219,11 +219,11 @@ int Func_80788c4(int who, int slot)
             } while (i >= 0);
             if (n <= 0xe) {
                 p = base + n;
-                k = 0xf - n;
+                i = 0xf - n;
                 do {
-                    k--;
+                    i--;
                     *p++ = 0;
-                } while (k != 0);
+                } while (i != 0);
             }
             ret = 2;
         }

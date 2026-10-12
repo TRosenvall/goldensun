@@ -1,6 +1,95 @@
-/* OvlFunc_924_20096c4 -- 0x020096c4  (asm/overlays/rom_7ac2d8/ovl_f84_a_c_c_c_c_c.s)
+/* OvlFunc_924_20096c4 -- 0x020096c4  (asm/overlays/rom_7ac2d8/ovl_f84_a_c_c_c_c_c_c.s)
  *
- * NON-MATCHING, 13 of 91 encodings  (MEASURED, batch 319 recipe backfill).
+ * NON-MATCHING, 13 differing STREAM encodings of 91  (ref 91, ours 91;
+ *   16-bit INSTRUCTIONS 80 on BOTH sides, so this is a TRUE DISTANCE).
+ *   Relocations clean.  First difference at index 9.
+ *   RE-DERIVED batch 338 brief D -- unchanged.
+ *
+ * Verify with:
+ *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
+ *     goldensun-build python3 tools/objcmp.py \
+ *     src/non_matching/ovl_7ac2d8/20096c4.c \
+ *     asm/overlays/rom_7ac2d8/ovl_f84_a_c_c_c_c_c_c.s --func OvlFunc_924_20096c4
+ *   (The subject line of the batch-319 header below names the reference with
+ *   one `_c` missing.  The recipe above is the correct path and the one
+ *   parkcheck uses.)
+ *
+ * PINS 0.  DEVICES 0.
+ * SHIP SHAPE: one function in the reference, datacheck.py silent, converts
+ * whole.  No split, no exports.
+ *
+ * ====================================================================
+ * BATCH 338 BRIEF D -- THE TWO CLUSTERS ARE ONE PHENOMENON, AND THE
+ * SOURCE-ORDER DIMENSION IS NOW EXHAUSTED
+ * ====================================================================
+ *
+ * The header below splits the residue into "three call sites" plus "six lines
+ * of loop-setup order".  Read off the disassembly the split is 6 + 7 and the
+ * two halves are THE SAME DEFECT: everywhere the ROM has a SECOND low scratch
+ * register and we funnel everything through r3.
+ *
+ *   entry block (6 of the 13), indices 10-17:
+ *     rom   movs r1,#6 / mov sl,r1 / movs r3,#41 / movs r1,#2 / movs r5,#0
+ *           / mov r8,r3 / movs r6,#40 / mov r9,r1
+ *     ours  movs r3,#6 / mov sl,r3 / movs r3,#41 / mov r8,r3 / movs r3,#2
+ *           / mov r9,r3 / movs r6,#40 / movs r5,#0
+ *   first in-loop call (3), indices 29-32:
+ *     rom   movs r3,#1 / mov r1,sl / str r3,[sp] / str r1,[sp,#4]
+ *     ours  movs r3,#1 / str r3,[sp] / mov r3,sl / str r3,[sp,#4]
+ *   second in-loop call (4), indices 39-43:
+ *     rom   movs r3,#4 / mov r1,r9 / adds r2,r5,#0 / str r1,[sp] / str r3,[sp,#4]
+ *     ours  mov r3,r9 / adds r2,r5,#0 / str r3,[sp] / movs r3,#4 / str r3,[sp,#4]
+ *
+ * AND THE ENTRY BLOCK EXPLAINS ITSELF ONCE YOU LINE IT UP.  In the ROM the
+ * pair `movs r3,#41` / `mov r8,r3` is SEPARATED by two insns, so r3 is still
+ * live when the next constant is built and that constant must take r1.  In
+ * ours the pair is adjacent, r3 dies at once, and every later constant reuses
+ * it.  Three disjoint short-lived constant pseudos can all share r3; two
+ * OVERLAPPING ones cannot.  So the ROM's second scratch is a CONSEQUENCE of
+ * its ordering, not a cause -- which inverts the header's reading of the
+ * entry block as "the register-role swap in its usual dressing".
+ *
+ * AND THERE IS NO PRE-RELOAD SCHEDULER TO BLAME.  `xgcc -da` on this file
+ * writes `.17.lreg`, `.18.greg`, `.19.flow2`, `.20.ce2`, `.23.sched2` and
+ * NO sched1 dump, so `-fschedule-insns` is not on in the production flags and
+ * the pre-allocation insn order is whatever expand/cse/combine leave.  The
+ * only source-level handle on it is statement order -- which is now closed:
+ *
+ * MEASURED THIS BATCH -- ALL 24 PERMUTATIONS of the four entry assignments
+ * (`six`, `x`, `two`, `y`), counts equal and relocations clean throughout:
+ *     4 permutations at 13 (inert, including the parked order)
+ *    16 permutations at 14
+ *     4 permutations at 15-16
+ *   >> THE DIMENSION IS EXHAUSTED.  The header below screened three of the 24
+ *   >> and read 13/14/14; all 24 now agree with that sample and NONE is better.
+ * MEASURED, loop-body anchors -- the depth-2 region autosweep cannot reach,
+ * because `boundaries()` walks only `depth == 1`:
+ *   anchor before the 1st or 2nd __CopyMapTiles                   13 (inert)
+ *   anchor before the 3rd __CopyMapTiles                          15
+ *   anchor after the 3rd __CopyMapTiles                           18
+ * MEASURED WORSE, both confirming the header's pressure boundary:
+ *   a named `four` local for the in-loop `4`     95, three instructions long
+ *   `x += 2` moved up inside the loop body       86, three short
+ * AUTOSWEEP (batch 338): both cheap axes CLOSED on the unchanged body.  Flag
+ * axis all eight inert or worse (`-fno-schedule-insns2` 27, the other seven
+ * either 13 or 94-96); anchor axis 17 depth-1 placements, all inert at 13.
+ *
+ * NEXT, AND IT IS NARROWER THAN THE HEADER'S.  The question is no longer "a
+ * named local per stack argument" -- the header proves that lever is paid for
+ * out of loop pressure and this loop has one register of slack.  The question
+ * is how to make ONE of the entry block's constant pseudos OVERLAP the next,
+ * so local-alloc is forced to a second scratch, WITHOUT adding an instruction.
+ * Statement order does not reach it (24 of 24 measured).  What is untried is
+ * changing which of the four values is a loop-invariant local at all -- the
+ * ROM's `sl`, `r8` and `r9` assignments are the only three that need a scratch,
+ * and `y`/`r6` needs none.
+ *
+ * ===== CARRIED FORWARD: the batch-319 header, verbatim apart from the
+ * ===== [SUPERSEDED FIGURE] markers, which stop parkcheck reading an
+ * ===== old figure as this park's claim.
+ *
+ *
+ * [SUPERSEDED FIGURE] 13 differing / 91 encodings  (MEASURED, batch 319 recipe backfill).
  *
  * Verify with:
  *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
@@ -57,6 +146,7 @@
  * __CopyMapTiles calls with their computed arguments (3 - i, i + 0x6a, and the
  * two induction variables stepping by 2), the guard on the parameter, and the
  * post-loop 0x90 << 1 sound.
+ *  
  */
 extern void __PlaySound(int id);
 extern void __CutsceneWait(int n);

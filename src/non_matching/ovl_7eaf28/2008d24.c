@@ -1,4 +1,62 @@
-/* OvlFunc_960_2008d24 -- asm/overlays/rom_7eaf28/ovl_314_c_c_a.s
+/* OvlFunc_960_2008d24 -- NON-MATCHING, 9 differing STREAM encodings of 69.
+ *
+ * BODY RECOVERED FROM scratch/ (batch 338).  This park was PROSE -- a header,
+ * a diagnosis, and no compilable body -- so it had no figure, was NO CLAIM in
+ * parkcheck, and was unrankable in every band.  But its own header named a
+ * candidate at scratch/n8d24.c, that file still existed, and it
+ * compiles.  The work had been done and left in a GITIGNORED directory instead
+ * of installed, so nothing in the tree could see it.
+ *
+ * ref 69 / ours 69 stream encodings; 56/56 16-bit instructions -- IN PHASE, so a true DISTANCE.
+ *
+ * Verify with:
+ *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
+ *     goldensun-build python3 tools/objcmp.py src/non_matching/ovl_7eaf28/2008d24.c \
+ *     asm/overlays/rom_7eaf28/ovl_314_c_c_a_c.s --func OvlFunc_960_2008d24
+ *
+ * 70 of the 133 prose parks were in this state; tools/scratchfill.py found them.
+ * THE FIGURE IS EVIDENCE; the prose below it is a HYPOTHESIS, and across pass
+ * two a park's stated blocker has been wrong roughly 40 times in 42.  The
+ * original park text is preserved underneath.
+ */
+extern int _AREA_a5;
+extern unsigned char gState[];
+extern unsigned short L1a00[] __asm__(".L1a00");
+
+extern unsigned char *__MapActor_GetActor(int slot);
+extern void __MapActor_SetPos(int slot, int x, int y);
+extern void __Func_8010704(int a, int b, int c, int d, int e, int f);
+extern void __Func_808edac(int a, int b, int c);
+extern void __StopTask(void *f);
+extern void OvlFunc_960_2008ce4(void);
+
+void OvlFunc_960_2008d24(void)
+{
+    unsigned char *g;
+    int p0, p1;
+    int q0, q1;
+
+    g = gState;
+    if (*(short *)(g + (0xe0 << 1)) == (int)(&_AREA_a5)) {
+        __MapActor_GetActor(0xe)[0x23] = 2;
+        __MapActor_GetActor(0xe)[0x55] = 3;
+        __MapActor_SetPos(0xe, 0, 0);
+        p0 = 0xf;
+        p1 = 0x2c;
+        __Func_8010704(0x10, 0x2c, 1, 1, p0, p1);
+        __Func_808edac(0x64, 0, 0);
+        __Func_8010704(0xc, 0x47, 1, 1, 0x7f, 0x7f);
+        q0 = 0xc;
+        q1 = 0x47;
+        __Func_8010704(0xb, 0x47, 1, 1, q0, q1);
+        __StopTask(OvlFunc_960_2008ce4);
+        *(unsigned short *)0x500019e = L1a00[0];
+    }
+}
+
+#if 0
+/* ===== ORIGINAL PROSE PARK, PRESERVED =====
+(* OvlFunc_960_2008d24 -- asm/overlays/rom_7eaf28/ovl_314_c_c_a.s
  *
  * BLOCKER: ARG INTERLEAVE on the LAST call + store ordering
  *
@@ -44,4 +102,7 @@
  * whole if-body -- and it makes things WORSE at both positions tried.  That is
  * a useful negative: it separates this from the straight-line arg-interleave
  * parks (2009df8, 20087dc) where the lever is merely unreachable.
- */
+ *)
+
+*/
+#endif

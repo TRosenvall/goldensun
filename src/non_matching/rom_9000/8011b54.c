@@ -1,6 +1,99 @@
 /* Func_8011b54 (AddPaletteCycleChannel) -- asm/rom_9000/rom_11568_c_c_c_c_a_a_c.s
  *
- * NON-MATCHING, 14 of 56 encodings  (MEASURED, batch 335 brief D).
+ * NON-MATCHING, 10 differing STREAM encodings of 56  (ref 56, ours 56;
+ *   16-bit INSTRUCTIONS 53 on BOTH sides, so this is a TRUE DISTANCE).
+ *   SIZE 116 bytes both.  Relocations clean.  First difference at index 27.
+ *   MEASURED batch 338 brief D, down from 14.
+ *
+ * Verify with:
+ *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
+ *     goldensun-build python3 tools/objcmp.py \
+ *     src/non_matching/rom_9000/8011b54.c \
+ *     asm/rom_9000/rom_11568_c_c_c_c_a_a_c.s --func Func_8011b54
+ *
+ * PINS 0 (shimcount prints no rows).  DEVICES 0 -- the one `do { } while (0);`
+ * anchor is device-free and shimcount does not count it.
+ * SHIP SHAPE: the reference holds ONE function and datacheck.py is silent on
+ * it, so this converts whole -- no split, no exports.
+ *
+ * ====================================================================
+ * BATCH 338 BRIEF D -- 14 -> 10 ON TWO CROSSED LEVERS, AND THE PREVIOUS
+ * HEADER'S TWO DIRECTION CLAIMS ARE BACKWARDS
+ * ====================================================================
+ *
+ * The header below is right that nothing is missing or extra and that this is
+ * sched2 and only sched2.  Its three closing levers all reproduce.  Two of its
+ * three descriptions of the residue point the wrong way, read off the
+ * disassembly side by side:
+ *
+ *   it says  "ours puts the slot address add two slots early"
+ *   in fact  the ROM emits `adds r1, r4, r1` FIRST of the window (index 27)
+ *            and ours emits it THIRD (index 29).  Ours is two slots LATE.
+ *   it says  "ours puts the frame-delay halfword store nine slots early"
+ *   in fact  the ROM has `strh r2, [r1, #10]` at index 38 and ours at 32.
+ *            SIX slots early, not nine.
+ *
+ * WHAT CLOSED 14 -> 10, and both levers are needed:
+ *   1. AN ANCHOR AFTER `src = ...`.  `do { } while (0);` between the src
+ *      computation and `z = 0;`.  Worth THREE.  This is autosweep's
+ *      `anchor11` -- NOTE autosweep numbers its variant files FROM ZERO, so
+ *      `anchor11.c` is the twelfth boundary, the one after `src`, NOT the one
+ *      after `slot` (that one is `anchor10` and reads 18, i.e. four WORSE).
+ *   2. THE TWO ZERO STORES IN THE OTHER ORDER -- `slot + 6` before
+ *      `slot + 4`.  Worth ONE, on top of the anchor.
+ *      >> THE HEADER BELOW MEASURED THIS SAME CHANGE AT +18 AND IT IS RIGHT:
+ *      >> without the anchor it is +18, with it, -1.  A lever measured inert
+ *      >> or harmful ALONE can change sign when crossed.  This is the clearest
+ *      >> instance of that in this park's history.
+ *
+ * MEASURED, exhaustively, all counts equal and relocations clean:
+ *   all 120 permutations of the five field stores, each crossed with the
+ *     anchor after `src`                               best 10, 30 ways
+ *   all 120 permutations, crossed with the anchor after `slot`  best 17
+ *   all 120 permutations with NO anchor               best 11 (matches the
+ *                                                     header below)
+ *   an anchor at each of the 14 statement boundaries, alone
+ *                                                     11 (after src), 12
+ *                                                     (after z/the stores),
+ *                                                     14-21 elsewhere
+ *   the anchor after `src` crossed with a SECOND anchor at every other
+ *     boundary                                        never better than 11
+ * MEASURED EXACTLY INERT on top of both levers -- and this is the useful
+ * negative, because it refutes the obvious next idea:
+ *   the frame-delay store spelled `(unsigned short)d` so it READS the
+ *     zero-extended value the DMA control word also uses, which should have
+ *     given it a dependence on the `lsls`/`lsrs` pair and forced it later
+ *                                                     10, bit-identical
+ *   the same spelled `(short)(unsigned short)d`        10, bit-identical
+ *   >> gcc folds the cast into the same rtx before sched2 ever runs, so the
+ *   >> store's dependence set is unchanged.  The same normalisation the header
+ *   >> below records for `res` and `0`.
+ * MEASURED WORSE:
+ *   a named `unsigned int ud = (unsigned short)d;` shared by the store and the
+ *     control word -- hoists the extend above the guard, 42 and one short
+ *   -O1 / -fno-schedule-insns2  33, -ffixed-r7  55, every other flag inert
+ *
+ * WHAT REMAINS: 10 encodings, ALL inside indices 27-38, and the two sides hold
+ * the SAME MULTISET OF INSTRUCTIONS in a different order.  There is nothing
+ * left but rank_for_schedule.  The window is all `core_cycles single` ALU plus
+ * three stores, so batch 336's class rung (`haifa-sched.c:4068-4095`) is dead
+ * here -- `arm.md:254` gives every one of them latency 1 and `store1` is 2,
+ * which ties among the three stores -- and the decision falls to dependent
+ * count and then INSN_LUID.  The instruction that must move LATER is still
+ * `strh r2, [r1, #10]` and the one that must move EARLIER is still
+ * `adds r1, r4, r1`.
+ *
+ * AUTOSWEEP (batch 338): flag axis all eight inert or worse on the unchanged
+ * body.  Anchor axis found the lever above.  Both axes are now recorded, so do
+ * not re-screen them; note the anchor axis only walks brace-depth-1
+ * boundaries, which here is the whole body, so for this park it IS complete.
+ *
+ * ===== CARRIED FORWARD: the batch-335 header, verbatim apart from the
+ * ===== [SUPERSEDED FIGURE] markers, which stop parkcheck reading an
+ * ===== old figure as this park's claim.
+ *
+ *
+ * [SUPERSEDED FIGURE] 14 differing / 56 encodings  (MEASURED, batch 335 brief D).
  *   92.9 percent ALIGNED, seven instructions in five hunks, first difference at
  *   index twenty-five of fifty-six.  REAL INSTRUCTION COUNT NOW AGREES:
  *   fifty-three on both sides.  SIZE 116 bytes both.  Relocations clean.
@@ -99,6 +192,7 @@
  * SOLVED and worth keeping: the stride arithmetic, the guard against three, the
  * five field stores and their offsets, the DMA3 kick, and the reference's
  * epilogue popping into r1, which is the int return this declares.
+ *  
  */
 #include "dma.h"
 
@@ -120,9 +214,10 @@ int Func_8011b54(short a, short b, short c, short d)
         return -1;
     slot = base + n * 0x2c;
     src = (((unsigned short)a << 4) + (unsigned short)b) * 2 + 0xa0 * 0x80000;
+    do { } while (0);
     z = 0;
-    *(unsigned short *)(slot + 4) = z;
     *(unsigned short *)(slot + 6) = z;
+    *(unsigned short *)(slot + 4) = z;
     *(unsigned short *)(slot + 0xa) = d;
     *(int *)slot = src;
     *(unsigned short *)(slot + 8) = c;

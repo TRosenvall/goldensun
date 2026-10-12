@@ -1,4 +1,76 @@
-/* OvlFunc_896_200c78c -- 0x0200c78c, asm/overlays/rom_78ef88/ovl_314_c_c_c_c_c.s
+/* OvlFunc_896_200c78c -- NON-MATCHING, 8 differing STREAM encodings of 90.
+ *
+ * BODY RECOVERED FROM scratch/ (batch 338).  This park was PROSE -- a header,
+ * a diagnosis, and no compilable body -- so it had no figure, was NO CLAIM in
+ * parkcheck, and was unrankable in every band.  But its own header named a
+ * candidate at scratch/Lc78c.c, that file still existed, and it
+ * compiles.  The work had been done and left in a GITIGNORED directory instead
+ * of installed, so nothing in the tree could see it.
+ *
+ * ref 90 / ours 90 stream encodings; 80/80 16-bit instructions -- IN PHASE, so a true DISTANCE.
+ *
+ * Verify with:
+ *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
+ *     goldensun-build python3 tools/objcmp.py src/non_matching/overlays/200c78c.c \
+ *     asm/overlays/rom_78ef88/ovl_314_c_c_c_c_c_c.s --func OvlFunc_896_200c78c
+ *
+ * 70 of the 133 prose parks were in this state; tools/scratchfill.py found them.
+ * THE FIGURE IS EVIDENCE; the prose below it is a HYPOTHESIS, and across pass
+ * two a park's stated blocker has been wrong roughly 40 times in 42.  The
+ * original park text is preserved underneath.
+ */
+#include "dma.h"
+
+extern unsigned char L5140[] __asm__(".L5140");
+extern unsigned char L5168[] __asm__(".L5168");
+extern unsigned char *__galloc_ewram(int tag, int size);
+extern unsigned char *__MapActor_GetActor(int slot);
+extern void __Func_800c548(unsigned char *a, int n);
+extern void __StartTask(void *fn, int pri);
+extern void OvlFunc_896_200c49c(void);
+
+void OvlFunc_896_200c78c(int slot, unsigned int n)
+{
+    unsigned char *buf;
+    unsigned char *p;
+    unsigned char *a;
+    unsigned int i;
+    unsigned int j;
+    int z;
+
+    buf = __galloc_ewram(0x21, 0xca << 1);
+    p = buf;
+    DMA3_CLEAR(buf, 0xca << 1);
+    if (n > 0xa)
+        n = 0xa;
+    i = 0;
+    if (n != 0) {
+        z = 0;
+        j = 0;
+        do {
+            a = __MapActor_GetActor(slot);
+            *(unsigned char *)(*(int *)(a + 0x50) + 0x26) = z;
+            *(unsigned char **)p = a;
+            a += 0x55;
+            *a = z;
+            a = __MapActor_GetActor(slot);
+            __Func_800c548(a, 1);
+            *(int *)(p + 0x1c) = *(int *)((char *)L5140 + j);
+            *(int *)(p + 0x20) = -*(int *)((char *)L5168 + j);
+            p[0x24] = 3;
+            i++;
+            j += 4;
+            p += 0x28;
+            slot++;
+        } while (i != n);
+    }
+    *(short *)(buf + (0xc8 << 1)) = n;
+    __StartTask(OvlFunc_896_200c49c, 0xc8 << 4);
+}
+
+#if 0
+/* ===== ORIGINAL PROSE PARK, PRESERVED =====
+(* OvlFunc_896_200c78c -- 0x0200c78c, asm/overlays/rom_78ef88/ovl_314_c_c_c_c_c.s
  * and its twin OvlFunc_897_200b30c -- 0x0200b30c,
  * asm/overlays/rom_791794/ovl_30_c_c_c_c_c.s
  *
@@ -30,4 +102,7 @@
  * TRIED: a separate byte-offset variable per table (56 differing, much worse);
  * both statement orders for the stores; naming the task priority so the
  * interleave lever could act on the final call.
- */
+ *)
+
+*/
+#endif

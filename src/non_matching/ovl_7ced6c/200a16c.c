@@ -1,4 +1,60 @@
-/* OvlFunc_946_200a16c -- 0x0200a16c,
+/* OvlFunc_946_200a16c -- NON-MATCHING, 13 differing STREAM encodings of 65.
+ *
+ * BODY RECOVERED FROM scratch/ (batch 338).  This park was PROSE -- a header,
+ * a diagnosis, and no compilable body -- so it had no figure, was NO CLAIM in
+ * parkcheck, and was unrankable in every band.  But its own header named a
+ * candidate at scratch/Na16c_best.c, that file still existed, and it
+ * compiles.  The work had been done and left in a GITIGNORED directory instead
+ * of installed, so nothing in the tree could see it.
+ *
+ * ref 65 / ours 65 stream encodings; 56/56 16-bit instructions -- IN PHASE, so a true DISTANCE.
+ *
+ * Verify with:
+ *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
+ *     goldensun-build python3 tools/objcmp.py src/non_matching/ovl_7ced6c/200a16c.c \
+ *     asm/overlays/rom_7ced6c/ovl_30_c_c_c_c_c_c_c_c_c_c_c_c_c_c_c_c_c_c_c_a_c_c_a_a_c.s --func OvlFunc_946_200a16c
+ *
+ * 70 of the 133 prose parks were in this state; tools/scratchfill.py found them.
+ * THE FIGURE IS EVIDENCE; the prose below it is a HYPOTHESIS, and across pass
+ * two a park's stated blocker has been wrong roughly 40 times in 42.  The
+ * original park text is preserved underneath.
+ */
+extern unsigned char *__MapActor_GetActor(int slot);
+extern void OvlFunc_946_2009774(int a, int b, int c);
+extern void __WaitFrames(int n);
+extern void __Func_8010704(int a, int b, int c, int d, int e, int f);
+
+void OvlFunc_946_200a16c(void)
+{
+    int b;
+    int c;
+    int d;
+
+    b = *(int *)(__MapActor_GetActor(0xd) + 8) >> 20;
+    c = *(int *)(__MapActor_GetActor(0xd) + 0x10) >> 20;
+    __MapActor_GetActor(0xf);
+    if (b == 0x19) {
+        OvlFunc_946_2009774(0xd, 0x60, 0);
+        OvlFunc_946_2009774(0xd, 0x50, 0);
+    } else if (b == 0x1f) {
+        OvlFunc_946_2009774(0xd, 0x50, 0);
+    } else if (b == 0x22) {
+        OvlFunc_946_2009774(0xd, 0x20, 0);
+    } else if (b == 0x23) {
+        OvlFunc_946_2009774(0xd, 0x10, 0);
+    } else if (b == 0x24) {
+        return;
+    }
+    __WaitFrames(2);
+    d = *(int *)(__MapActor_GetActor(0xd) + 8) >> 20;
+    c -= 1;
+    __Func_8010704(b, c, 1, 3, d, c);
+    __Func_8010704(0, 0, 1, 3, b, c);
+}
+
+#if 0
+/* ===== ORIGINAL PROSE PARK, PRESERVED =====
+(* OvlFunc_946_200a16c -- 0x0200a16c,
  * asm/overlays/rom_7ced6c/ovl_30_c_c_c_c_c_c_c_c_c_c_c_c_c_c_c_c_c_c_c_a_c_c_a_a.s
  *
  * 72 of 72 lines, THIRTEEN differing, and every one of the thirteen is the same
@@ -33,4 +89,7 @@
  * src/non_matching/ovl_common/4cc.c: here gcc reproduces the shared call and the
  * line count matches, because the arms set two argument registers rather than
  * one value gcc can hoist above the compare.
- */
+ *)
+
+*/
+#endif

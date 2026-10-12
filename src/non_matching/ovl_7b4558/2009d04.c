@@ -1,4 +1,77 @@
-/* OvlFunc_927_2009d04 -- 0x02009d04,
+/* OvlFunc_927_2009d04 -- NON-MATCHING, 2 differing STREAM encodings of 86.
+ *
+ * BODY RECOVERED FROM scratch/ (batch 338).  This park was PROSE -- a header,
+ * a diagnosis, and no compilable body -- so it had no figure, was NO CLAIM in
+ * parkcheck, and was unrankable in every band.  But its own header named a
+ * candidate at scratch/Nd04_best.c, that file still existed, and it
+ * compiles.  The work had been done and left in a GITIGNORED directory instead
+ * of installed, so nothing in the tree could see it.
+ *
+ * ref 86 / ours 86 stream encodings; 61/61 16-bit instructions -- IN PHASE, so a true DISTANCE.
+ *
+ * Verify with:
+ *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
+ *     goldensun-build python3 tools/objcmp.py src/non_matching/ovl_7b4558/2009d04.c \
+ *     asm/overlays/rom_7b4558/ovl_30_c_c_c_a_a_c_a_a_c.s --func OvlFunc_927_2009d04
+ *
+ * 70 of the 133 prose parks were in this state; tools/scratchfill.py found them.
+ * THE FIGURE IS EVIDENCE; the prose below it is a HYPOTHESIS, and across pass
+ * two a park's stated blocker has been wrong roughly 40 times in 42.  The
+ * original park text is preserved underneath.
+ */
+extern unsigned char gState[];
+extern unsigned char *__MapActor_GetActor(int slot);
+extern void __CutsceneStart(void);
+extern void __CutsceneEnd(void);
+extern void __CutsceneWait(int n);
+extern void OvlFunc_927_2008ea8(int a, int b);
+extern void OvlFunc_927_2008d90(int a, int b, int c, int d);
+extern void OvlFunc_927_2008ae8(int a, int b, int c, int d, int e, int f, int g, int h);
+extern void __SetCameraTarget(int a, int b);
+extern void __Func_8092848(int a, int b, int c);
+extern void __Func_809259c(int a, int b);
+extern void __MapActor_Emote(int a, int b, int c);
+extern void __PlaySound(int id);
+extern void __Func_8091eb0(int a, int b);
+extern void __SetFlag(int id);
+
+void OvlFunc_927_2009d04(void)
+{
+    unsigned char *e;
+    unsigned char *g;
+    int z;
+    int hx;
+
+    e = __MapActor_GetActor(0xf);
+    z = 0x80 << 12;
+    __CutsceneStart();
+    OvlFunc_927_2008ea8(0xf, 0);
+    OvlFunc_927_2008d90(0xf, 0xec << 1, 0x68, z);
+    __CutsceneWait(0xa);
+    OvlFunc_927_2008ae8(*(int *)(e + 8), *(int *)(e + 0xc),
+                        *(int *)(e + 0x10) + z, 0,
+                        0, 0, 1, 0);
+    __SetCameraTarget(0xf, 1);
+    __Func_8092848(0xf, 0, 0);
+    __CutsceneWait(0x1e);
+    __Func_809259c(0xf, 2);
+    __MapActor_Emote(0xf, 0x103, 0);
+    __PlaySound(0x93);
+    __CutsceneWait(0x3c);
+    hx = *(short *)(__MapActor_GetActor(0) + 0xa);
+    OvlFunc_927_2008d90(0xf, hx, *(short *)(__MapActor_GetActor(0) + 0x12),
+                        0xc0 << 11);
+    __CutsceneWait(0xa);
+    __SetFlag(0x307);
+    g = gState;
+    g[0x22b] = 3;
+    __Func_8091eb0(0x35, 0);
+    __CutsceneEnd();
+}
+
+#if 0
+/* ===== ORIGINAL PROSE PARK, PRESERVED =====
+(* OvlFunc_927_2009d04 -- 0x02009d04,
  * asm/overlays/rom_7b4558/ovl_30_c_c_c_a_a_c_a_a.s
  *
  * 81 of 81 lines, TWO differing.  Candidate at scratch/Nd04_best.c.
@@ -32,4 +105,7 @@
  * declaration order of the locals; hoisting `z` above the GetActor call;
  * deleting OvlFunc_927_2008d90's prototype; and an `__asm__` alias with a
  * different return type applied to the second call site, then to the first.
- */
+ *)
+
+*/
+#endif

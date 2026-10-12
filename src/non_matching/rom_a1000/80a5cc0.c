@@ -11,12 +11,12 @@
  * Verify with:
  *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
  *     goldensun-build python3 tools/objcmp.py src/non_matching/rom_a1000/80a5cc0.c \
- *     asm/rom_a1000/rom_a5534_c_a_a.s --func Func_80a5cc0
+ *     asm/rom_a1000/rom_a5534_c_a_a_a.s --func Func_80a5cc0
  *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
  *     goldensun-build python3 tools/aligncmp.py src/non_matching/rom_a1000/80a5cc0.c \
- *     asm/rom_a1000/rom_a5534_c_a_a.s Func_80a5cc0 -v
+ *     asm/rom_a1000/rom_a5534_c_a_a_a.s Func_80a5cc0 -v
  *
- * THE SPLIT.  asm/rom_a1000/rom_a5534_c_a_a.s holds SIX functions (Func_80a5788,
+ * THE SPLIT.  asm/rom_a1000/rom_a5534_c_a_a_a.s holds SIX functions (Func_80a5788,
  * Func_80a5b94, Func_80a5cc0, Func_80a5fe0, Func_80a602c, Func_80a60d4) and no
  * .section .data; tools/datacheck.py is silent, so the split is pure text and
  * needs no `.global`.  Func_80a5b94 and Func_80a60d4 are already parked from this

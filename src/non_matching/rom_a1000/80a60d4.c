@@ -1,4 +1,4 @@
-/* Func_80a60d4 -- 0x080a60d4, asm/rom_a1000/rom_a5534_c_a_a.s
+/* Func_80a60d4 -- 0x080a60d4, asm/rom_a1000/rom_a5534_c_a_a_c.s
  * NON-MATCHING, 191 encodings of 307.  A TRUE DISTANCE -- 307 = 307 encodings and no SIZE line, so size and instruction count both
  * match.  READ `--align` alongside it: 88 of 316.  Zero shims in both classes.
  * Tail split from a six-function file; no data crosses either way and the one inbound code
@@ -9,7 +9,7 @@
  * Verify with:
  *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
  *     goldensun-build python3 tools/objcmp.py src/non_matching/rom_a1000/80a60d4.c \
- *     asm/rom_a1000/rom_a5534_c_a_a.s --func Func_80a60d4
+ *     asm/rom_a1000/rom_a5534_c_a_a_c.s --func Func_80a60d4
  *
  * NOT MATCHING. objcmp --func Func_80a60d4: 191 of 307 encodings differ, ref 307 / ours
  * 307 -- SIZE AND INSTRUCTION COUNT BOTH EXACT, and all 32 relocations present with the
@@ -134,7 +134,7 @@
  * Verify with:
  *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
  *     goldensun-build python3 tools/objcmp.py src/non_matching/rom_a1000/80a60d4.c \
- *     asm/rom_a1000/rom_a5534_c_a_a.s --func Func_80a60d4
+ *     asm/rom_a1000/rom_a5534_c_a_a_c.s --func Func_80a60d4
  */
 extern unsigned char *iwram_3001f2c;
 extern volatile unsigned int gKeyPress;

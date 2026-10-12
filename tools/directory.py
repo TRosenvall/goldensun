@@ -45,9 +45,16 @@ import collections, json, os, re, subprocess, sys
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 OUT = os.path.join(ROOT, "docs", "directory")
 
+# WIDENED, batch 338.  These two wanted `differing` to sit DIRECTLY against
+# `encodings`, so the house style this tree now writes -- "2 differing STREAM
+# encodings of 112", current figure first and in stream terms -- did not match,
+# and 36 freshly measured parks landed in the "No parseable figure" section while
+# parkcheck read their figures fine.  FOURTH TOOL IN THIS TREE WITH THIS EXACT
+# DEFECT (parkcheck.py, piece.py and autosweep.py were the others), so if you are
+# writing a claim parser, allow a few words between the count and `encodings`.
 CLAIM = [
-    re.compile(r"(\d+)\s+(?:differing\s+)?encodings?\s+of\s+(\d+)", re.I),
-    re.compile(r"(\d+)\s+of\s+(\d+)\s+(?:differing\s+)?encodings?", re.I),
+    re.compile(r"(\d+)\s+(?:differing\s+)?(?:[A-Za-z]+\s+){0,3}encodings?\s+of\s+(\d+)", re.I),
+    re.compile(r"(\d+)\s+of\s+(\d+)\s+(?:differing\s+)?(?:[A-Za-z]+\s+){0,3}encodings?", re.I),
     re.compile(r"NON-MATCHING,\s*(\d+)\s+of\s+(\d+)", re.I),
     re.compile(r"PARKED\s+(?:AT\s+)?(\d+)\s+of\s+(\d+)", re.I),
 ]

@@ -104,8 +104,15 @@ FLAGS = [
     ("-fno-rerun-loop-opt",       "RERUNLOOP_CFLAGS"),
 ]
 
+# BOTH WORD ORDERS.  Parks write "13 differing encodings of 55" and "13 of 55
+# encodings" about equally, and this file carried only the first -- so it read
+# FOUR OF FIVE of batch 338 brief D's targets as having no figure at all.
+# tools/parkcheck.py already solved this with a chain of five patterns; the two
+# that matter here are its CLAIM and CLAIM5.
 CLAIM = re.compile(
     r"(\d+)\s+(?:differing\s+)?(?:[A-Za-z]+\s+){0,3}encodings?\s+of\s+(\d+)", re.I)
+CLAIM_MIRROR = re.compile(
+    r"(\d+)\s+of\s+(\d+)\s+(?:[A-Za-z]+\s+){0,3}encodings?", re.I)
 DEF = re.compile(r"^[A-Za-z_][A-Za-z0-9_ \t\*]*?\b(\w+)\s*\([^;{]*?\)\s*\{", re.M | re.S)
 SUBJ = re.compile(r"\s*/\*+\s*((?:Ovl)?Func_\w+|[A-Z][A-Za-z0-9_]*)")
 
@@ -135,7 +142,15 @@ def measure(path, ref, fn, extra=""):
     if re.search(r"^\s+OK\b", out, re.M):
         return (0, 0)
     m = re.search(r"differ in (\d+) place\(s\) \(ref (\d+)", out)
-    return (int(m.group(1)), int(m.group(2))) if m else None
+    if not m:
+        return None
+    # RELOCATIONS ARE ON THE SAME OUTPUT and a figure alone hides them: brief D's
+    # 20087b0 read "14 of 71" AND "RELOCATIONS differ", two pool words transposed,
+    # so its 14 was never a plain distance.  Asking for both instruction counts
+    # catches the phase trap; it does not catch this one.
+    if re.search(r"RELOCATIONS differ", out):
+        globals().setdefault("_RELOC_WARN", set()).add(path)
+    return (int(m.group(1)), int(m.group(2)))
 
 
 def body_span(text, fn):
@@ -157,19 +172,39 @@ def body_span(text, fn):
 
 
 def boundaries(text, i, j):
-    """Top-level statement boundaries inside the body: offsets just after a `;`
-    at brace depth 1.  Declarations are included -- placing an anchor among them
-    is exactly how Field_Move's 0 was found (after a load, not before)."""
+    """EVERY statement boundary inside the body, at any nesting depth.
+
+    Offsets just after a `;`, plus just after each `{` that opens a nested block,
+    so an anchor can be placed as the first statement of an `if` or loop body.
+    Declarations are included -- placing an anchor among them is exactly how
+    Field_Move's 0 was found (after a load, not before).
+
+    THIS USED TO BE `depth == 1` ONLY, which is a false-clean-negative bug and
+    the third in this file.  Statements inside any `if` or loop were never
+    anchored, so a park whose residue lives in a nested block got the full
+    "Both cheap axes are CLOSED" verdict when half of one axis had never been
+    tried.  Batch 338 brief D found it the expensive way: THREE of its five
+    targets were in that state, and BOTH of its anchor-axis wins came from
+    placements this function could not generate -- OvlFunc_971_20087b0's residue
+    is inside `if (v < 0)` (14 -> 4) and Func_8096ddc's is inside its `for` body
+    (11 -> 10).
+    """
     out, depth = [], 0
     for k in range(i, j):
         c = text[k]
         if c == "{":
             depth += 1
+            if depth > 1:                 # first statement of a nested block
+                out.append(k + 1)
         elif c == "}":
             depth -= 1
-        elif c == ";" and depth == 1:
+        elif c == ";" and depth >= 1:
             out.append(k + 1)
     return out
+
+
+def path_in_reloc_warn(p):
+    return p in globals().get("_RELOC_WARN", set())
 
 
 def main():
@@ -190,7 +225,7 @@ def main():
         print(f"cannot resolve: reference={ref} function={fn}")
         return 1
     text = open(os.path.join(ROOT, park), errors="replace").read()
-    claimed = CLAIM.search(text[:9000])
+    claimed = CLAIM.search(text[:9000]) or CLAIM_MIRROR.search(text[:9000])
     print(f"park      {park}")
     print(f"reference {ref}")
     print(f"function  {fn}")
@@ -201,7 +236,11 @@ def main():
         print("\nBASE DOES NOT MEASURE -- objcmp stopped before the encoding compare.")
         print("Nothing here is meaningful until the body reaches the reference's length.")
         return 1
-    print(f"base      {base[0]} of {base[1]}\n")
+    print(f"base      {base[0]} of {base[1]}")
+    if path_in_reloc_warn(park):
+        print("          !! RELOCATIONS ALSO DIFFER -- this figure is not a plain")
+        print("             distance; fix the relocation set before reading it")
+    print()
     best = [(base[0], "base", "")]
 
     if a.flags:

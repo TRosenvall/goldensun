@@ -1,4 +1,50 @@
-/* OvlFunc_911_20082b4 -- 0x020082b4,
+/* OvlFunc_911_20082b4 -- NON-MATCHING, 5 differing STREAM encodings of 34.
+ *
+ * BODY RECOVERED FROM scratch/ (batch 338).  This park was PROSE -- a header,
+ * a diagnosis, and no compilable body -- so it had no figure, was NO CLAIM in
+ * parkcheck, and was unrankable in every band.  But its own header named a
+ * candidate at scratch/L82b4.c, that file still existed, and it
+ * compiles.  The work had been done and left in a GITIGNORED directory instead
+ * of installed, so nothing in the tree could see it.
+ *
+ * ref 34 / ours 34 stream encodings; 28/28 16-bit instructions -- IN PHASE, so a true DISTANCE.
+ *
+ * Verify with:
+ *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
+ *     goldensun-build python3 tools/objcmp.py src/non_matching/overlays/20082b4.c \
+ *     asm/overlays/rom_79e5c0/ovl_30_c_a_a_c_a_a_a_c_a.s --func OvlFunc_911_20082b4
+ *
+ * 70 of the 133 prose parks were in this state; tools/scratchfill.py found them.
+ * THE FIGURE IS EVIDENCE; the prose below it is a HYPOTHESIS, and across pass
+ * two a park's stated blocker has been wrong roughly 40 times in 42.  The
+ * original park text is preserved underneath.
+ */
+extern unsigned char *iwram_3001ebc;
+extern unsigned char *__MapActor_GetActor(int slot);
+extern void __MapActor_SetSpeed(int slot, int x, int y);
+extern void __MapActor_SetAnim(int slot, int anim);
+extern void __Func_809228c(int a, int b, int c);
+extern void __Func_8091e9c(int n);
+
+void OvlFunc_911_20082b4(int n)
+{
+    unsigned char *a;
+    unsigned int q;
+
+    a = __MapActor_GetActor(0);
+    a[0x55] = 0;
+    __MapActor_SetSpeed(0, 0x80 << 8, 0x80 << 7);
+    __MapActor_SetAnim(0, 2);
+    __Func_809228c(0, 0, -8);
+    q = (unsigned int)iwram_3001ebc;
+    q += 0xe4 << 1;
+    *(int *)q = 0x10;
+    __Func_8091e9c(n);
+}
+
+#if 0
+/* ===== ORIGINAL PROSE PARK, PRESERVED =====
+(* OvlFunc_911_20082b4 -- 0x020082b4,
  * asm/overlays/rom_79e5c0/ovl_30_c_a_a_c_a_a_a_c_a.s
  *
  * 33 of 33 lines, 5 differing.  Candidate at scratch/L82b4.c.
@@ -50,4 +96,7 @@
  * 248 remaining functions carry the shape, 150 of them have a conditional
  * branch before the site and are worth trying the lever on; 98, including this
  * one, are straight-line at every site.
- */
+ *)
+
+*/
+#endif

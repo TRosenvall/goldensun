@@ -1,4 +1,67 @@
-/* OvlFunc_954_200804c -- 0x0200804c,
+/* OvlFunc_954_200804c -- NON-MATCHING, 40 differing STREAM encodings of 104.
+ *
+ * BODY RECOVERED FROM scratch/ (batch 338).  This park was PROSE -- a header,
+ * a diagnosis, and no compilable body -- so it had no figure, was NO CLAIM in
+ * parkcheck, and was unrankable in every band.  But its own header named a
+ * candidate at scratch/N804c_best.c, that file still existed, and it
+ * compiles.  The work had been done and left in a GITIGNORED directory instead
+ * of installed, so nothing in the tree could see it.
+ *
+ * ref 104 / ours 104 stream encodings; 92/92 16-bit instructions -- IN PHASE, so a true DISTANCE.
+ *
+ * Verify with:
+ *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
+ *     goldensun-build python3 tools/objcmp.py src/non_matching/ovl_7db0c8/200804c.c \
+ *     asm/overlays/rom_7db0c8/ovl_30_c_c_a_a_a_a.s --func OvlFunc_954_200804c
+ *
+ * 70 of the 133 prose parks were in this state; tools/scratchfill.py found them.
+ * THE FIGURE IS EVIDENCE; the prose below it is a HYPOTHESIS, and across pass
+ * two a park's stated blocker has been wrong roughly 40 times in 42.  The
+ * original park text is preserved underneath.
+ */
+extern int L441c __asm__(".L441c");
+
+extern void __Func_8010788(int a, int b, int c, int d, int e, int f);
+extern void __Func_8010704(int a, int b, int c, int d, int e, int f);
+extern void __MapActor_SetAnim(int a, int b);
+
+void OvlFunc_954_200804c(void)
+{
+    int a;
+    int b;
+
+    switch ((unsigned int)L441c) {
+    case 6:
+    case 0x42:
+        b = 0x26;
+        __Func_8010788(0x5c, 0x1f, 2, 2, 0x32, b);
+        __Func_8010788(0x5c, 0x1f, 2, 2, 0x36, b);
+        __MapActor_SetAnim(0x10, 0xa);
+        break;
+    case 0x3c:
+        a = 0x32;
+        b = 0x26;
+        __Func_8010788(0x5c, 0x21, 2, 2, a, b);
+        __Func_8010788(0x5c, 0x21, 2, 2, 0x36, b);
+        __Func_8010704(0x32, 0x19, 6, 1, a, 0xc);
+        __MapActor_SetAnim(0x10, 0xb);
+        break;
+    case 0:
+        a = 0x32;
+        b = 0x26;
+        __Func_8010788(0x5c, 0x1d, 2, 2, a, b);
+        __Func_8010788(0x5c, 0x1d, 2, 2, 0x36, b);
+        __MapActor_SetAnim(0x10, 0xc);
+        __Func_8010704(0x32, 0x18, 6, 1, a, 0xc);
+        L441c = 0x78;
+        break;
+    }
+    L441c = L441c - 1;
+}
+
+#if 0
+/* ===== ORIGINAL PROSE PARK, PRESERVED =====
+(* OvlFunc_954_200804c -- 0x0200804c,
  * asm/overlays/rom_7db0c8/ovl_30_c_c_a_a_a_a.s (SINGLE-function file)
  *
  * 108 of 108 lines, 41 differing, and the whole residue is that TWO CASE ARMS
@@ -32,4 +95,7 @@
  * So this is a layout decision inside gcc's own case expansion, and the source
  * has exactly one bit of influence over it -- the order the arms are written --
  * which is already spent buying the correct tree.
- */
+ *)
+
+*/
+#endif

@@ -1,4 +1,45 @@
-/* Func_80a33d4 -- 0x080a33d4, asm/rom_a1000/rom_a1814_c_a_c_c_a_c_c_c_c.s
+/* Func_80a33d4 -- NON-MATCHING, 16 differing STREAM encodings of 65.
+ *
+ * BODY RECOVERED FROM scratch/ (batch 338).  This park was PROSE -- a header,
+ * a diagnosis, and no compilable body -- so it had no figure, was NO CLAIM in
+ * parkcheck, and was unrankable in every band.  But its own header named a
+ * candidate at scratch/K33d4.c, that file still existed, and it
+ * compiles.  The work had been done and left in a GITIGNORED directory instead
+ * of installed, so nothing in the tree could see it.
+ *
+ * ref 65 / ours 65 stream encodings; 61/61 16-bit instructions -- IN PHASE, so a true DISTANCE.
+ *
+ * Verify with:
+ *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
+ *     goldensun-build python3 tools/objcmp.py src/non_matching/rom_a1000/80a33d4.c \
+ *     asm/rom_a1000/rom_a1814_c_a_c_c_a_c_c_c_c_c.s --func Func_80a33d4
+ *
+ * 70 of the 133 prose parks were in this state; tools/scratchfill.py found them.
+ * THE FIGURE IS EVIDENCE; the prose below it is a HYPOTHESIS, and across pass
+ * two a park's stated blocker has been wrong roughly 40 times in 42.  The
+ * original park text is preserved underneath.
+ */
+extern int _Func_801eb64(int a, int b, int c, int d, int e);
+
+void Func_80a33d4(unsigned char *a, int b)
+{
+    int i;
+    int *p;
+
+    p = (int *)(a + 0x48);
+    for (i = 0; i <= 7; i++)
+        *p++ = _Func_801eb64(2, i, b, 0xf8, 0xa8);
+    p = (int *)(a + 0x68);
+    for (i = 8; i <= 0xf; i++)
+        *p++ = _Func_801eb64(2, i, b, 0x80 << 1, 0xa8);
+    p = (int *)(a + 0x88);
+    for (i = 0x10; i <= 0x1f; i++)
+        *p++ = _Func_801eb64(2, i, b, 0x80 << 1, 0xa8);
+}
+
+#if 0
+/* ===== ORIGINAL PROSE PARK, PRESERVED =====
+(* Func_80a33d4 -- 0x080a33d4, asm/rom_a1000/rom_a1814_c_a_c_c_a_c_c_c_c.s
  *
  * 67 of 67 lines, 16 differing.  Candidate: scratch/K33d4.c.
  *
@@ -29,4 +70,7 @@
  * TRIED, all 16 except where noted: one named local (63/45); three named locals
  * (63/45); CSE, GCSE, STRENGTH, -fno-schedule-insns.  SCHED2 and O1 are worse
  * (30).
- */
+ *)
+
+*/
+#endif

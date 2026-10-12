@@ -1,13 +1,12 @@
-/* Func_8021cb8 -- asm/rom_15000/rom_20198_c_c_c_c_c.s   (PARK)
+/* Func_8021cb8 (LoadIconAssetScratch) -- asm/rom_15000/rom_20198_c_c_c_c_c.s
+ * PARK HOLDS AT 14 of 92.  Batch 338 brief C: figure re-derived, THE PIN
+ * QUESTION ANSWERED WITH A NUMBER, the file-local DMA helper replaced by the
+ * shared one, and six more negatives on the park's named defect.
  *
- * LoadIconAssetScratch: decompress icon (idx) of file 0xF1, remap every pixel
- * through map[256], allocating new palette slots from the counter at map+0x100
- * (copying OBJ palette 0x5000200[c] to BG palette 0x5000000[n]), then DMA the
- * 0x400-byte result to 0x6004000 + slot*64.
- *
- * NON-MATCHING.  14 encodings of 92 differ positionally (ref 92, ours 92,
- * dsize 0, relocations ok).  ALIGNED (tools/aligncmp.py) it is
- * 9 DIFFERING IN 6 HUNKS, 85 of 92 aligned-equal, 92.4%.
+ * NON-MATCHING, 14 encodings of 92.  ref 92, ours 92, **80 instructions both
+ * sides** (plus 11 pool words and one pad), 208 bytes both sides, relocations
+ * identical.  THE FIGURE IS A DISTANCE.  ALIGNED (tools/aligncmp.py) it is
+ * 9 DIFFERING IN 6 HUNKS, 85 of 92 aligned-equal, 92.4% -- unchanged.
  *
  * Verify with:
  *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
@@ -19,8 +18,116 @@
  *     src/non_matching/rom_15000/8021cb8.c \
  *     asm/rom_15000/rom_20198_c_c_c_c_c.s Func_8021cb8 -v
  *
- * PINS: the DMA3_SET macro's four `register ... __asm__` operands only.  They
- * are the project's standard DMA idiom and are not part of this residue.
+ * ===========================================================================
+ * THE PINS: FOUR, WHAT THEY BUY, AND THE FILE-LOCAL COPY THAT HAD TO GO
+ *
+ * tools/shimcount.py reports `register pins : 4` on this park.  All four are
+ * DMA3_SET's `register ... __asm__` operands and NONE of them is part of this
+ * residue -- the park said so and it is now measured:
+ *
+ *   14 of 92, 80 instructions   DMA3_SET as it stands (4 pins)
+ *   14 of 92, 80 instructions   DMA3_SET taken from include/dma.h instead
+ *                               of the file-local copy  -- EXACTLY IDENTICAL
+ *   97 of 92, 82 instructions   PIN-FREE, three fields of a volatile struct
+ *                               written through one base pointer
+ *   99 of 92, 84 instructions   PIN-FREE, three plain volatile register stores
+ *
+ * ** SO THE PIN-FREE FIGURE OF THIS FUNCTION IS 97, AND THE PINS ARE BUYING
+ * 83 ENCODINGS AND TWO INSTRUCTIONS. **  What they buy concretely is the
+ * `stmia r3!, {r0, r1, r2}` idiom: the three values have to be in r0, r1, r2
+ * and the register base in r3, and no C spelling places them there -- a plain
+ * sequence of volatile stores emits three `str`s and a different prologue
+ * around them.  This is not a residue the depinning pass can pick up; it is
+ * the project's standard DMA construct.
+ *
+ * include/dma.h:28-40 already states the ruling for it: "NOT a fakematch: the
+ * constraints are legal `l` inputs plus a `memory` clobber ... none of the 82
+ * landed users of this file carries a fakematch row."  So this park's four
+ * pins are grandfathered by that ruling and the right pin policy here is to
+ * USE THE SHARED HELPER, which docs/elevation.md requires anyway (it forbids
+ * landing with a file-local copy of a promoted helper).
+ *
+ * ** THE BODY BELOW NOW DOES THAT: `#include "dma.h"` replaces the file-local
+ * `#define REG_DMA3SAD` + `static inline void DMA3_SET`, byte for byte at 14
+ * of 92. **  The file-local copy was character-identical to the header's
+ * DMA3_SET apart from spelling `u32`/`vu32` out longhand, so this is a pure
+ * de-duplication and it removes a prerequisite from any future landing.
+ *
+ * NOTE THE SIDE EFFECT ON THE PIN COUNT, SO NOBODY MISREADS IT: with the
+ * helper included rather than copied, `tools/shimcount.py` on THIS FILE prints
+ * NOTHING, where it printed `register pins : 4` before.  The pins did not go
+ * away -- they moved into include/dma.h, which is where the other 82 users'
+ * pins already live and which is the state the ruling covers.  The honest
+ * figure to carry for this park is therefore "14 of 92, pin-free in the file,
+ * four pins in the shared DMA helper, pin-free figure 97".
+ *
+ * ===========================================================================
+ * THE RESIDUE, UNCHANGED: TWO CAUSES THAT CANCEL IN THE POSITIONAL COUNT
+ *
+ * Re-verified this batch, every claim: ref and ours both 92 encodings and both
+ * 80 instructions, 9 aligned differences in 6 hunks, first positional index 30.
+ *
+ * DEFECT 1 -- the missing compare copy.  8 of the 9.
+ *     ref  ldrb r2,[r7,r4] / adds r3,r2,#0 / cmp r3,#0xff
+ *     ours ldrb r3,[r7,r4] /     (nothing) / cmp r3,#0xff
+ *   The ROM loads map[c] into r2, COPIES it to r3, compares r3, and `o` then
+ *   lives in r2 on all three paths; we load straight into r3, so `o` lives in
+ *   r3 and `v` in r2 -- the roles swapped.  The other four hunks are that swap
+ *   and its consequences (a branch span, `ldrb r2` vs `ldrb r3`, the
+ *   `adds`/`strb` pair with `movs r2,#0x80` pulled one slot earlier), not
+ *   independent causes.
+ *
+ * DEFECT 2 -- an EXTRA narrowed load of *cnt.  1 of the 9.
+ *     insert ours[38]  ldrb r2,[r0,#0]
+ *   We load the counter as a word for the `map[c] =` store AND as a byte for
+ *   `v`; the ROM loads it as a word twice and never as a byte.
+ *
+ * DEFECT 1 REMOVES AN INSTRUCTION AND DEFECT 2 ADDS ONE, which is why both
+ * sides read 80 instructions and why the positional 14 looks contiguous.
+ * MEASURE DEFECT 1 WITH `aligncmp -v` AT ref[30:32], NOT THE POSITIONAL TOTAL.
+ *
+ * ===========================================================================
+ * BATCH 338 C: THE ONE-MEMBER-AGGREGATE ESCAPE DOES NOT REACH DEFECT 1
+ *
+ * The park's named next move is "a SECOND SImode pseudo holding map[c] at the
+ * compare whose copy gcc does not delete ... the lever is whatever makes the
+ * two pseudos non-substitutable (different mode, different alias set, or a
+ * block boundary cse does not cross)".  The strongest known instrument for
+ * exactly that is the one-member aggregate -- `explow.c:896-913`'s
+ * promote_mode reaches PROMOTE_MODE only for the scalar type codes at
+ * :898-901, and RECORD/UNION/ARRAY fall out at :912 UNPROMOTED, which is what
+ * lets `struct Held { short v; }` carry a halfword in its own width in
+ * Func_80788c4 and what refuted Func_8078870's language-level bound in batch
+ * 335.  **It is inert here, in every form.**
+ *
+ *   14 of 92  a carrier `struct { unsigned char b; } t; t.b = o;` compared
+ *   14 of 92  the same with an `int b` field
+ *   14 of 92  a `union { unsigned char b; int w; }` carrier
+ *   14 of 92  comparing `map[c]` directly and keeping `o` for the store
+ *   14 of 92  a second pointer `m2 = map;` so the two loads could sit in
+ *             different alias sets, with the compare on `map[c]`
+ *   91 of 92  the carrier field declared `signed char` -- 49 instructions, A
+ *             DIFFERENT PROGRAM (the 0xff compare changes meaning); not a row
+ *
+ * The first five are EXACTLY INERT at 14 positional, and they are the
+ * aggregate route closed.  The reason is visible in the park's own earlier
+ * finding: the copy the ROM has is DEAD CODE -- at the compare only one of the
+ * two values is live afterwards on every path -- so there is nothing for a
+ * source-level distinction to hang on.  cse1 propagates a one-use copy into
+ * its single use and deletes it before gcse ever sees it, and changing the
+ * carrier's TYPE does not change its use count.
+ *
+ * AUTOSWEEP: ** NOT APPLICABLE TO THIS PARK AND IT WILL LIE IF YOU RUN IT. **
+ * `tools/autosweep.py src/non_matching/rom_15000/8021cb8.c` resolves the
+ * function name to **DMA3_SET** (it takes the first function-looking
+ * definition in the file, and the `static inline` helper is it), then reports
+ * "BASE DOES NOT MEASURE -- objcmp stopped before the encoding compare", which
+ * reads exactly like a length break on the park.  It is a tool misfire, not a
+ * finding.  The flag and anchor axes were therefore swept BY HAND here through
+ * sweep_variants: no flag group and no anchor placement beats 14.
+ *
+ * ===========================================================================
+ * EVERYTHING BELOW IS THE PARK AS BATCHES 316b/323 LEFT IT, VERBATIM.
  *
  * ***********************************************************************
  * *** BATCH 323: THE PREVIOUS HEADER'S "NEXT MOVE" WOULD INSTALL A    ***
@@ -127,6 +234,8 @@
  * cse does not cross).  Measure defect 1 at ref[30:32] with aligncmp -v, NOT
  * the positional total, because defect 2 cancels it in the count.
  */
+#include "dma.h"
+
 extern int _FILE_f1;
 #define FILE_f1 ((int)&_FILE_f1)
 
@@ -136,22 +245,6 @@ extern void DecompressLZ1(unsigned char *src, void *dst);
 extern unsigned char *Func_8004938(unsigned int size);
 extern void free(void *p);
 extern void gfree(int tag);
-
-#define REG_DMA3SAD (*(volatile unsigned int *)0x040000D4)
-
-static inline void DMA3_SET(const void *src, void *dst, unsigned int cnt) {
-    register volatile unsigned int *_base __asm__("r3") = &REG_DMA3SAD;
-    register const void *_src  __asm__("r0") = src;
-    register void *_dst  __asm__("r1") = dst;
-    register unsigned int _cnt  __asm__("r2") = cnt;
-    __asm__ volatile (
-        "stmia\tr3!, {r0, r1, r2}\n\t"
-        "sub\tr3, #0xc"
-        :
-        : "r" (_base), "r" (_src), "r" (_dst), "r" (_cnt)
-        : "memory", "r0"
-    );
-}
 
 void Func_8021cb8(unsigned char *map, int idx, int slot)
 {

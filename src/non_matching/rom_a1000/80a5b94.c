@@ -12,11 +12,11 @@
  *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
  *     goldensun-build python3 tools/objcmp.py \
  *     src/non_matching/rom_a1000/80a5b94.c \
- *     asm/rom_a1000/rom_a5534_c_a_a.s --func Func_80a5b94
+ *     asm/rom_a1000/rom_a5534_c_a_a_a.s --func Func_80a5b94
  *
  * This recipe was ADDED by the batch-319 backfill: the park had none, so
  * parkcheck.py could not report its figure and nothing had ever checked it.
- * asm/rom_a1000/rom_a5534_c_a_a.s, line 534 (second of six functions).
+ * asm/rom_a1000/rom_a5534_c_a_a_a.s, line 534 (second of six functions).
  *
  * PARKED at 32 aligned of 118. Every one of the 32 traces to ONE allocator
  * decision, and the mechanism is confirmed against the compiler source rather

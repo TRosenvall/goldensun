@@ -1,4 +1,266 @@
-/* OvlFunc_968_200a47c -- 0x0200a47c,
+/* OvlFunc_968_200a47c -- NON-MATCHING, 11 differing STREAM encodings of 273.
+ *
+ * BODY RECOVERED FROM scratch/ (batch 338).  This park was PROSE -- a header,
+ * a diagnosis, and no compilable body -- so it had no figure, was NO CLAIM in
+ * parkcheck, and was unrankable in every band.  But its own header named a
+ * candidate at scratch_elev/b248/f200a47c/final.c, that file still existed, and it
+ * compiles.  The work had been done and left in a GITIGNORED directory instead
+ * of installed, so nothing in the tree could see it.
+ *
+ * ref 273 / ours 273 stream encodings; 238/238 16-bit instructions -- IN PHASE, so a true DISTANCE.
+ *
+ * Verify with:
+ *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
+ *     goldensun-build python3 tools/objcmp.py src/non_matching/ovl_7f2f14/200a47c.c \
+ *     asm/overlays/rom_7f2f14/ovl_30_c_c_a_a_a_c.s --func OvlFunc_968_200a47c
+ *
+ * 70 of the 133 prose parks were in this state; tools/scratchfill.py found them.
+ * THE FIGURE IS EVIDENCE; the prose below it is a HYPOTHESIS, and across pass
+ * two a park's stated blocker has been wrong roughly 40 times in 42.  The
+ * original park text is preserved underneath.
+ */
+/* OvlFunc_968_200a47c -- PARKED at 11 differing encodings.
+ * ref: asm/overlays/rom_7f2f14/ovl_30_c_c_a_a_a_c.s (the file's ONLY function)
+ *
+ *   XX ENCODINGS differ in 11 place(s) (ref 273, ours 273)
+ *      first at index 179: ref 1c03  ours 1c06
+ *   SIZE, INSTRUCTION COUNT and RELOCATIONS all exact (616 bytes, 273 encodings).
+ *
+ * MODEL: src/overlays/rom_7ed0a0/ovl_30_c_a_a.c :: OvlFunc_964_2009d04 is a
+ * near-twin (same helper set, same swap-through-a-stack-struct shape, base slot
+ * 0xc/bound 2 instead of 0xa/3).  Its C supplied the whole skeleton.
+ *
+ * LEVERS THAT SURVIVE, with the measurement each removal costs (from 273/273):
+ *   spilled-local declaration order (e1, e2, tp)         6
+ *   separate `flag`/`flag2` and `t`/`t3` variables       9
+ *   the inner loop's body hoisted OUT OF LINE with a
+ *     `goto swap` (see the finding below)               44
+ *   `tgt` reusing the loop variable `j`                  7
+ *   `i = 0;` before `tp = &tmp;`                         6
+ *   pin r1=0 at the FIRST OvlFunc_968_2008058 site       2
+ *   pin r0,r1 at the SECOND OvlFunc_968_2008058 site     2
+ *   pin r5=0 for `a->f44 = 0`                            7
+ *   pin r2=2 at the first `|= 2` site                    4
+ *   the `= b->f55` readback at __Func_8093554 (SCAFFOLD) 121 (and +8 bytes)
+ *
+ * MEASURED WORSE / INERT (all from the same base):
+ *   `while (j < i)`, `continue`-style loop, unsigned j     inert / worse
+ *   `k = i` moved before the field stores                  inert
+ *   literal 0 instead of `t3` in the a-block stores        inert
+ *   b-block written with an explicit pointer chain         inert
+ *   b-block zero pinned to r2 / r1 / r3                    16-20
+ *   __Func_8093554 zero pinned to r0 / r1 / r2 / r3        13 / 92 / 92 / 92
+ *   `__Func_8093554()[0x55] = t3`                          78
+ *   `... = b->f14` / `= a->f55` / `= (uchar)e1`            126 / 135 / 99
+ *   pinning __Func_80933d4's arguments                     inert
+ *   narrow-local (`unsigned char m = 2`) at the first orr  2 worse than the pin
+ *
+ * THE REMAINING 11 ARE ONE BLOCKER, and it is a compiler behaviour, not an
+ * allocation guess.  The honest source for the store after __Func_8093554 is
+ * `__Func_8093554()[0x55] = 0;`.  Written that way gcc-2.96 commons that zero
+ * with the earlier `b->f64 = 0` (a HALFWORD constant store) and then
+ * rematerialises it after the two calls as `ldrh r5, .Ln` out of a MID-FUNCTION
+ * pool -- `.word 0` plus a `b` around it, +8 bytes and +3 encodings, where the
+ * ROM has a plain `mov r3, #0`.  Minimal repro in scratch_elev/b248/probe/.
+ * The `= b->f55` readback in this file is scaffolding that dodges it at the
+ * cost of holding b+0x55 in r6 across both calls, which is the whole 11.
+ */
+struct Sub {
+    unsigned char pad0[9];
+    unsigned char f9;
+};
+
+struct Actor {
+    unsigned char pad00[8];
+    int f8;
+    int fc;
+    int f10;
+    int f14;
+    unsigned char pad18[0x23 - 0x18];
+    unsigned char f23;
+    unsigned char pad24[0x28 - 0x24];
+    int f28;
+    unsigned char pad2c[0x3c - 0x2c];
+    int f3c;
+    unsigned char pad40[0x44 - 0x40];
+    int f44;
+    unsigned char pad48[0x50 - 0x48];
+    struct Sub *f50;
+    unsigned char pad54;
+    unsigned char f55;
+    unsigned char pad56[0x59 - 0x56];
+    unsigned char f59;
+    unsigned char pad5a[0x64 - 0x5a];
+    unsigned short f64;
+    unsigned char pad66[0x6c - 0x66];
+    void *f6c;
+};
+
+extern struct Actor *__MapActor_GetActor(int slot);
+extern void __MapActor_SetPos(int slot, int x, int y);
+extern void __CutsceneStart(void);
+extern void __CutsceneEnd(void);
+extern int __GetFlag(int id);
+extern void __SetFlag(int id);
+extern void __DeleteActor(void *e);
+extern void __Func_8010704(int a, int b, int c, int d, int e, int f);
+extern void __Func_8092b08(int a, int b);
+extern void __Func_80933d4(int a, int b);
+extern void __Func_80933f8(int a, int b, int c, int d);
+extern void __Func_8093530(void);
+extern unsigned char *__Func_8093554(void);
+extern void *OvlFunc_968_2008058(int a, int b, int c, int d);
+extern void OvlFunc_968_200894c(struct Actor *a);
+extern void OvlFunc_968_200a2a4(void);
+extern void OvlFunc_968_200a2c8(int n);
+extern void OvlFunc_968_200a3d4(int slot);
+
+void OvlFunc_968_200a47c(void)
+{
+    struct Actor tmp;
+    void *e1;
+    void *e2;
+    struct Actor *tp;
+    struct Actor *a;
+    struct Actor *o;
+    struct Actor *b;
+    unsigned char *bp;
+    unsigned char *bp2;
+    unsigned short *p;
+    int i;
+    int j;
+    int k;
+    int who;
+    int x;
+    int z;
+    int t;
+    int t3;
+    int n;
+    int flag;
+    int flag2;
+    int flag3;
+
+    e1 = 0;
+    e2 = 0;
+    __CutsceneStart();
+    i = 0;
+    tp = &tmp;
+    who = 0xa;
+loop:
+    a = __MapActor_GetActor(who);
+    x = a->f8 >> 20;
+    if (x == 0xd) {
+        z = a->f10 >> 20;
+        if (z == 7) {
+            flag = (0x80 << 2) + i;
+            t = __GetFlag(flag);
+            if (t == 0) {
+                OvlFunc_968_200894c(a);
+                __SetFlag(flag);
+                bp = &a->f23;
+                { register int m __asm__("r2"); m = 2; *bp = m | *bp; }
+                a->f59 = t;
+                a->f55 = t;
+                __Func_8010704(4, 0x13, 1, 1, x, z);
+                goto done;
+            }
+        }
+    }
+    if ((a->f50->f9 & 0xc) == 0xc) {
+        flag2 = (0x80 << 2) + i;
+        if (__GetFlag(flag2) == 0) {
+            __Func_8092b08(who, 1);
+            { register int z __asm__("r5"); z = 0; a->f44 = z; }
+            if ((a->f10 >> 20) <= 0xc) {
+                { register int q1 __asm__("r1"); q1 = 0;
+                  e1 = OvlFunc_968_2008058(a->f8, q1, 0xe0 << 16, 0xfd); }
+                { register int q0 __asm__("r0"); register int q1 __asm__("r1");
+                  q0 = a->f8; q1 = 0;
+                  e2 = OvlFunc_968_2008058(q0, q1, 0xf0 << 16, 0xfd); }
+            }
+            OvlFunc_968_200894c(a);
+            __MapActor_SetPos(who, 0, 0);
+            __DeleteActor(e1);
+            __DeleteActor(e2);
+            __SetFlag(flag2);
+            goto done;
+        }
+    }
+    goto b3;
+swap:
+    o = __MapActor_GetActor(j + 0xa);
+    tp->f8 = a->f8;
+    tp->fc = a->fc;
+    tp->f10 = a->f10;
+    a->f8 = o->f8;
+    a->fc = o->fc;
+    a->f10 = o->f10;
+    o->f8 = tp->f8;
+    o->fc = tp->fc;
+    o->f10 = tp->f10;
+    k = j;
+    goto after;
+b3:
+    if ((a->f10 >> 20) != 0x13)
+        goto next;
+    t3 = __GetFlag((0x80 << 2) + i);
+    if (t3 != 0)
+        goto next;
+    a->f3c = 0x80 << 24;
+    a->f14 = t3;
+    a->f28 = t3;
+    a->f55 = t3;
+    a->f64 = t3;
+    k = i;
+    for (j = 0; j < i; j++)
+        if (__GetFlag((0x80 << 2) + j) == 0)
+            goto swap;
+after:
+    j = k + 0xa;
+    b = __MapActor_GetActor(j);
+    b->f3c = 0x80 << 24;
+    b->f14 = 0;
+    b->f28 = 0;
+    b->f55 = 0;
+    b->f64 = 0;
+    __Func_80933d4(0xc0 << 10, 0xc0 << 7);
+    __Func_8093554()[0x55] = b->f55;
+    __Func_80933f8(0x88 << 16, 0x80 << 12, 0xac << 17, 1);
+    __Func_8093530();
+    OvlFunc_968_200a3d4(j);
+    if ((__MapActor_GetActor(j)->f8 >> 20) == 6) {
+        p = &__MapActor_GetActor(8)->f64;
+        n = *p;
+        *p = n + 1;
+        p = &__MapActor_GetActor(9)->f64;
+        n = *p;
+        *p = n - 1;
+    } else {
+        p = &__MapActor_GetActor(8)->f64;
+        n = *p;
+        *p = n - 1;
+        p = &__MapActor_GetActor(9)->f64;
+        n = *p;
+        *p = n + 1;
+    }
+    __MapActor_GetActor(j)->f6c = (void *)OvlFunc_968_200a2a4;
+    OvlFunc_968_200a2c8(0x28);
+    bp2 = &__MapActor_GetActor(j)->f23;
+    { unsigned char m = 2; *bp2 = m | *bp2; }
+    __SetFlag((0x80 << 2) + k);
+    goto done;
+next:
+    i++;
+    who++;
+    if (i <= 3)
+        goto loop;
+done:
+    __CutsceneEnd();
+}
+
+#if 0
+/* ===== ORIGINAL PROSE PARK, PRESERVED =====
+(* OvlFunc_968_200a47c -- 0x0200a47c,
  * asm/overlays/rom_7f2f14/ovl_30_c_c_a_a_a_c.s
  *
  * ELEVEN differing encodings out of 273, at EXACT SIZE (616 bytes), exact
@@ -64,4 +326,7 @@
  * eviction pin. `unsigned char m = 2` at the first orr is 2 WORSE than the
  * r2 pin. The lever is not wrong, but it is not automatically the best
  * spelling at an orr site.
- */
+ *)
+
+*/
+#endif

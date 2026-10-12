@@ -1,13 +1,128 @@
-/* Func_801bcd4 -- PARK HOLDS AT 13 of 81.  Batch 328 brief D.
- * Figure re-derived; three more exactly-inert rows and two new negatives on
- * the axis the park named as its next move.
+/* Func_801bcd4 -- asm/rom_15000/rom_1aeec_a_a_c_c.s   PARK HOLDS AT 13 of 81.
+ * Batch 338 brief C: figure re-derived, the park's own NEXT MOVE now carries
+ * its arithmetic and its threshold, and five more negatives on that axis.
  *
  *   13 differing encodings of 81.  ref 81, ours 81 -- EQUAL.  SIZE IDENTICAL
- *   (196 bytes).  RELOCATIONS IDENTICAL.  Memory profile ldr=3 str=4 = the
- *   reference's.  First differing index 5.  PINS 0.
+ *   (196 bytes).  RELOCATIONS IDENTICAL.  **63 instructions both sides**, plus
+ *   17 pool words and one pad = 81 encodings.
+ *   First differing index 5.  PINS 0 (shimcount.py silent).
+ *
+ *   CORRECTION TO THE BATCH-327 SECTION BELOW, which reads "80 instructions
+ *   against the ROM's 80".  objcmp reports **63 instructions and 17 pool
+ *   words** per side; 63 + 17 = 80, so that line was counting POOL WORDS AS
+ *   INSTRUCTIONS.  The figure of 13 is unaffected and the lengths still agree
+ *   both ways, so it is still a DISTANCE -- but an agent comparing an
+ *   instruction count against "80" will think it has lost seventeen.
  *
  * Verify with:
- *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work goldensun-build python3 tools/objcmp.py src/non_matching/rom_15000/801bcd4.c asm/rom_15000/rom_1aeec_a_a_c_c.s --func Func_801bcd4
+ *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
+ *     goldensun-build python3 tools/objcmp.py \
+ *     src/non_matching/rom_15000/801bcd4.c \
+ *     asm/rom_15000/rom_1aeec_a_a_c_c.s --func Func_801bcd4
+ *
+ * ===========================================================================
+ * THE PIECE: THIS FUNCTION CUTS OUT ALONE.  IT DOES **NOT** NEED UploadIcon.
+ *
+ * tools/piece.py at the head of batch 338 puts five parked functions in this
+ * reference .s -- Func_801ba68 (172 of 218), UploadIcon (a PROSE park, header
+ * and diagnosis, no body, 53 instructions), Func_801bcd4 (this one),
+ * Func_801bd98 (84 of 108) and Func_801be80 (251 of 274).  That reads like a
+ * blocker and is not one.  `tools/split_s.py --dry-run asm/rom_15000/
+ * rom_1aeec_a_a_c_c.s Func_801bcd4` cuts three ways:
+ *
+ *     rom_1aeec_a_a_c_c_a.s   2 functions, 310 lines   (801ba68 + UploadIcon)
+ *     rom_1aeec_a_a_c_c_b.s   1 function,   97 lines   (Func_801bcd4 ALONE)
+ *     rom_1aeec_a_a_c_c_c.s   2 functions, 410 lines   (801bd98 + 801be80)
+ *
+ * so the install path on a landing is src/rom_15000/rom_1aeec_a_a_c_c_b.c and
+ * **UploadIcon's body never has to be written for this one to ship**.
+ * datacheck.py on the reference: clean, no data section.  The three repointed
+ * recipes the split would orphan are the other four parks' -- run
+ * tools/repoint_parks.py after it.
+ *
+ * ===========================================================================
+ * BATCH 338 C: THE NEXT MOVE, WITH ITS NUMBERS AND ITS THRESHOLD
+ *
+ * Batch 330 D named the move correctly -- "what it needs is the PARAMETER'S
+ * PRIORITY LOWERED (a longer live range, or fewer references)" -- and left it
+ * unquantified.  Here it is, from `-da`'s `.17.lreg` (`dump_flow_info`,
+ * flow.c:5743-5756) and `.18.greg` (`dump_conflicts`, global.c:1862) on THIS
+ * body, with `allocno_compare` (global.c:598-620) evaluated by hand and then
+ * checked against the printed order:
+ *
+ *   pseudo  what      n_refs  live_length   pri = flog2(r)*r/L * 10000
+ *     63    s            14       34          3*14/34  = 12352
+ *     54    (temp)        3        3          1*3 /3   = 10000
+ *     34    slot          5       11          2*5 /11  =  9090
+ *     33    b             7       31          2*7 /31  =  4516
+ *     32    kind          2       13          1*2 /13  =  1538
+ *     35    d             3       27          1*3 /27  =  1111
+ *   `.18.greg`: `;; 6 regs to allocate: 63 54 34 33 32 35` -- every rung of
+ *   that order is reproduced by the formula above, so the model is exact.
+ *
+ * A TIE IS A WIN, so the target is pri(34) <= pri(33) = 4516, not strictly
+ * less: on equal priority `allocno_compare` falls through to `return v1 - v2`
+ * on the ALLOCNO NUMBERS (global.c:617-619), which are assigned by ascending
+ * pseudo (global.c:421-451), and 33 < 34.
+ *
+ *   ** THE TWO REACHABLE THRESHOLDS, AND ONE OF THEM IS NOT 4. **
+ *     by LIVE RANGE:  10/L <= 0.4516  =>  L >= 23.   It is 11, so the
+ *                     parameter has to stay live TWELVE MORE INSNS.
+ *     by REFERENCES:  4 refs gives 2*4/11 = 7272, STILL ABOVE 4516.
+ *                     3 refs gives 1*3/11 = 2727, which WINS.
+ *                     So **dropping one reference is useless and dropping two
+ *                     is enough** -- the jump is at the floor_log2 step, not
+ *                     in the linear term.  An agent shaving a single mention
+ *                     off `slot` is spending a round for nothing.
+ *
+ * The other side of the same table: raising pri(33) instead needs `b` at 10
+ * references (3*10/31 = 9677) or a live range of 15 (2*7/15 = 9333), from 7
+ * and 31.  Both are further away than the parameter's route.
+ *
+ * WHERE THE 5 REFERENCES COME FROM, since only three are visible in the C:
+ * the parm set, `s = slot`, `fail: return slot` -- and TWO MORE that cse2
+ * manufactures.  Batch 330 D's dumps have them: gcse's PRE representative
+ * copy and the early return are both canonicalised onto the parameter pseudo
+ * when 64 leaves its own equivalence class (`invalidate` ->
+ * `delete_reg_equiv`, immediately after `make_regs_eqv` at cse.c:1002, the
+ * condition at :1021-1035).  So the reference count is partly a CONSEQUENCE of
+ * the copy chain this park has been studying, which is why the two searches
+ * are the same search seen from two ends -- and why every edit that touches
+ * the chain moves the reference count too.
+ *
+ * MEASURED IN BATCH 338 C (ref 81 encodings / 63 instructions; rows with a
+ * different instruction count or size are marked, and those are not distances)
+ *   13  THIS BODY                                                      kept
+ *   13  `r = slot;` at the top, `fail: return r;`             EXACTLY INERT
+ *   13  a `goto ok;` / `ok:` label inserted between the guard and the
+ *       switch, to put a CODE_LABEL where the threader removed one
+ *                                                             EXACTLY INERT
+ *   33  `fail: t = slot; return t;`                      65 insns, 200 bytes
+ *   52  `default: s = slot; break;`                      63 insns, 192 bytes
+ *   73  the guard comparing the PARAMETER, `if (slot == -1)`
+ *                                                        61 insns, 192 bytes
+ *
+ * The `goto ok;` row is the useful one: it answers batch 327's open question
+ * "get a CODE_LABEL between the entry and the early return without paying an
+ * instruction" with YES, THAT IS FREE, AND IT IS STILL INERT -- so the missing
+ * label was never the binding constraint, and that half of the named move can
+ * be closed.  The `r = slot;` row is the same answer from the other side: an
+ * extra mention of the parameter is free and does not move the sort, which is
+ * the floor_log2 threshold above showing up in a measurement.
+ *
+ * AUTOSWEEP (batch 338, recorded negatives -- do not re-screen): flags
+ * -fno-strict-aliasing 13, -fno-strength-reduce 13, -fno-rerun-loop-opt 13
+ * (inert); -fno-schedule-insns2 37, -O1 45, -fno-rerun-cse-after-loop 64,
+ * -fno-gcse 73, -ffixed-r7 84 with the length broken.  Anchor axis, 5
+ * top-level boundaries: all inert at 13.  The -fno-gcse row at 73 is the PRE
+ * pseudo being removed, i.e. the same contraindication the 61-instruction
+ * rows below record, measured from the flag side.
+ *
+ * NEXT: a construct that keeps the parameter live past the switch (L >= 23)
+ * or removes TWO of its five references.  Do not spend a round on one.
+ *
+ * ==========================================================================
+ * EVERYTHING BELOW IS THE PARK AS BATCHES 327/328/330 LEFT IT, VERBATIM.
  *
  * ========== THE PARK'S NEXT MOVE, ATTACKED FROM cse2's FIRST SUB-CONDITION
  *
