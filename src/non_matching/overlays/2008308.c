@@ -1,24 +1,74 @@
-/* OvlFunc_967_2008308 -- NOT MATCHING, a LENGTH gap: ref 60 instructions against ours 59 (-1).
+/* OvlFunc_967_2008308 -- NOT MATCHING.  HELD by batch 339 brief C.
  *
- * BODY RECOVERED FROM scratch/ (batch 338).  This park was PROSE and had no
- * figure; its own header named scratch/L8308.c, that file still
- * existed and it compiles.  70 of 133 prose parks were in that state --
- * work done, measured, and left in a GITIGNORED directory instead of installed.
+ * CURRENT FIGURE, in stream terms: 56 of 89 stream encodings (ref 89, ours 89),
+ * first at index 8.  THE TWO SIDES ARE NOT THE SAME LENGTH -- ref 60 16-bit
+ * instructions against ours 59 (-1) -- so that 56 is PHASE, NOT DISTANCE.  The
+ * body is UNCHANGED from the batch-338 recovery; brief C found no improvement
+ * on it, and its value this round is the located instruction plus the negatives.
  *
- * THE LENGTH-GAP CRITERION APPLIES, and it is this tree's most productive
- * targeting instrument -- four batches run on it closed 8 of 15, 7 of 25,
- * 8 of 25 and 10 of 32, and LOCATED the missing-or-extra instruction on
- * essentially every target.  Our side is 1 instruction(s) SHORTER, so the
- * search is which statement is missing -- see docs/elevation.md, 'OUR STREAM BEING
- * SHORTER IS A SIGNATURE'.
- * No encoding figure exists until the lengths agree.
+ * THE MISSING INSTRUCTION IS LOCATED, AND IT IS NOT THE EMOTE INTERLEAVE.
+ * It is a `b` over a MID-FUNCTION LITERAL POOL.  The reference, at
+ * asm/overlays/rom_7f21b8/ovl_30_c_c_a_c_c_c_c_c.s:39-43, reads
+ *
+ *      bl __ActorMessage
+ *      b  .L360
+ *      .pool_aligned
+ *   .L360:
+ *      mov r0, #0xa
+ *
+ * -- two of its three pool words (0xffffc000 and 0x26ec) sit there, and only
+ * ActorCmd_ARRAY_944__02009314 goes at the end.  We dump all three at the end,
+ * so we never emit the `b`.  objcmp sees it at stream index 8:
+ * ref 4b0f (`ldr r3, [pc, #60]`) against ours 4b33 (`ldr r3, [pc, #204]`).
+ * The 32-bit entry counts are 29/29, so the POOL WORDS ARE ALREADY RIGHT; the
+ * whole -1 is the manufactured branch.
+ *
+ * THE MECHANISM, with the preconditions, because the obvious one does not hold.
+ * `arm_reorg` (config/arm/arm.c:5459) puts a pool at the LAST BARRIER WITHIN
+ * REACH of the pool's first entry, and manufactures one with a `b` through
+ * `create_fix_barrier` only when `last_barrier == NULL` (arm.c:5550-5572) --
+ * i.e. when no natural barrier is in range.  THE RANGE IS NOT THE REASON HERE:
+ * the Thumb pool load is `*thumb_movsi_insn` alternative 6, whose `pool_range`
+ * is 1020 (config/arm/arm.md:3856), and the whole function is 236 bytes, so the
+ * end-of-function barrier is comfortably in reach.  docs/elevation.md's entry
+ * "A mid-function pool is REPRODUCIBLE, not a disqualification" names the
+ * producing shape as a NARROW first pool entry (`pool_range` 32 or 60,
+ * arm.md:3069 and 3155 -- the HImode/QImode loads), and the related entry "An
+ * HImode constant >= 0x8000 costs a mid-function pool AND a branch" is the
+ * worked case.  So the open question for the next agent is sharp and checkable:
+ * WHICH REFERENCE REACHES THE ROM'S FIRST POOL ENTRY WITH A NARROW `pool_range`?
+ * Ours reaches 0xffffc000 with a SImode `ldr` and so can wait for the end.
+ *
+ * SECOND RESIDUE, unchanged and still the park's own: the argument-setup
+ * interleave at __MapActor_Emote,
+ *      rom   mov r1,#0x81 / mov r0,#0xe / lsl r1,#1
+ *      ours  mov r1,#0x81 / lsl r1,#1   / mov r0,#0xe
+ * This is an INSN_LUID tie at the bottom of `rank_for_schedule`
+ * (haifa-sched.c:4111-4114): `mov r1,#0x81` wins on priority (it feeds the
+ * `lsl`, which feeds the call, so priority 2 against 1), and the remaining
+ * three are all class 3 with one dependent each -- arm_adjust_cost gives the
+ * data dependence cost 1, which `rank_for_schedule` at haifa-sched.c:4077-4078
+ * reads as class 3, so the class rung is dead -- leaving original insn order to
+ * decide.  The ROM's order therefore says `mov r0, #0xe` had the lower LUID.
+ *
+ * MEASURED THIS ROUND, all against ref 60 / ours 59:
+ *   the eight per-file FLAG groups on the unchanged body   56, and EVERY ONE
+ *       still 59 instructions.  -O1 is 58 instructions / 72 differing and
+ *       -fno-schedule-insns2 is 59 / 74; both WORSE.  Flag axis CLOSED.
+ *   32 ANCHOR placements (`do { } while (0);` at every statement boundary)
+ *       best 56, worst 76, and EVERY ONE still 59 instructions.  An anchor
+ *       cannot manufacture a pool barrier -- it emits no insn, so it changes
+ *       nothing arm_reorg can see.  Anchor axis CLOSED.
  *
  * Verify with:
  *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
  *     goldensun-build python3 tools/objcmp.py src/non_matching/overlays/2008308.c \
  *     asm/overlays/rom_7f21b8/ovl_30_c_c_a_c_c_c_c_c.s --func OvlFunc_967_2008308
  *
- * The original prose park is preserved below.
+ * The original prose park is preserved below.  NOTE its claim that "of the 60
+ * differing, only TWO are real ... the pool point is downstream of nothing we
+ * control" -- the pool point is the ENTIRE length gap, and arm.c:5550 says what
+ * controls it, so it is not downstream of nothing.
  */
 extern unsigned char *__MapActor_GetActor(int slot);
 extern void __SetFlag(int id);

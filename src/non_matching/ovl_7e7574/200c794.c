@@ -1,23 +1,119 @@
-/* OvlFunc_959_200c794 -- NON-MATCHING, 6 differing STREAM encodings of 147.
+/* OvlFunc_959_200c794 -- NON-MATCHING, 6 differing STREAM encodings of 147
+ * DEVICE-FREE, AND 4 OF 147 ONCE _MSG_244f AND _MSG_2455 EXIST.  THE BODY IS
+ * UNCHANGED FROM THE PARK; what is new is the measurement and the mechanism.
  *
- * BODY RECOVERED FROM scratch/ (batch 338).  This park was PROSE -- a header,
- * a diagnosis, and no compilable body -- so it had no figure, was NO CLAIM in
- * parkcheck, and was unrankable in every band.  But its own header named a
- * candidate at scratch/Tc794.c, that file still existed, and it
- * compiles.  The work had been done and left in a GITIGNORED directory instead
- * of installed, so nothing in the tree could see it.
+ * FIGURE, re-derived with objcmp at the head of batch 339 (the authority):
+ *   6 differing STREAM encodings of 147 (ref 147 / ours 147);
+ *   92 / 92 16-bit instructions -- IN PHASE;
+ *   *** RELOCATIONS DIFFER ***, which the batch brief's table did not say and
+ *   tools/autosweep.py does flag: our object carries two extra R_ARM_ABS32
+ *   entries, `_MSG_244f` at 0x184 and `_MSG_2455` at 0x190, and the 47
+ *   R_ARM_THM_CALL entries are identical in symbol AND address on both sides.
+ *   So the relocation alarm here is ONE finding, not two: two undefined externs,
+ *   not a different program.
  *
- * ref 147 / ours 147 stream encodings; 92/92 16-bit instructions -- IN PHASE, so a true DISTANCE.
+ * THE REAL DISTANCE IS 4, MEASURED NOT ARGUED.  Probed with a DEVICE (labelled
+ * as such, and NOT shipped -- the body below has no `.equ`):
+ *     __asm__(".equ _MSG_244f, 0x244f");
+ *     __asm__(".equ _MSG_2455, 0x2455");
+ *   gives 4 differing encodings of 147, 92/92 instructions, and NO relocation
+ *   complaint.  So the park's claim that "those would assemble to identical
+ *   bytes the moment the two symbols are defined" is now MEASURED rather than
+ *   asserted, and the two symbols are worth exactly 2 encodings plus the
+ *   relocation set.  Precedent for the symbols themselves is the elevated
+ *   sibling OvlFunc_959_200cbfc.
  *
  * Verify with:
  *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
  *     goldensun-build python3 tools/objcmp.py src/non_matching/ovl_7e7574/200c794.c \
  *     asm/overlays/rom_7e7574/ovl_9dc_c_c_a_a_c_c.s --func OvlFunc_959_200c794
  *
- * 70 of the 133 prose parks were in this state; tools/scratchfill.py found them.
- * THE FIGURE IS EVIDENCE; the prose below it is a HYPOTHESIS, and across pass
- * two a park's stated blocker has been wrong roughly 40 times in 42.  The
- * original park text is preserved underneath.
+ * PIECE (tools/piece.py, verbatim):
+ *   asm/overlays/rom_7e7574/ovl_9dc_c_c_a_a_c_c.s  --  1 function(s)
+ *       PARKED  OvlFunc_959_200c794   6 of 147   src/non_matching/ovl_7e7574/200c794.c
+ *     => all 1 parked, so ONE candidate converts the whole TU.  No split needed.
+ *
+ * THE FOUR REAL ENCODINGS ARE TWO COPIES OF ONE ADJACENT SWAP, at the two
+ * __MapActor_Emote sites whose second argument needs mov+lsl:
+ *      rom   mov r1,#0x81 / mov r0,#0x19 / lsl r1,#1 / mov r2,#0x1e
+ *      ours  mov r1,#0x81 / lsl r1,#1    / mov r0,#0x19 / mov r2,#0x1e
+ * (the third Emote site takes `ldr r1, =0x105` from the pool and is identical.)
+ *
+ * *** THE MECHANISM, READ OUT OF .23.sched2 RATHER THAN INFERRED. ***
+ * The park said "both follow conditional branches, so the lever's precondition
+ * looks satisfied.  It is not enough."  Here is why, with the dump's own numbers
+ * for basic block 4 (`-fsched-verbose=6`, which writes into `t.c.23.sched2` and
+ * NOT to stderr):
+ *
+ *      insn  what              dep  prio  cost  forward dependents
+ *      360   r1 = 0x81          0    58    1    215 361
+ *      361   r1 = r1 << 1       1    57    1    215 85 80
+ *       75   r0 = 0x19          0    57    1    215 83 80
+ *       79   r2 = 0x1e          0    57    1    215 87 80
+ *       80   call Emote         3    56   32
+ *
+ *   t = 0: ready {360, 75, 79}; 360 has priority 58 and wins outright.
+ *   t = 1: ready {361, 75, 79}; ALL THREE AT PRIORITY 57, so every rung of
+ *          rank_for_schedule has to be walked, and every one of them TIES:
+ *            - the class rung (haifa-sched.c:4068-4095) ties because
+ *              arm_adjust_cost (arm.c:2425-2427) zeroes anti/output dependences
+ *              and arm.md:254 gives every `core_cycles single` insn latency 1,
+ *              so this is an all-ALU window with nothing for it to separate;
+ *            - the DEPENDENT-COUNT rung ties at 3 / 3 / 3, as the table shows;
+ *            - so it falls to INSN_LUID, i.e. PRE-SCHEDULING CHAIN ORDER.
+ *   The chain order (read from `.20.ce2`) is
+ *        ... 334, 360, 361, 75, 77, 79, 80 ...
+ *   so the `lsl` sits at a LOWER LUID than `r0 = 0x19` and wins the tie.
+ *   To get the ROM, insn 75 must precede insn 361 IN THE CHAIN.  It does not,
+ *   because the r1 argument's materialisation is emitted at the r1 argument's
+ *   position and the Thumb split of `0x102` (split_all_insns, toplev.c:3376,
+ *   which runs AFTER reload_cse_regs and BEFORE sched2 at toplev.c:3473) puts
+ *   both halves there.  NOTHING IN THE SOURCE MOVES ONE ARGUMENT'S MOVE ACROSS
+ *   ANOTHER ARGUMENT'S MATERIALISATION -- see the measured list below.
+ *
+ *   The two levers that WOULD reach it are the two rungs above LUID, and both
+ *   need a dependent count or a latency this window does not have.  State the
+ *   bound that way, not as "the source has no handle": if a spelling can give
+ *   `r0 = 0x19` a FOURTH forward dependent while the `lsl` keeps three, the
+ *   dependent-count rung decides it before LUID is consulted.  I did not find
+ *   one.
+ *
+ * MEASURED INERT, all 6 of 147 with first diff at index 25 and the same two
+ * relocations (20 variants; the park's own two negatives re-measured on this
+ * body and 18 new ones):
+ *   `0x102` / `0x100` as plain literals; `0x81 * 2`; `0x81 + 0x81`;
+ *   the emote id in a named local; THE SHIFT IN PLACE on that local
+ *     (`e = 0x81; e <<= 1;`) -- batch 336's lever, inert here because the
+ *     pseudo is a local and not a PARAMETER with an assign_parms prologue save;
+ *   the slot in a named local, before / after / BETWEEN the two halves of the
+ *     shift (`e = 0x81; sl = 0x19; e <<= 1;`), which is the chain order the
+ *     scheduler needs and which gcc folds away before it can matter;
+ *   an anchor between the two halves of the shift, and after the slot store;
+ *   __MapActor_Emote declared `()` (unspecified args), `short slot`,
+ *     `unsigned short a`, `long a`; __MessageID's prototype dropped.
+ * MEASURED WORSE: no declaration for __MapActor_Emote at all (8), `int
+ *   __MapActor_Emote()` (8), no declaration plus plain literals (8),
+ *   __Func_809280c's prototype dropped (8).
+ *   So the PROTOTYPE axis is closed in both directions here, which is worth
+ *   saying because the park's sibling needed exactly that lever.
+ *
+ * AUTOSWEEP on this body (recorded negative, do not re-screen):
+ *   FLAG AXIS: -fno-gcse / -ffixed-r7 / -fno-strict-aliasing /
+ *     -fno-strength-reduce / -fno-rerun-cse-after-loop / -fno-rerun-loop-opt
+ *     ALL inert at 6; -fno-schedule-insns2 43, -O1 43.
+ *     (-ffixed-r7 inert is unusual and worth noting -- this function keeps
+ *     nothing in r7.)
+ *   ANCHOR AXIS: 40 top-level boundaries, all inert or worse, best 6.
+ *   The park's note that CSE_CFLAGS changes nothing because flag 0x313 is read
+ *   and set in DIFFERENT basic blocks REPRODUCES: -fno-rerun-cse-after-loop is
+ *   inert at 6.
+ *
+ * WHAT TO DO WITH IT.  The park's standing ruling is not to add _MSG_244f /
+ * _MSG_2455 to message.sym until the remaining lines fall, "because a symbol
+ * that does not complete a match is an entry that does not pay for itself".
+ * That ruling still holds and this round did not earn the symbols.  But the
+ * figure to CARRY is now 4, not 6, and the relocation alarm should not be
+ * re-investigated.
  */
 extern int _MSG_244f;
 extern int _MSG_2455;
@@ -99,50 +195,3 @@ void OvlFunc_959_200c794(void)
     __CutsceneEnd();
 }
 
-#if 0
-/* ===== ORIGINAL PROSE PARK, PRESERVED =====
-(* OvlFunc_959_200c794 -- 0x0200c794, asm/overlays/rom_7e7574/ovl_9dc_c_c_a_a_c.s
- *
- * 144 of 144 lines, SIX differing -- but only FOUR of those are real.
- * Candidate: scratch/Tc794.c.
- *
- * TWO of the six are `ldr r5, =_MSG_244f` and `ldr r5, =_MSG_2455` against the
- * ROM's raw ids.  Those would assemble to identical bytes the moment the two
- * symbols are defined, exactly as they did for its sibling
- * OvlFunc_959_200cbfc (elevated).  They are NOT added to message.sym here,
- * because a symbol that does not complete a match is an entry that does not pay
- * for itself -- the same reasoning as the SetTextColor park.  Add them at the
- * moment the remaining four lines fall, not before.
- *
- * SOLVED AND WORTH KEEPING:
- *   - The message-id bases as SYMBOLS taken by address.  The ROM holds each in
- *     r5 and derives neighbours (`add r0, r5, #1..#5`, and `add r5, #2` for the
- *     mutating one); the symbol form reproduces all of it, including which of
- *     the two bases mutates and which only derives.
- *   - Both early-return arms, the nested __Func_8091c7c branch, and every one of
- *     the seven __Func_8092c40 calls come out right WITH the prototype in place.
- *     Note the contrast with the sibling, where dropping that same callee's
- *     prototype was required -- the lever is per function, not per callee.
- *
- * BLOCKER: the argument-setup interleave, at TWO __MapActor_Emote sites.
- *      rom   mov r1,#0x81 / mov r0,#0x19 / lsl r1,#1 / mov r2,#0x1e
- *      ours  mov r1,#0x81 / lsl r1,#1    / mov r0,#0x19 / mov r2,#0x1e
- * Both sites are the same single adjacent swap, and both follow conditional
- * branches, so the lever's precondition looks satisfied.  It is not enough.
- *
- * TRIED: naming the other two arguments immediately before each call, which is
- * the form that recovered OvlFunc_932_200a9dc -- no change, 6.  Hoisting the
- * first site's pair above the preceding `if`, into a genuinely dominating block
- * -- WORSE, 146 lines and 133 differing, because the values then have to survive
- * two __GetFlag calls and gcc spends callee-saved registers on them.
- * CSE_CFLAGS changes nothing here, unlike the sibling: the flag id 0x313 is read
- * and set in DIFFERENT branches, so gcc never commons it in the first place.
- *
- * That last point is the useful one.  Sibling functions in the same overlay, the
- * same flag-reuse shape, and only one of them needs CSE_CFLAGS -- because what
- * matters is whether the two uses share a basic block, not whether the id
- * repeats.  pool.py's flag2 column cannot see that distinction.
- *)
-
-*/
-#endif

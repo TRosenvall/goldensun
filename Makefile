@@ -745,6 +745,29 @@ asm/overlays/rom_77a7c8/ovl_30_c_a_c_c_a_c_c_c_c.o: src/overlays/rom_77a7c8/ovl_
 	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
 	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
 
+# CSE_CFLAGS for OvlFunc_881_20097a4, batch 339 brief E.  SECOND file in this
+# bank to take the rule, not a new assertion about the bank -- the rule above
+# (ovl_30_c_a_c_c_a_c_c_c_c.o) is batch 219's, for the same reason.
+#
+# Flag id 0x80 << 2 = 0x200 is tested by __GetFlag and then set by __SetFlag, and
+# the ROM rebuilds `mov r0,#0x80 / lsl r0,#2` at BOTH sites.  At -O2 the second
+# CSE pass hoists the id into r6 and keeps it live across the __GetFlag call,
+# paying a wider push/pop (push {r5,r6,lr} against the ROM's push {r5,lr}) and
+# two `mov r0,r6` copies -- 16 differing of 38 WITH THE INSTRUCTION COUNT ALREADY
+# EXACT at 32/32, which is the signature of a CSE win we do not want.
+#
+# SIXTH member of a documented family and the FOURTH with id 0x200 specifically:
+# OvlFunc_936_20095b4 (Makefile:570, same id, same register r6, same two copies),
+# OvlFunc_936_2009930 (:554), OvlFunc_948_20097ac (:507, id 0x220),
+# OvlFunc_891_200905c, OvlFunc_924_20094cc, OvlFunc_935_20088a8.
+#
+# -fno-gcse and -fno-rerun-loop-opt are inert at 16; -fno-schedule-insns2 is
+# WORSE at 18.  Only -fno-rerun-cse-after-loop reaches it.
+asm/overlays/rom_77a7c8/ovl_30_c_a_c_c_a_c_a_a_a_a_a_c_c_a.o: src/overlays/rom_77a7c8/ovl_30_c_a_c_c_a_c_a_a_a_a_a_c_c_a.c
+	$(GCC296_CC) $(CSE_CFLAGS) -S -o $(@:.o=.s) $<
+	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
+	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
+
 
 # -fno-strength-reduce : LoadMoveRangeIcons recomputes its table byte offset and
 # a shifted shape index every iteration; gcc makes induction variables for both

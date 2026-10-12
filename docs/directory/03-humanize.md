@@ -1,6 +1,6 @@
 # Pass 4 — humanizing
 
-**4,319 landed functions are still named `Func_<addr>`** against 770 with a real name, across **4,497 split-named files** of 4,559 landed.
+**4,326 landed functions are still named `Func_<addr>`** against 770 with a real name, across **4,503 split-named files** of 4,565 landed.
 
 See `docs/humanization.md` for the method and the artifact taxonomy. Two
 structural facts bound this work:
@@ -18,9 +18,9 @@ structural facts bound this work:
 
 | bank | unnamed functions |
 |---|---|
-| overlays | 3221 |
+| overlays | 3227 |
 | rom_8a000 | 266 |
-| rom_15000 | 214 |
+| rom_15000 | 215 |
 | rom_b5000 | 153 |
 | rom_a1000 | 149 |
 | rom_c0 | 76 |
@@ -181,6 +181,7 @@ structural facts bound this work:
 | `Func_8015f30` | [src/rom_15000/rom_15e8c_a_c_a_a_a.c](../../src/rom_15000/rom_15e8c_a_c_a_a_a.c) |
 | `Func_8015fb8` | [src/rom_15000/rom_15e8c_a_c_a_a_b.c](../../src/rom_15000/rom_15e8c_a_c_a_a_b.c) |
 | `Func_8016018` | [src/rom_15000/rom_15e8c_a_c_a_a_b.c](../../src/rom_15000/rom_15e8c_a_c_a_a_b.c) |
+| `Func_80160fc` | [src/rom_15000/rom_15e8c_a_c_a_a_c_a_c.c](../../src/rom_15000/rom_15e8c_a_c_a_a_c_a_c.c) |
 | `Func_8016230` | [src/rom_15000/rom_15e8c_a_c_a_b.c](../../src/rom_15000/rom_15e8c_a_c_a_b.c) |
 | `Func_8016478` | [src/rom_15000/rom_15e8c_a_c_c_a_a_a_b.c](../../src/rom_15000/rom_15e8c_a_c_c_a_a_a_b.c) |
 | `Func_8016498` | [src/rom_15000/rom_15e8c_a_c_c_a_a_b.c](../../src/rom_15000/rom_15e8c_a_c_c_a_a_b.c) |
@@ -1192,10 +1193,12 @@ structural facts bound this work:
 | `OvlFunc_881_2008a8c` | [src/overlays/rom_77a7c8/ovl_30_c_a_c_c_a_c_a_a_a_a_a_a_b.c](../../src/overlays/rom_77a7c8/ovl_30_c_a_c_c_a_c_a_a_a_a_a_a_b.c) |
 | `OvlFunc_881_200955c` | [src/overlays/rom_77a7c8/ovl_30_c_a_c_c_a_c_a_a_a_a_a_b.c](../../src/overlays/rom_77a7c8/ovl_30_c_a_c_c_a_c_a_a_a_a_a_b.c) |
 | `OvlFunc_881_2009680` | [src/overlays/rom_77a7c8/ovl_30_c_a_c_c_a_c_a_a_a_a_a_c_b.c](../../src/overlays/rom_77a7c8/ovl_30_c_a_c_c_a_c_a_a_a_a_a_c_b.c) |
+| `OvlFunc_881_20097a4` | [src/overlays/rom_77a7c8/ovl_30_c_a_c_c_a_c_a_a_a_a_a_c_c_a.c](../../src/overlays/rom_77a7c8/ovl_30_c_a_c_c_a_c_a_a_a_a_a_c_c_a.c) |
 | `OvlFunc_881_20097fc` | [src/overlays/rom_77a7c8/ovl_30_c_a_c_c_a_c_a_a_a_a_a_c_c_b.c](../../src/overlays/rom_77a7c8/ovl_30_c_a_c_c_a_c_a_a_a_a_a_c_c_b.c) |
 | `OvlFunc_881_2009888` | [src/overlays/rom_77a7c8/ovl_30_c_a_c_c_a_c_a_a_a_a_a_c_c_b.c](../../src/overlays/rom_77a7c8/ovl_30_c_a_c_c_a_c_a_a_a_a_a_c_c_b.c) |
 | `OvlFunc_881_2009938` | [src/overlays/rom_77a7c8/ovl_30_c_a_c_c_a_c_a_a_a_a_a_c_c_b.c](../../src/overlays/rom_77a7c8/ovl_30_c_a_c_c_a_c_a_a_a_a_a_c_c_b.c) |
 | `OvlFunc_881_20099e8` | [src/overlays/rom_77a7c8/ovl_30_c_a_c_c_a_c_a_a_a_a_a_c_c_b.c](../../src/overlays/rom_77a7c8/ovl_30_c_a_c_c_a_c_a_a_a_a_a_c_c_b.c) |
+| `OvlFunc_881_2009a98` | [src/overlays/rom_77a7c8/ovl_30_c_a_c_c_a_c_a_a_a_a_a_c_c_c.c](../../src/overlays/rom_77a7c8/ovl_30_c_a_c_c_a_c_a_a_a_a_a_c_c_c.c) |
 | `OvlFunc_881_2009b5c` | [src/overlays/rom_77a7c8/ovl_30_c_a_c_c_a_c_a_a_a_a_b.c](../../src/overlays/rom_77a7c8/ovl_30_c_a_c_c_a_c_a_a_a_a_b.c) |
 | `OvlFunc_881_200a274` | [src/overlays/rom_77a7c8/ovl_30_c_a_c_c_a_c_a_a_a_c_b.c](../../src/overlays/rom_77a7c8/ovl_30_c_a_c_c_a_c_a_a_a_c_b.c) |
 | `OvlFunc_881_200a768` | [src/overlays/rom_77a7c8/ovl_30_c_a_c_c_a_c_a_a_b.c](../../src/overlays/rom_77a7c8/ovl_30_c_a_c_c_a_c_a_a_b.c) |
@@ -3264,6 +3267,7 @@ structural facts bound this work:
 | `OvlFunc_945_200a7d8` | [src/overlays/rom_7cb2c0/ovl_30_c_c_c_c_c_c_a_a_a_a_a_c_c_a_b.c](../../src/overlays/rom_7cb2c0/ovl_30_c_c_c_c_c_c_a_a_a_a_a_c_c_a_b.c) |
 | `OvlFunc_945_200aff0` | [src/overlays/rom_7cb2c0/ovl_30_c_c_c_c_c_c_a_a_a_a_a_c_c_a_c_b.c](../../src/overlays/rom_7cb2c0/ovl_30_c_c_c_c_c_c_a_a_a_a_a_c_c_a_c_b.c) |
 | `OvlFunc_945_200b364` | [src/overlays/rom_7cb2c0/ovl_30_c_c_c_c_c_c_a_a_a_a_a_c_c_a_c_c_b.c](../../src/overlays/rom_7cb2c0/ovl_30_c_c_c_c_c_c_a_a_a_a_a_c_c_a_c_c_b.c) |
+| `OvlFunc_945_200b51c` | [src/overlays/rom_7cb2c0/ovl_30_c_c_c_c_c_c_a_a_a_a_a_c_c_a_c_c_c.c](../../src/overlays/rom_7cb2c0/ovl_30_c_c_c_c_c_c_a_a_a_a_a_c_c_a_c_c_c.c) |
 | `OvlFunc_945_200b66c` | [src/overlays/rom_7cb2c0/ovl_30_c_c_c_c_c_c_a_a_a_a_a_c_c_b.c](../../src/overlays/rom_7cb2c0/ovl_30_c_c_c_c_c_c_a_a_a_a_a_c_c_b.c) |
 | `OvlFunc_945_200b7b4` | [src/overlays/rom_7cb2c0/ovl_30_c_c_c_c_c_c_a_a_a_a_a_c_c_c_a_a.c](../../src/overlays/rom_7cb2c0/ovl_30_c_c_c_c_c_c_a_a_a_a_a_c_c_c_a_a.c) |
 | `OvlFunc_945_200b7d8` | [src/overlays/rom_7cb2c0/ovl_30_c_c_c_c_c_c_a_a_a_a_a_c_c_c_a_b.c](../../src/overlays/rom_7cb2c0/ovl_30_c_c_c_c_c_c_a_a_a_a_a_c_c_c_a_b.c) |
@@ -3393,6 +3397,7 @@ structural facts bound this work:
 | `OvlFunc_947_2008da8` | [src/overlays/rom_7d0e88/ovl_314_b.c](../../src/overlays/rom_7d0e88/ovl_314_b.c) |
 | `OvlFunc_947_2008ddc` | [src/overlays/rom_7d0e88/ovl_314_c_a_a_a_a.c](../../src/overlays/rom_7d0e88/ovl_314_c_a_a_a_a.c) |
 | `OvlFunc_947_2008ec8` | [src/overlays/rom_7d0e88/ovl_314_c_a_a_a_b.c](../../src/overlays/rom_7d0e88/ovl_314_c_a_a_a_b.c) |
+| `OvlFunc_947_2008f58` | [src/overlays/rom_7d0e88/ovl_314_c_a_a_a_c_a.c](../../src/overlays/rom_7d0e88/ovl_314_c_a_a_a_c_a.c) |
 | `OvlFunc_947_2008fcc` | [src/overlays/rom_7d0e88/ovl_314_c_a_a_a_c_b.c](../../src/overlays/rom_7d0e88/ovl_314_c_a_a_a_c_b.c) |
 | `OvlFunc_947_200901c` | [src/overlays/rom_7d0e88/ovl_314_c_a_a_b.c](../../src/overlays/rom_7d0e88/ovl_314_c_a_a_b.c) |
 | `OvlFunc_947_2009074` | [src/overlays/rom_7d0e88/ovl_314_c_a_a_c.c](../../src/overlays/rom_7d0e88/ovl_314_c_a_a_c.c) |
@@ -3947,6 +3952,8 @@ structural facts bound this work:
 | `OvlFunc_960_2008b14` | [src/overlays/rom_7eaf28/ovl_314_c_b.c](../../src/overlays/rom_7eaf28/ovl_314_c_b.c) |
 | `OvlFunc_960_2008c00` | [src/overlays/rom_7eaf28/ovl_314_c_c_a_a_b.c](../../src/overlays/rom_7eaf28/ovl_314_c_c_a_a_b.c) |
 | `OvlFunc_960_2008ce4` | [src/overlays/rom_7eaf28/ovl_314_c_c_a_b.c](../../src/overlays/rom_7eaf28/ovl_314_c_c_a_b.c) |
+| `OvlFunc_960_2008d24` | [src/overlays/rom_7eaf28/ovl_314_c_c_a_c.c](../../src/overlays/rom_7eaf28/ovl_314_c_c_a_c.c) |
+| `OvlFunc_960_2008dc8` | [src/overlays/rom_7eaf28/ovl_314_c_c_a_c.c](../../src/overlays/rom_7eaf28/ovl_314_c_c_a_c.c) |
 | `OvlFunc_960_2008e5c` | [src/overlays/rom_7eaf28/ovl_314_c_c_b.c](../../src/overlays/rom_7eaf28/ovl_314_c_c_b.c) |
 | `OvlFunc_960_2008e8c` | [src/overlays/rom_7eaf28/ovl_314_c_c_c_b.c](../../src/overlays/rom_7eaf28/ovl_314_c_c_c_b.c) |
 | `OvlFunc_960_2008f50` | [src/overlays/rom_7eaf28/ovl_314_c_c_c_c_a.c](../../src/overlays/rom_7eaf28/ovl_314_c_c_c_c_a.c) |

@@ -318,6 +318,20 @@ def main():
               f"cross files.\n")
         for a, b, sym in bad:
             print(f"  {stem}{a}.s references .{sym}, defined in {stem}{b}.s")
+
+# KNOWN GAP (batch 339): this check scans for `.L` CODE-LABEL crossings and does
+# NOT look for `.lcomm` / `.comm` crossings.  On
+# asm/overlays/rom_7d6418/ovl_30_c_c_c_c_a.s it passed after two labels were
+# exported, the split succeeded, and the BUILD then failed at link with
+# `undefined reference to .L20d0` -- which is `.lcomm .L20d0, 0x60`, a local
+# common (BSS) symbol declared in one new piece and referenced from the other
+# two.  A `.global` does not fix that: the symbol has to become `.comm` to get a
+# symbol-table entry, which changes its binding and is a tree change with its
+# own risk.  The split was reverted and the landing banked in the park.
+#
+# TODO: scan for `.lcomm`/`.comm` definitions whose references would land in a
+# different piece, and refuse with that reason rather than letting the link fail.
+
         print(f"\nA `.L` symbol does not survive into the object's symbol table, "
               f"so the link would fail.\nIf these are data tables the function "
               f"needs, export them in the .s and re-run:\n")

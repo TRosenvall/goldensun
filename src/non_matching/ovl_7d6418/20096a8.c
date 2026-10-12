@@ -1,3 +1,55 @@
+/* ===== BATCH 339 BRIEF D: A VERIFIED 0 EXISTS AND THE SPLIT IS BLOCKED =====
+ *
+ * PARK STAYS. 34 of 61 was re-derived from the recovered body (47 instructions
+ * against the reference's 48, so a 1-instruction gap, not a distance).  Brief D
+ * then reached BYTE-IDENTICAL -- candidate kept at
+ * scratch_elev/b339/D/p2_candidate.c -- and it is NOT installed, for a reason
+ * that is about the FILE, not the function.
+ *
+ * WHY IT CANNOT SHIP YET.  The landing needs its piece split out, and the split
+ * was attempted and REVERTED:
+ *
+ *   1. split_s.py refused, naming two code labels that would cross files
+ *      (.L2054, .L2057).  Those were exported, `make compare` stayed green, and
+ *      the split then succeeded.
+ *   2. The build FAILED at link: `undefined reference to .L20d0`, from both
+ *      new pieces.
+ *   3. `.L20d0` is `.lcomm .L20d0, 0x60` -- a LOCAL COMMON (BSS) symbol, 0x60
+ *      bytes, declared in one piece and referenced from the other two.
+ *
+ * ***A .lcomm CROSSING IS A DIFFERENT CLASS FROM A CODE-LABEL CROSSING, AND
+ * split_s.py DOES NOT CHECK FOR IT.***  A `.global` does not fix it either: the
+ * symbol has to become `.comm` to get a symbol-table entry, which changes its
+ * binding, and that is a tree change with its own risk -- not something to do
+ * incidentally while landing one function.  The split was backed out and
+ * `make compare` verified green at the target SHA1 before anything else.
+ *
+ * SO THE WORK IS BANKED AND THE BLOCKER IS A TOOLING ITEM, recorded as such:
+ * split_s.py's pre-split check should scan for `.lcomm`/`.comm` crossings
+ * alongside `.L` label crossings, and say so rather than letting the link fail.
+ *
+ * NOTE ALSO that the landing wanted CSE_CFLAGS (-fno-rerun-cse-after-loop) or
+ * GCSE_CFLAGS, so even once the split is possible it carries a per-file flag
+ * rule, and flag rules in this tree are explicit-not-pattern by standing
+ * practice (the Makefile records five mis-scoped -O1 wildcards).
+ *
+ * THE MECHANISM, which stands regardless.  allocno_compare (global.c:598-620)
+ * scores floor_log2(n_refs)*n_refs/live_length, and THE ONLY SOURCE HANDLE ON
+ * live_length IS WHERE A DEFINITION SITS -- not the order of a block of
+ * definitions, and not declaration order.  This park's prose had screened
+ * DECLARATION permutations exhaustively and flat; moving `i = 0;` one slot took
+ * it 34 -> 22.  The remaining residue was a missing `mov r2,#0` that no spelling
+ * reaches and either -fno-gcse or -fno-rerun-cse-after-loop supplies -- and
+ * BOTH ARE EXACTLY INERT ON THE PARKED BODY, which is the crossing-partner case
+ * in its clearest form: a flag inert on the old body need not be inert on a
+ * changed one.
+ *
+ * AND THIS PARK'S CLASS BOUND IS INHERITED BY THREE OTHERS, which should be
+ * re-screened on INITIALISER PLACEMENT rather than on the register choice:
+ * ovl_7ced6c/2009c84.c, ovl_7ced6c/200a16c.c and ovl_7d0e88/2008f58.c all cite
+ * the same callee-saved coin flip "one dimension wider".  That extra dimension
+ * is what gave way here.
+ */
 /* OvlFunc_951_20096a8 -- NOT MATCHING, a LENGTH gap: ref 48 instructions against ours 47 (-1).
  *
  * BODY RECOVERED FROM scratch/ (batch 338).  This park was PROSE and had no

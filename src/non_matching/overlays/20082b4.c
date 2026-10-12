@@ -1,23 +1,154 @@
 /* OvlFunc_911_20082b4 -- NON-MATCHING, 5 differing STREAM encodings of 34.
  *
- * BODY RECOVERED FROM scratch/ (batch 338).  This park was PROSE -- a header,
- * a diagnosis, and no compilable body -- so it had no figure, was NO CLAIM in
- * parkcheck, and was unrankable in every band.  But its own header named a
- * candidate at scratch/L82b4.c, that file still existed, and it
- * compiles.  The work had been done and left in a GITIGNORED directory instead
- * of installed, so nothing in the tree could see it.
+ * ref 34 / ours 34 stream encodings; 28/28 16-bit instructions -- IN PHASE,
+ * so a true DISTANCE.  objcmp --whole reports NO relocation difference, so this
+ * is a plain distance, not the dirty-relocation shape batch 338 found.
+ * Re-measured at the head of batch 339.
  *
- * ref 34 / ours 34 stream encodings; 28/28 16-bit instructions -- IN PHASE, so a true DISTANCE.
+ * THE RESIDUE IS TWO ADJACENT TRANSPOSITIONS, at stream indices 10 and 17:
+ *     rom   lsl r2,#0x7 / mov r0,#0x0 / lsl r1,#0x8 / bl __MapActor_SetSpeed
+ *     ours  lsl r2,#0x7 / lsl r1,#0x8 / mov r0,#0x0 / bl __MapActor_SetSpeed
+ *     rom   mov r2,#0x8 / mov r0,#0x0 / mov r1,#0x0 / neg r2,r2 / bl __Func_809228c
+ *     ours  mov r2,#0x8 / neg r2,r2   / mov r0,#0x0 / mov r1,#0x0 / bl __Func_809228c
+ * All 23 other instructions are exact.
  *
  * Verify with:
  *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
  *     goldensun-build python3 tools/objcmp.py src/non_matching/overlays/20082b4.c \
  *     asm/overlays/rom_79e5c0/ovl_30_c_a_a_c_a_a_a_c_a.s --func OvlFunc_911_20082b4
  *
- * 70 of the 133 prose parks were in this state; tools/scratchfill.py found them.
- * THE FIGURE IS EVIDENCE; the prose below it is a HYPOTHESIS, and across pass
- * two a park's stated blocker has been wrong roughly 40 times in 42.  The
- * original park text is preserved underneath.
+ * EXACT WITH FOUR PINS -- MEASURED, byte-identical (34 encodings and 6
+ * relocations identical).  TWO sites, two pins each, declared in ARGUMENT ORDER:
+ *
+ *     {
+ *         register int p0 __asm__("r0") = 0;
+ *         register int p1 __asm__("r1") = 0x80 << 8;
+ *
+ *         __MapActor_SetSpeed(p0, p1, 0x80 << 7);
+ *     }
+ *     ...
+ *     {
+ *         register int q0 __asm__("r0") = 0;
+ *         register int q1 __asm__("r1") = 0;
+ *
+ *         __Func_809228c(q0, q1, -8);
+ *     }
+ *
+ * Candidate kept at scratch_elev/b339/A/v/82b4_pin.c.  r0-only pins at both
+ * sites measure 4 of 34 -- an improvement, still pinned, still not a landing.
+ *
+ * THE SECOND SITE IS THE SAME CLASS WITH A `neg` INSTEAD OF AN `lsl`.  -8 is
+ * precomputed because arm.h's CONST_COSTS casts to `unsigned HOST_WIDE_INT`
+ * before the `< 256` test, so EVERY negative constant falls in the expensive
+ * half.  The mov+neg split is arm.md:3859-3865 (the `J` letter) run at
+ * split_all_insns (toplev.c:3376 -- after reload_cse_regs and BEFORE sched2),
+ * which is why the two halves start with adjacent LUIDs and the scheduler can
+ * still separate them.
+ *
+ * MEASURED NEGATIVE THAT CORRECTS THE PARK: naming the two shifted constants
+ * AND the -8 as locals assigned immediately before their calls is EXACTLY INERT
+ * at 5 of 34.  The park says "naming the constants at the top ... is worse, not
+ * better (33 -> 39 lines on OvlFunc_911_20082b4)".  That negative had expired
+ * and the mechanism explains both halves: a local assigned right before the call
+ * has its pseudo set at the assignment, which is still ahead of the zero's load,
+ * so nothing moves; a local assigned at the TOP of a straight-line function is
+ * simply allocated a callee-saved register, which is the +2 the park saw.
+ *
+ * AUTOSWEEP, batch 339 -- FLAG AXIS CLOSED, do not re-screen: -fno-gcse,
+ * -ffixed-r7, -fno-strict-aliasing, -fno-strength-reduce,
+ * -fno-rerun-cse-after-loop all inert at 5; -O1 13; -fno-schedule-insns2 13.
+ * ANCHOR AXIS ALSO CLOSED: all 10 top-level statement boundaries measured,
+ * all inert or worse, best 5 against base 5.  Both cheap axes are closed.
+ * Full table in scratch_elev/b339/A/autosweep.log.
+ *
+ * ===================== THE CLASS, NAMED AND CITED (batch 339 brief A) =========
+ *
+ * THREE of this brief's four targets are ONE class with ONE gate: the ROM emits
+ * the CHEAP `mov r0, #imm` argument IN THE MIDDLE of an expensive argument's
+ * two-insn build, gcc emits it LAST.  The pass is sched2, the rung is the LUID
+ * tie-break, and the reason the zero always loses is in the EXPANDER:
+ *
+ *   calls.c:803-857  precompute_register_parameters().  For every register
+ *     argument it emits, BEFORE any hard-register load, a copy into a pseudo
+ *     when
+ *         ! (GET_CODE (args[i].value) == REG || SUBREG of REG)
+ *      && args[i].mode != BLKmode
+ *      && rtx_cost (args[i].value, SET) > 2
+ *      && ((SMALL_REGISTER_CLASSES && *reg_parm_seen)
+ *          || preserve_subexpressions_p ())            <- calls.c:849-856
+ *
+ *   The fourth clause is UNCONDITIONALLY TRUE in Thumb: SMALL_REGISTER_CLASSES
+ *   is `TARGET_THUMB` (arm.h:1061) and `*reg_parm_seen` is set at calls.c:817
+ *   at the TOP of the same loop body, so even argument 0 sees it already 1.
+ *
+ *   The third clause is the whole selector.  arm.h CONST_COSTS, `case CONST_INT`
+ *   with outer == SET (arm.c:2077-2085 as the macro expands):
+ *       (unsigned) INTVAL < 256          -> 0
+ *       thumb_shiftable_const (INTVAL)   -> COSTS_N_INSNS (2)
+ *       otherwise                        -> COSTS_N_INSNS (3)
+ *   So a constant in 0..255 is NEVER precomputed and EVERY other constant
+ *   ALWAYS is -- note `(unsigned)`, which puts every negative constant in the
+ *   "always" half.  The expensive argument's insns therefore land at the
+ *   PRECOMPUTE position and the cheap `mov r0, #imm` lands at the
+ *   load_register_parameters position (calls.c:1684-1753, forward order), i.e.
+ *   LAST.  It carries the HIGHEST INSN_LUID of the group, by construction.
+ *
+ *   sched2 then ties: rank_for_schedule gives both candidates equal
+ *   INSN_PRIORITY, equal class against last_scheduled_insn, equal dependent
+ *   count, and falls through to `INSN_LUID (tmp) - INSN_LUID (tmp2)`
+ *   (haifa-sched.c:4113-4116).  The zero loses because it is last.
+ *
+ *   SIGN CONVENTION, VERIFIED, because it is easy to get backwards and the
+ *   whole analysis depends on it: schedule_block takes `ready[--n_ready]`
+ *   (haifa-sched.c:6023) -- the LAST array element -- and debug_ready_list
+ *   prints in array order, so in `Ready list (t = N): a b c` the insn actually
+ *   scheduled is `c`.  Confirmed against four separate ties in these dumps.
+ *
+ * THE PIN-FREE ESCAPE, AND THE GATE THAT CLOSES IT HERE.  Name the expensive
+ * constant as a local and local-alloc will move it to the use -- but only
+ * through local-alloc.c:884-888:
+ *
+ *       if (REG_N_REFS (regno) == 2
+ *           && REG_BASIC_BLOCK (regno) < 0
+ *           && rtx_equal_p (XEXP (note, 0), SET_SRC (set)))
+ *         reg_equiv_replace[regno] = 1;
+ *
+ *   and then local-alloc.c:928-988, where at the insn the pseudo dies it either
+ *   substitutes the constant (validate_replace_rtx, which SUCCEEDS here because
+ *   *thumb_movsi_insn alternative 3 takes a `K` shiftable const, arm.md:3838-3840)
+ *   and deletes the init, or ELSE moves the init to just before the use.  Either
+ *   way the build lands AFTER the zero's load and the ROM's order falls out.
+ *
+ *   `REG_BASIC_BLOCK (regno) < 0` means the set and the single use are in
+ *   DIFFERENT BASIC BLOCKS -- the source comment says so outright ("If the
+ *   register is only used in one basic block, this can't succeed or combine
+ *   would have done it").  THIS CORRECTS AND COMPLETES THE PARK'S OWN RULE.
+ *   The park said "THE BRANCH MUST BE BEFORE THE SITE"; that is TRUE and the
+ *   real condition is sharper -- not a DOMINATING block, just a basic-block
+ *   BOUNDARY between the assignment and the use, plus REG_N_REFS == 2 (the
+ *   local must be used EXACTLY ONCE).  The park's 150-guarded / 98-straight-line
+ *   sizing is therefore sound, and `tools/piece.py`-style re-sizing should test
+ *   `REG_BASIC_BLOCK`, not dominance.
+ *
+ * THE PIN-FREE PRECEDENT IS LANDED IN THIS TREE, pin-free, with the identical
+ * residue: src/overlays/rom_7c37ac/ovl_30_c_c_c_c_c_a.c (OvlFunc_938_2008184)
+ * names `x = 0x80 << 8; y = 0x80 << 7;` at the top and gets
+ * `lsl r2,#7 / mov r0,#0 / lsl r1,#8` -- because an if/else sits between the
+ * assignments and the call.  Found by grepping the GENERATED half of asm/ for
+ * the shape (187 instances of it exist in gcc's own output, which by itself
+ * refutes "gcc never emits this order"); five generated files carry the exact
+ * `lsl r2,#7 / mov r0,#0 / lsl r1,#8 / bl __MapActor_SetSpeed` triple, three of
+ * them pin-free.
+ *
+ * THE PINNED RECIPE, which this tree ALREADY SHIPS for this class:
+ * src/overlays/rom_7c6bac/ovl_30_c_c_a_c_c_c_c_a_c.c, booked as a 2-pin
+ * fakematch.  A bare `register int pN __asm__("rN") = ...` for the zero AND for
+ * the expensive argument, DECLARED IN ARGUMENT ORDER, makes both values hard
+ * registers at expand, skips the precompute entirely, and gives the zero the
+ * lowest LUID.  Per docs/owner-decisions.md:182-183 ("Prefer a pin-free body...
+ * park it at its pin-free figure for pass 3") this park is NOT reported as a
+ * landing; the exact recipe is recorded below so the landing is one edit away
+ * whenever the pin budget is settled.  See reports/pass3-depin.md.
  */
 extern unsigned char *iwram_3001ebc;
 extern unsigned char *__MapActor_GetActor(int slot);

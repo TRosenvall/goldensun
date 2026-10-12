@@ -310,7 +310,19 @@ def main():
                         nd = int(m.group(1))
                         tag = ""
                         if nd < base[0]:
-                            tag = "  <-- BETTER"
+                            # ONLY "BETTER" IF THE LENGTHS AGREE.  A variant that
+                            # is still N instructions off is compared OUT OF
+                            # PHASE, so a lower positional count is misalignment
+                            # moving, not distance closing.  Batch 339 brief D
+                            # was handed two such rows (82->81 and 149->145) and
+                            # had to establish that neither was an improvement;
+                            # dsize is sweep_variants' length delta.
+                            dm = re.search(r"dsize=(-?\d+)", line)
+                            if dm and dm.group(1) != "0":
+                                tag = ("  <-- lower count but dsize=" + dm.group(1)
+                                       + ": MISALIGNMENT, not an improvement")
+                            else:
+                                tag = "  <-- BETTER"
                         if nd == 0:
                             tag = "  <-- *** ZERO ***"
                         if tag:
