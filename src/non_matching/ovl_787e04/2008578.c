@@ -1,3 +1,65 @@
+/* OvlFunc_887_2008578 -- NON-MATCHING, 4 differing STREAM encodings of 453.
+ * HELD at the installed figure.  Batch 343 brief E: no body change.
+ *
+ * RE-DERIVED batch 343: 319 = 319 16-bit instructions (IN PHASE, a true
+ * DISTANCE), size exact at 1172 bytes, RELOCATIONS IDENTICAL.  The figure the
+ * park carried is CORRECT.
+ *
+ * Verify with:
+ *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
+ *     goldensun-build python3 tools/objcmp.py \
+ *     src/non_matching/ovl_787e04/2008578.c \
+ *     asm/overlays/rom_787e04/ovl_30_c_a_c_a_c_c_c_c_c_c_c_c_c_c_c_a_a_a_c.s \
+ *     --func OvlFunc_887_2008578
+ *
+ * ================= THE DEVICE-FREE FIGURE IS 365 OF 459 =================
+ * Every one of the 15 PIN blocks folded back into a plain call and both
+ * register locals de-pinned: 365 of 459, 319/326 instructions, +12 bytes,
+ * relocations differ by OFFSETS ONLY (identical symbol multiset -- the shift is
+ * the +12 bytes moving the pool).  So the 45 pins are worth 361 encodings and
+ * NO PIN-FREE LANDING IS AVAILABLE.  Parked at the pinned figure per the
+ * owner's policy; the pin debt goes to pass 3.
+ *
+ * ========== THE PIN TARIFF IS LINEAR, AND THAT IS THE NEW FINDING ==========
+ * A 15-site SINGLE-DROP sweep (fold one block, keep the other 14) against the
+ * base of 4:
+ *   SEVEN CHEAP SITES, each costing exactly +2: sites 1, 4, 5, 6, 10, 12, 13
+ *     (site 9 is +3).  All clean: +0 bytes, +0 instructions, relocations ok.
+ *   EIGHT LOAD-BEARING SITES: 323 (0), 295 (2), 286 (3), 225 (7), 120 (11),
+ *     105 (14), 65 (8).  Each of these also goes +-4 bytes / +-2 instructions,
+ *     so they are not just allocation -- they change the emitted shape.
+ *   THE TWO REGISTER LOCALS TOGETHER (`p8` in r8, `bit` in r6): 399 of 453 at
+ *     -8 bytes.  Heavily load-bearing; do not touch them.
+ *
+ * And on the cheap sites THE COST COMPOSES EXACTLY, up to six of them:
+ *   1 site  6 (42 pins) | 2  8 (39) | 3  10 (36) | 4  12 (33) | 5  14 (30)
+ *   6 sites 16 of 453 (27 pins), still +0 bytes / +0 instructions / relocs ok
+ *     -- the clean maximum found, dropping sites {1,4,5,6,10,12}.
+ * So HALF THIS FUNCTION'S PIN DEBT IS AVAILABLE AT TWO ENCODINGS A SITE.
+ * Whether 16 of 453 at 27 pins is preferable to 4 of 453 at 45 is a pass-3
+ * judgment and is NOT taken here.
+ *
+ * THE CLIFF, AND IT IS A COMBINATION NOT A COUNT.  Site 13 is on the +2 tariff
+ * alone ({12,13} and {1,13} are both 8) but added to {4,5,6,10} it takes the
+ * figure to 217 with +4 bytes and +2 instructions; {4,5,6,10,12,13} is 216 and
+ * {1,4,5,6,10,12,13} is 218.  Six sites WITHOUT 13 are clean at 16.  So a depin
+ * sweep here must test the SET, not accumulate single-drop costs -- and the
+ * +4 bytes / +2 instructions is the signal that the set has gone over.
+ *
+ * AUTOSWEEP, RECORDED NEGATIVE (batch 343).  Flag axis, nothing helps and this
+ * CONFIRMS the park's earlier 29-flag sweep: -fno-strength-reduce and
+ * -fno-rerun-loop-opt bit-identically inert at 4; -fno-schedule-insns2 102,
+ * -fno-gcse 154, -fno-strict-aliasing 299, -O1 357, -fno-rerun-cse-after-loop
+ * 371, -ffixed-r7 414.  -fno-strict-aliasing re-crossed on the six-site drop is
+ * WORSE (307 against 218).  Anchor axis CAPPED AT 40 of 212 boundaries, all 40
+ * inert at 4 -- boundaries 40..211 are UNTESTED, not inert.
+ *
+ * The residue diagnosis below (the reload-copy register choice at stream
+ * indices 129/136/148) was NOT re-opened this batch and is carried forward
+ * unchanged, including its open question: what is reload 2 of insn 328.
+ */
+
+/* ===== THE ORIGINAL PARK HEADER, CARRIED FORWARD ===== */
 /* OvlFunc_887_2008578 -- NON-MATCHING, 4 differing encodings of 453.
  * RE-DERIVED batch 328: size 1172 = 1172, instruction count 319 = 319,
  * pool words 133 = 133, relocations identical.  A TRUE DISTANCE.

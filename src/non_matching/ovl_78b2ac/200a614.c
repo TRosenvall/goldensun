@@ -1,3 +1,65 @@
+/* OvlFunc_890_200a614 -- NON-MATCHING, 19 differing STREAM encodings of 313.
+ * Batch 343 brief E: 21 -> 19 and 95 pins -> 50.  STILL PINNED, so by the
+ * owner's standing PREFER-PIN-FREE policy this is a PARK, not a landing.
+ *
+ * RE-DERIVED batch 343: 234 = 234 16-bit instructions (IN PHASE, a true
+ * DISTANCE), size exact at 784 bytes, RELOCATIONS IDENTICAL.
+ *
+ * Verify with:
+ *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
+ *     goldensun-build python3 tools/objcmp.py \
+ *     src/non_matching/ovl_78b2ac/200a614.c \
+ *     asm/overlays/rom_78b2ac/ovl_30_c_c_c_c_a.s --func OvlFunc_890_200a614
+ *
+ * DEVICE-FREE FIGURE: 294 of 318, 234/237 instructions, +12 bytes.  So the 95
+ * pins plus the r5 register local are worth 273 encodings and a pin-free
+ * landing is NOT readily available.  Left for pass 3.
+ *
+ * ========== WHAT CAME OUT, AND THE PARK'S OWN CONTROL WAS INVALID ==========
+ *
+ * A 36-site SINGLE-DROP sweep (fold one pin block back to a plain call, keep
+ * the other 35) found, against a base of 21:
+ *   site 0, the __Func_80933f8 call            **19**  <- BETTER THAN BASE
+ *   18 sites INERT at 21: 2,5,6,8,19,20,21,22,24,25,27,29,30,31,32,33,34,35
+ *   12 sites mildly load-bearing: 23 at 4,7,9,10,11,12,13,14,16,17,26; 24 at 3
+ *   5 sites heavily load-bearing: 295 (1), 190 (15), 176 (18), 151 (23), 115 (28)
+ *   the `register int m __asm__("r5")` local alone: 25, so it is worth 4
+ * Then the 18 inert sites AND site 0 were dropped JOINTLY -- the batch-341
+ * brief D move -- and the joint drop HELD at 19 with relocations still
+ * identical and no size or instruction-count change.  45 of the 95 pins are
+ * gone for a BETTER figure.
+ *
+ * > THE PARK'S OWN CONTROL WAS MEASURED WITH THE PINS IN AND IS WRONG BECAUSE
+ * > OF IT.  The park records "ALL 48 PERMUTATIONS of the mov order across the
+ * > five sites measure EXACTLY 21.  Not one encoding moves", and names
+ * > __Func_80933f8 as one of those five with "barriers at __Func_80933f8 are
+ * > inert".  It swept the ORDER of that site's fill and never tried REMOVING
+ * > the fill: deleting site 0's pins outright is worth 2 encodings and moves
+ * > `first` from index 5 to index 39, i.e. it retires the entire first residue
+ * > cluster.  An inherited control measured with the device in is UNTRUSTED.
+ *
+ * AND THE 23-GROUP'S COST IS NOT ADDITIVE -- THIS IS THE REAL BOUND.  Each of
+ * the 12 mildly-load-bearing sites costs 2 alone.  Dropped JOINTLY on top of
+ * the 19 body they cost 51, not 24 (figure 70), and dropping all but the five
+ * heavy sites is 95.  Both of those variants also go RELOC-offsets.  So "worse
+ * by 2 alone" does NOT compose, and a depin sweep that only adds up single-drop
+ * costs will overestimate how far it can get.  Contrast p1 in this same brief,
+ * where the single-drop costs ARE strictly additive up to six sites.
+ *
+ * MEASURED INERT ON THE NEW 19 BASE (so: recorded negatives, do not re-screen):
+ *   the anchor axis, 22 placements across the first 24 top-level statement
+ *   boundaries -- 12 inert at 19, the rest 20/21/23/24.  Best stays 19.
+ *   the flag axis re-crossed on the deeper joint drops: -fno-strict-aliasing
+ *   is worth 4 on them (95 -> 91, 70 -> 66) but they are far worse bases;
+ *   -fno-gcse and -fno-rerun-cse-after-loop bit-identically inert;
+ *   -fno-schedule-insns2 194-205; -O1 268-277 at -16 bytes.
+ *
+ * NEXT: the five heavy sites (1, 15, 18, 23, 28) and the r5 local are the whole
+ * remaining pin debt.  Site 1 is the only one worth 274 on its own, so it is
+ * the one to read the dumps on.
+ */
+
+/* ===== THE ORIGINAL PARK HEADER, CARRIED FORWARD ===== */
 /* OvlFunc_890_200a614 -- NON-MATCHING, 21 differing STREAM encodings of 313.
  *
  * BODY RECOVERED FROM scratch/ (batch 338).  This park was PROSE -- a header,
@@ -253,14 +315,12 @@ void OvlFunc_890_200a614(void)
     register int m __asm__("r5");
 
     __CutsceneStart();
-    { R0; R1; R2; R3; q0 = 0x8f; q1 = 1; q2 = 0x86; q3 = 0; q2 <<= 16; q1 = -q1; q0 <<= 17;
-      __Func_80933f8(q0, q1, q2, q3); }
+    __Func_80933f8(((0x8f) << 17), (-(1)), ((0x86) << 16), (0));
     __Func_800fe9c();
     __WaitFrames(1);
     { R0; R1; q0 = 0x7fff; q1 = 0;
       __Func_8091220(q0, q1); }
-    { R0; R1; q1 = 0; q0 = 0x7fff;
-      __Func_8091200(q0, q1); }
+    __Func_8091200((0x7fff), (0));
     __Func_8091254(1);
     __WaitFrames(1);
     { R0; R1; R2; q1 = 0x8c; q2 = 0x86; q0 = 1; q1 <<= 17; q2 <<= 16;
@@ -273,21 +333,18 @@ void OvlFunc_890_200a614(void)
     *(int *)(p + o) = one;
     __MapTransitionIn();
     __WaitMapTransition();
-    { R0; R1; q1 = 1; q0 = 0x2051cc;
-      __Func_8091200(q0, q1); }
+    __Func_8091200((0x2051cc), (1));
     __Func_8091254(0x78);
     __WaitFrames(0x78);
     __SetFlag(0x201);
     __ClearFlag(0x80 << 2);
     __ClearFlag(0x202);
-    { R0; R1; q0 = 0x80; q1 = 2; q0 <<= 9;
-      __Func_8091200(q0, q1); }
+    __Func_8091200(((0x80) << 9), (2));
     __Func_8091254(0x3c);
     __WaitFrames(0x64);
     { R0; R1; q1 = 0x81; q0 = 0; q1 <<= 1;
       __MapActor_Surprise(q0, q1); }
-    { R0; R1; q1 = 0x81; q1 <<= 1; q0 = 1;
-      __MapActor_Surprise(q0, q1); }
+    __MapActor_Surprise((1), ((0x81) << 1));
     __CutsceneWait(0x3c);
     { R0; R1; R2; q1 = 0x80; q0 = 0; q1 <<= 6; q2 = 0x14;
       __Func_8092adc(q0, q1, q2); }
@@ -311,15 +368,11 @@ void OvlFunc_890_200a614(void)
     { R0; R1; R2; q0 = 1; q1 = 1; q2 = 0xe666; q1 = -q1; q0 = -q0;
       __Func_8012330(q0, q1, q2); }
     __CutsceneWait(0x14);
-    { R0; R1; q1 = 2; q0 = 1;
-      __Func_80925cc(q0, q1); }
+    __Func_80925cc((1), (2));
     __MessageID(0x1119);
-    { R0; R1; q1 = 0; q0 = 1;
-      __Func_8092c40(q0, q1); }
-    { R0; R1; q1 = 0; q0 = 0;
-      __Func_8091c7c(q0, q1); }
-    { R0; R1; q1 = 1; q0 = 0;
-      __MapActor_SetAnim(q0, q1); }
+    __Func_8092c40((1), (0));
+    __Func_8091c7c((0), (0));
+    __MapActor_SetAnim((0), (1));
     __CutsceneWait(0x28);
     __PlaySound(0x6b);
     { R0; R1; R2; q0 = 0x80; q1 = 0x80; q2 = 0x80; q1 <<= 11; q2 <<= 9; q0 <<= 11;
@@ -333,14 +386,11 @@ void OvlFunc_890_200a614(void)
     p2 = __MapActor_GetActor(1);
     n &= p2[0x5a];
     p2[0x5a] = n;
-    { R0; R1; R2; q1 = 4; q0 = 0; q2 = 0;
-      __MapActor_Jump(q0, q1, q2); }
-    { R0; R1; R2; q0 = 1; q1 = 4; q2 = 0;
-      __MapActor_Jump(q0, q1, q2); }
+    __MapActor_Jump((0), (4), (0));
+    __MapActor_Jump((1), (4), (0));
     { R0; R1; R2; q1 = 0x96; q0 = 0; q1 <<= 1; q2 = 0x82;
       __MapActor_TravelTo(q0, q1, q2); }
-    { R0; R1; R2; q1 = 0x85; q1 <<= 1; q2 = 0x90; q0 = 1;
-      __MapActor_TravelTo(q0, q1, q2); }
+    __MapActor_TravelTo((1), ((0x85) << 1), (0x90));
     __MapActor_WaitMovement(1);
     __CutsceneWait(0x28);
     p3 = __MapActor_GetActor(0);
@@ -353,25 +403,17 @@ void OvlFunc_890_200a614(void)
     { R0; R1; R2; q0 = 0x80; q1 = 0x80; q2 = 0x80; q2 <<= 9; q1 <<= 9; q0 <<= 9;
       __Func_8012330(q0, q1, q2); }
     __CutsceneWait(0x28);
-    { R0; R1; q0 = 1; q1 = 2;
-      __Func_80925cc(q0, q1); }
-    { R0; R1; q0 = 1; q1 = 0xa;
-      OvlFunc_890_200a5fc(q0, q1); }
-    { R0; R1; q0 = 0; q1 = 3;
-      __MapActor_SetAnim(q0, q1); }
-    { R0; R1; q0 = 1; q1 = 3;
-      __MapActor_DoAnim(q0, q1); }
-    { R0; R1; q0 = 1; q1 = 2;
-      __MapActor_SetAnim(q0, q1); }
+    __Func_80925cc((1), (2));
+    OvlFunc_890_200a5fc((1), (0xa));
+    __MapActor_SetAnim((0), (3));
+    __MapActor_DoAnim((1), (3));
+    __MapActor_SetAnim((1), (2));
     p = __MapActor_GetActor(0);
     if (p != 0) {
-        R0; R1; R2;
-        q1 = *(short *)(p + 0xa); q2 = *(short *)(p + 0x12); q0 = 1;
-        __MapActor_TravelTo(q0, q1, q2);
+        __MapActor_TravelTo((1), (*(short *)(p + 0xa)), (*(short *)(p + 0x12)));
     }
     __MapActor_WaitMovement(1);
-    { R0; R1; R2; q0 = 1; q1 = 0; q2 = 0;
-      __MapActor_SetPos(q0, q1, q2); }
+    __MapActor_SetPos((1), (0), (0));
     b = iwram_ptr[5];
     *(short *)(b + 0xe00) = z;
     *(short *)(b + 0xe02) = z;

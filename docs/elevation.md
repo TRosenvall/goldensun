@@ -35347,6 +35347,42 @@ split instead. The useful question is never *can this piece convert whole* but
 **what is the worst member's figure**, because that is the number the whole-piece
 route is actually waiting on.
 
+## A SYMBOL DEFINED BY AN ASSEMBLER MACRO IS STILL DEFINED, AND THAT BROKE A DETECTOR TWICE
+
+`include/macros.inc` has macros that emit a symbol from a *parameter*:
+
+    .macro .incdata sym, start, end
+    .global	\sym
+    \sym:
+      .incrom \start, \end
+
+So `.incdata Data_80ec8, 0x80ec8, 0x844ec` **defines** `Data_80ec8`, and nothing
+in the `.s` text looks like a definition. Two separate checks have now been wrong
+about this:
+
+- Batch 342's new "undefined extern taken by address" device class flagged
+  `_FIXUP_RAM_CODE_SIZE`, which comes from `.func_end_emit_size` — and note that
+  macro globalises its **second** parameter, so a position-blind rule misses it.
+- Batch 343 brief E found the same tool calling `Data_80ec8` a device on a park
+  **whose landed sibling takes the same address the same way** — which could not
+  be a device, because the landed file links.
+
+The first fix restricted the class to parks only. That **hid** the defect rather
+than fixing it: a park is exactly where an undefined extern legitimately lives, so
+the restriction removed the false positives in landed files and left every one in
+the parks. `tools/shimcount.py` now parses `macros.inc` for which parameter
+positions a macro turns into a symbol and reads those arguments out of each
+invocation.
+
+> **When a check about "is this symbol defined" is wrong, suspect the macro layer
+> before widening the index.** Labels, `.global`s, `.sym` values and C definitions
+> are only four of the five ways this tree defines a name.
+
+The audited count moved as a result: **26 parks → 23**, and the three that dropped
+out were all `Data_*` symbols from `.incdata`. The 23 that remain are a coherent
+class — every name is a withheld symbol-table candidate (`_MSG_*`, `_FILE_*`,
+`_SIZE_*`, `_CONST_50`).
+
 ## gas LOWERS A THUMB PC-RELATIVE `ldrh` TO `ldr`, SO PER-OPCODE SCREENS MUST OBJDUMP
 
 Thumb-1 has no PC-relative halfword load. gcc spells a HImode pool reference

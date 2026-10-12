@@ -100,12 +100,47 @@ def sym_defined():
             m = re.match(r"([A-Za-z_]\w*)\s*=", line)
             if m:
                 _SYMDEF.add(m.group(1))
+    # SYMBOLS DEFINED THROUGH AN ASSEMBLER MACRO.  This is the class that made the
+    # first two versions of this check wrong, twice.  `.incdata Data_80ec8, ...`
+    # expands (include/macros.inc:46-51) to `.global \sym` plus `\sym:`, so
+    # Data_80ec8 IS defined -- and batch 343 brief E found this tool calling it an
+    # undefined-extern DEVICE on a park whose LANDED sibling takes the same address
+    # the same way.  Batch 342 had already hit it once with _FIXUP_RAM_CODE_SIZE
+    # from `.func_end_emit_size`, and restricting the class to parks only hid the
+    # defect rather than fixing it.
+    #
+    # So parse macros.inc for which PARAMETER POSITIONS a macro turns into a
+    # symbol, then read those arguments out of every invocation.  Note
+    # .func_end_emit_size globalises its SECOND parameter, so a position-blind
+    # rule would miss it.
+    macsym = {}
+    mi = os.path.join(ROOT, "include/macros.inc")
+    if os.path.exists(mi):
+        for blk in re.finditer(r"^\s*\.macro\s+(\.?\w+)([^\n]*)\n(.*?)^\s*\.endm",
+                               open(mi, errors="replace").read(), re.M | re.S):
+            name, params, body = blk.group(1), blk.group(2), blk.group(3)
+            names = [x.split(":")[0].split("=")[0].strip()
+                     for x in params.split(",") if x.strip()]
+            idxs = {i for i, pn in enumerate(names)
+                    if re.search(r"\.glob(?:a)?l\s+\\" + re.escape(pn) + r"\b", body)
+                    or re.search(r"^\\" + re.escape(pn) + r"\s*:", body, re.M)}
+            if idxs:
+                macsym[name.lstrip(".")] = idxs
+    inv = re.compile(r"^\s*\.(\w+)\s+([^\n]+)$", re.M)
     lbl = re.compile(r"^\s*(?:\.global\s+|\.globl\s+)?([A-Za-z_][\w.]*)\s*:", re.M)
     glb = re.compile(r"^\s*\.glob(?:a)?l\s+([A-Za-z_][\w.]*)", re.M)
     for s in _g.glob(os.path.join(ROOT, "asm/**/*.s"), recursive=True):
         txt = open(s, errors="replace").read()
         _SYMDEF.update(lbl.findall(txt))
         _SYMDEF.update(glb.findall(txt))
+        for m in inv.finditer(txt):
+            want = macsym.get(m.group(1))
+            if not want:
+                continue
+            args = [a.strip() for a in m.group(2).split(",")]
+            for i in want:
+                if i < len(args) and re.match(r"^[A-Za-z_]\w*$", args[i]):
+                    _SYMDEF.add(args[i])
     cdef = re.compile(r"^[A-Za-z_][\w \t\*]*?\b(\w+)\s*(?:\([^;{]*?\)\s*\{|\[|=)", re.M)
     for s in _g.glob(os.path.join(ROOT, "src/**/*.c"), recursive=True):
         if "non_matching" in s:
@@ -163,7 +198,7 @@ def count(path):
         # `.func_end_emit_size` at asm/rom_c0/rom_2544.s:619).  Chasing definition
         # syntaxes is the wrong move; the link is the authority.
         "addr_dev": sorted({n for n in EXTERN_DECL.findall(body)
-                            if "non_matching" in path
+                            if "non_matching" in path   # see sym_defined()
                             and re.search(r"&\s*" + re.escape(n) + r"\b", body)
                             and n not in sym_defined()}),
     }

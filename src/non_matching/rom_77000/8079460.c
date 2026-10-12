@@ -1,3 +1,89 @@
+/* InitEnemyUnit -- 0x08079460 -- NON-MATCHING, 31 differing STREAM encodings
+ * of 197.  HELD at the installed figure.  Batch 343 brief E: no body change.
+ *
+ * RE-DERIVED batch 343: 188 = 188 16-bit instructions (IN PHASE, a true
+ * DISTANCE), 412 bytes both sides, all relocations identical.  The figure the
+ * park carried is CORRECT.
+ *
+ * *********************************************************************
+ * THIS PARK CARRIES NO DEVICE.  `tools/shimcount.py` REPORTS ONE AND IS
+ * WRONG, AND THE SAME FALSE POSITIVE MAY COVER THE OTHER 25 PARKS ON
+ * THAT LIST.
+ * *********************************************************************
+ * shimcount flags `extern struct Ent Data_80ec8[];` as an "address device" --
+ * an undefined extern read for its address, standing in for a pooled constant,
+ * the class batch 342 found on `_FILE_18`.  `Data_80ec8` is NOT that.  It is
+ * DEFINED, as a real ROM rodata slice:
+ *
+ *     asm/rom_77000/rom_80ec8.s:5   .incdata Data_80ec8, 0x80ec8, 0x844ec
+ *
+ * and `.incdata` (include/macros.inc:46-51) expands to `.global \sym` / `\sym:`
+ * / `.incrom` / `.ssize` -- a global label on an `.incbin` of the ROM.  It is a
+ * 0x54-byte-per-entry enemy/item record table; docs/party-data.md:90 and
+ * ANNOTATIONS.json document it, and the LANDED file
+ * src/rom_77000/rom_77320_a_a_c_c_b.c:8,15 already declares it
+ * `extern unsigned char Data_80ec8;` and takes its address exactly this way
+ * (`(unsigned int)(&Data_80ec8 + idx * 0x54)`).  The link therefore resolves by
+ * construction, which is the authority batch 342's own report names.
+ *
+ * So NOTHING is needed for admissibility: no .sym entry, no symbol-table
+ * ruling, no fakematch row.  The park's original claim -- "No pins, no
+ * barriers, NO SHIM, no flag row, no .sym entry, no fakematch" -- is correct
+ * as written and the device figure is 31 of 197 either way.
+ *
+ * THE DETECTOR BUG: shimcount checks .sym definitions, asm labels and C
+ * definitions, but an `.incdata`/`.incrom` label is produced BY AN ASSEMBLER
+ * MACRO and no literal `Data_80ec8:` appears in any .s.  batch 342 already hit
+ * this class once (`_FIXUP_RAM_CODE_SIZE` from `.func_end_emit_size`) and left
+ * five such symbols standing.  The fix is to expand include/macros.inc's
+ * label-defining macros, or to treat a symbol named in any `.incdata` as
+ * defined.
+ *
+ * Verify with:
+ *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
+ *     goldensun-build python3 tools/objcmp.py \
+ *     src/non_matching/rom_77000/8079460.c \
+ *     asm/rom_77000/rom_79460_a.s --func InitEnemyUnit
+ *   (the park's old recipe named 79460_InitEnemyUnit.park.c, a path that no
+ *    longer exists -- REPOINTED to the installed file.)
+ *
+ * ========== CLUSTER (a) PROBED THREE WAYS, ALL CLOSED ==========
+ * The park's largest residue is the two strength-reduced pointers landing in
+ * the opposite high registers (ROM: element ptr in r14, count ptr in r12; ours
+ * reversed), called an exact 3-ref tie broken on pseudo number with "both
+ * pseudos created by loop.c, not by the source, so there is no declaration
+ * order to change".  Three probes, against the base of 31:
+ *
+ *   1. SWAP loop.c's GIV DISCOVERY ORDER by reading `e->cnt[i]` before the
+ *      `e->el[i]` test (loop.c finds givs in the order the biv's uses appear):
+ *      **113 of 197, +4 bytes, +2 instructions.**  Far worse, and it changes
+ *      the emitted shape rather than just the allocation.  REFUTED as a lever,
+ *      but it DOES establish that the order is reachable from source -- the
+ *      park's "no declaration order to change" is too strong.
+ *   2. BREAK THE REF TIE with an extra depth-1 reference to the count
+ *      (`if (e->cnt[i] != 0)` beside the copy).  REG_N_REFS is loop-depth
+ *      weighted at flow.c:5114-5116 (`+= pbi->bb->loop_depth + 1`), so a
+ *      depth-1 reference should be worth TWO and should break a 3-ref tie.
+ *      **31 of 197, BIT-IDENTICALLY INERT**, `first` unmoved at index 68.
+ *      So the weighting model does not reach this tie.  CAVEAT, and it is the
+ *      reason this is not stated as a bound: gcse may simply have commoned the
+ *      duplicate load, in which case the extra reference never existed by the
+ *      time global.c ran.  Re-run it under -fno-gcse before concluding.
+ *   3. REMOVE THE GIVS by walking both tables with explicit source pointers:
+ *      **107 of 197.**  Worse; strength reduction is wanted here.
+ *
+ * AUTOSWEEP, RECORDED NEGATIVE (batch 343).  Flag axis: only
+ * -fno-rerun-cse-after-loop is inert at 31; -fno-schedule-insns2 54,
+ * -fno-gcse 151, -fno-strict-aliasing 169, -ffixed-r7 171, -O1 192,
+ * -fno-strength-reduce 194, -fno-rerun-loop-opt 195.  Anchor axis CAPPED at 40
+ * of 56 boundaries (3 of the 40 did not measure); the 37 that ran are inert at
+ * 31.  Boundaries 40..55 are UNTESTED, not inert.
+ *
+ * The seven established constructs and the five residue clusters below are
+ * carried forward unchanged; clusters (b), (c) and (d) were not re-opened.
+ */
+
+/* ===== THE ORIGINAL PARK HEADER, CARRIED FORWARD ===== */
 /* InitEnemyUnit -- 0x08079460, from goldensun/asm/rom_77000/rom_79460_a.s.
  *
  * NON-MATCHING: 31 encodings of 197 differ (objcmp).

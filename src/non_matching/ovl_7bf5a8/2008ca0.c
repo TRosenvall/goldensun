@@ -1,3 +1,66 @@
+/* OvlFunc_935_2008ca0 -- NON-MATCHING, 30 differing STREAM encodings of 379
+ * at PRODUCTION FLAGS, and 23 of 379 under ALIAS_CFLAGS.  PIN-FREE.
+ * Batch 343 brief E.
+ *
+ * THE FIGURE ABOVE LEADS WITH 30 BECAUSE THAT IS WHAT THE PLAIN `Verify with:`
+ * RECIPE BELOW REPRODUCES, and a park whose stated figure its own recipe cannot
+ * reproduce is what parkcheck exists to catch.  The 23 is real and is the
+ * number worth acting on, but it is FLAG-CONDITIONAL and the flag rule is not
+ * installed for a src/non_matching path -- nothing builds this file yet.
+ * WHOEVER LANDS THIS MUST ADD THE ALIAS_CFLAGS RULE; see below.
+ *
+ * RE-DERIVED batch 343: 276 = 276 16-bit instructions (IN PHASE, so a true
+ * DISTANCE), size exact.  Relocations differ by FOUR WORDS and that difference
+ * is ADMISSIBLE, checked not assumed: the extra symbols are `_AREA_60` (twice),
+ * `_AREA_61`, `_AREA_62`, absolute symbols defined BY VALUE at area.sym:99-101
+ * (`_AREA_60 = 0x60;`) and already used by landed files, e.g.
+ * src/overlays/rom_7b4558/ovl_30_c_c_c_a_c.c.  They link to the literal; the
+ * ROM pools the same words.
+ *
+ * NEEDS ALIAS_CFLAGS.  This body is byte-for-byte the park's, with its two
+ * PIN3 blocks folded back into plain calls, and it measures 23 ONLY under
+ * -fno-strict-aliasing.  ALIAS_CFLAGS is an existing per-file group
+ * (Makefile:235) with precedent at Makefile:252/257/268/275/288/313.
+ *
+ * Verify with:
+ *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
+ *     goldensun-build python3 tools/objcmp.py \
+ *     src/non_matching/ovl_7bf5a8/2008ca0.c \
+ *     asm/overlays/rom_7bf5a8/ovl_b8c_c_c.s --func OvlFunc_935_2008ca0
+ *   (production flags give 30; the 23 needs ALIAS_CFLAGS -- the installed
+ *    Makefile rule supplies it, so `make compare` is the real check.)
+ *
+ * ========== THE LADDER, ALL MEASURED THIS BATCH ==========
+ *   park body, 6 pins, production flags            24 of 379   (installed before)
+ *   park body, 6 pins, -fno-strict-aliasing        17 of 379   <- PINNED, not shipped
+ *   THIS body, 0 pins, production flags            30 of 379
+ *   THIS body, 0 pins, -fno-strict-aliasing      **23 of 379** <- SHIPPED
+ * So the six pins are worth 7 encodings, and the flag is worth 7 on EITHER
+ * body.  Dropping all six pins and adding the flag is ONE BETTER than the
+ * pinned park was, which is why this is the body that gets installed: fewer
+ * devices AND a lower figure.  The pinned 17 is recorded as a figure ABOUT THE
+ * PINS and is left for pass 3 (reports/pass3-depin.md).
+ *
+ * THE FLAG RELOCATES THE RESIDUE, which is the useful part.  `first` moves from
+ * index 4 to index 105: -fno-strict-aliasing removes the WHOLE early cluster
+ * around the opening `*(int *)(iwram_3001ebc + (0xe0 << 1))` store and the
+ * `*(short *)(g + ...)` reads that follow it.  Those go through
+ * `extern unsigned char *iwram_3001ebc;` and `unsigned char *g`, so with strict
+ * aliasing on, gcc takes the int store and the short reads not to alias.  The
+ * pass-3 question is therefore whether a HONEST TYPE (a struct, or a union
+ * member) reaches the same place from source and retires the flag.
+ *
+ * AUTOSWEEP, RECORDED NEGATIVE (batch 343, on the PINNED body): flag axis found
+ * -fno-strict-aliasing 24 -> 17 and every other group inert at 24 except -O1
+ * (362) and -fno-schedule-insns2 (79).  On THIS device-free body the whole flag
+ * axis was re-crossed: only -fno-strict-aliasing moves it (30 -> 23); -fno-gcse,
+ * -ffixed-r7, -fno-strength-reduce, -fno-rerun-cse-after-loop and
+ * -fno-rerun-loop-opt are all inert at 30, -fno-schedule-insns2 is 79, -O1 362.
+ * The anchor axis was run to a CAP OF 40 of 97 boundaries and is NOT closed;
+ * boundary 1 (after the opening iwram store) was 22 on the pinned body.
+ */
+
+/* ===== THE ORIGINAL PARK HEADER, CARRIED FORWARD ===== */
 /* OvlFunc_935_2008ca0 -- NON-MATCHING, 24 encodings of 379 against the tree
  * reference; 20 against a symbolised copy, the four-word difference being the
  * already-provisioned _AREA_60/_AREA_61/_AREA_62 pool words.  SIZE EXACT.  345
@@ -62,10 +125,6 @@
  * `_AREA_60`, `_AREA_61`, `_AREA_62` are already in area.sym -- nothing to add.
  * No per-file Makefile flag override applies to this stem.
  */
-#define PIN1 register int q0 __asm__("r0")
-#define PIN2 PIN1; register int q1 __asm__("r1")
-#define PIN3 PIN2; register int q2 __asm__("r2")
-#define PIN4 PIN3; register int q3 __asm__("r3")
 
 extern unsigned char gState[];
 extern unsigned char *iwram_3001ebc;
@@ -207,8 +266,7 @@ int OvlFunc_935_2008ca0(void)
         case 0xb:
             if (__GetFlag(0x9a9) != 0) {
                 OvlFunc_935_2008398();
-                { PIN3; q1 = 0xf8; q2 = 0xdb; q0 = 9; q1 <<= 16; q2 <<= 18;
-                  __MapActor_SetPos(q0, q1, q2); }
+                __MapActor_SetPos((9), ((0xf8) << 16), ((0xdb) << 18));
             }
             __MapActor_GetActor(8)[0x23] = 2;
             break;
@@ -246,8 +304,7 @@ int OvlFunc_935_2008ca0(void)
             __MapActor_GetActor(9)[0x59] = one;
             if (__GetFlag(0x9aa) != 0) {
                 OvlFunc_935_2008410();
-                { PIN3; q1 = 0x84; q2 = 0xcc; q0 = 0xa; q1 <<= 17; q2 <<= 16;
-                  __MapActor_SetPos(q0, q1, q2); }
+                __MapActor_SetPos((0xa), ((0x84) << 17), ((0xcc) << 16));
             }
             break;
         }
