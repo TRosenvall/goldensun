@@ -1,4 +1,83 @@
-/* OvlFunc_907_2008328 -- 0x02008328, asm/overlays/rom_79b154/ovl_30_c_a_a_c_c_c_c_c_c.s
+/* OvlFunc_907_2008328 -- NOT MATCHING, a SIZE mismatch: ref 220 bytes against ours 224.
+ *
+ * BODY RECOVERED FROM scratch/ (batch 338).  This park was PROSE and had no
+ * figure; its own header named scratch/N8328_D.c, that file still
+ * existed and it compiles.  70 of 133 prose parks were in that state --
+ * work done, measured, and left in a GITIGNORED directory instead of installed.
+ *
+ * objcmp stops at the size check, so no encoding figure exists yet; the
+ * body must reach the reference's LENGTH before a distance can be read.
+ *
+ * Verify with:
+ *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
+ *     goldensun-build python3 tools/objcmp.py src/non_matching/ovl_79b154/2008328.c \
+ *     asm/overlays/rom_79b154/ovl_30_c_a_a_c_c_c_c_c_c_a.s --func OvlFunc_907_2008328
+ *
+ * The original prose park is preserved below.
+ */
+extern char *iwram_3001ebc;
+extern short L1d0c[] __asm__(".L1d0c");
+extern void *L1cf0[] __asm__(".L1cf0");
+
+extern void __PlaySound(int id);
+extern void __CutsceneStart(void);
+extern void __CutsceneEnd(void);
+extern void __CutsceneWait(int n);
+extern unsigned char *__MapActor_GetActor(int slot);
+extern void __MapActor_SetAnim(int slot, int anim);
+extern void __MapActor_SetSpeed(int slot, int a, int b);
+extern void __Func_8010560(void *s, int a, int b);
+extern void __Func_809228c(int a, int b, int c);
+extern void __Func_8092208(int a, int b, int c);
+extern void __Func_8092b08(int a, int b);
+extern void __Func_8091e9c(int n);
+
+void OvlFunc_907_2008328(void)
+{
+    char *w;
+    unsigned char *p;
+    unsigned int i;
+    int k;
+    int t;
+
+    w = iwram_3001ebc;
+    __CutsceneStart();
+    for (i = 8; i <= 0x41; i++) {
+        p = __MapActor_GetActor(i);
+        if (p != 0)
+            p[0x55] = 0;
+    }
+    t = *(unsigned short *)(w + (0xb6 << 1));
+    t -= 3;
+    k = (short)t;
+    if (k == 6)
+        __PlaySound(0xbc);
+    else
+        __PlaySound(0x9e);
+    __Func_8010560(L1cf0[k], L1d0c[k * 2], L1d0c[k * 2 + 1]);
+    __MapActor_SetSpeed(0, 0x80 << 8, 0x80 << 7);
+    p = __MapActor_GetActor(0);
+    p[0x55] = 0;
+    w = iwram_3001ebc;
+    *(int *)(w + (0xe0 << 1)) = 0x100;
+    if (k == 6) {
+        __MapActor_SetAnim(0, 2);
+        __Func_809228c(0, 0, -4);
+    } else {
+        __Func_8092208(0, 3, -0x10);
+    }
+    if (k == 4)
+        __Func_8092b08(0, 3);
+    else
+        __Func_8092b08(0, 2);
+    __CutsceneWait(0x10);
+    __Func_8091e9c(k + 3);
+    __CutsceneEnd();
+}
+
+#if 0
+/* ===== ORIGINAL PROSE PARK, PRESERVED =====
+(* OvlFunc_907_2008328 -- 0x02008328, asm/overlays/rom_79b154/ovl_30_c_a_a_c_c_c_c_c_c.s
  *
  * 97 ROM lines against 98 of ours, 60 differing, down from 78.
  * Candidate: scratch/N8328_D.c.
@@ -33,4 +112,7 @@
  * So the remaining 60 are one register-role decision and one argument-evaluation
  * order, neither of which has a lever.  Worth revisiting if the register-role
  * class ever yields the way the memory-typed half of it did in batch 136.
- */
+ *)
+
+*/
+#endif

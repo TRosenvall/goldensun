@@ -1,6 +1,6 @@
 # Parked functions
 
-**660 park files**, 555 carrying a parseable figure, 98 bodyless (prose/triage/class parks), 68 with no live verify recipe.
+**660 park files**, 557 carrying a parseable figure, 65 bodyless (prose/triage/class parks), 38 with no live verify recipe.
 
 A figure is the park's own claim. `tools/parkcheck.py` is what verifies it.
 
@@ -16,7 +16,7 @@ A figure is the park's own claim. `tools/parkcheck.py` is what verifies it.
 | 21–50 | 91 |
 | 51–100 | 74 |
 | 101–300 | 162 |
-| 301+ | 109 |
+| 301+ | 111 |
 
 Median **94**.
 
@@ -594,72 +594,74 @@ none. **Rank by (figure, pins).** Pin counts are `shimcount`'s.
 | 1059 |  | 1095 | `Anim_Kirin` | rom_c9000/rom_eb754.s | [src/non_matching/rom_c9000/Anim_Kirin.c](../../src/non_matching/rom_c9000/Anim_Kirin.c) |
 | 1100 | 428 | 1486 | `OvlFunc_899_200b6f8` | overlays/ovl_30.s | [src/non_matching/ovl_794ac0/200b6f8.c](../../src/non_matching/ovl_794ac0/200b6f8.c) |
 | 1263 |  | 1416 | `Anim_Boreas` | rom_c9000/rom_d6970.s | [src/non_matching/rom_c9000/Anim_Boreas.c](../../src/non_matching/rom_c9000/Anim_Boreas.c) |
+| 1263 |  | 1416 | `Anim_Cybele` | rom_c9000/rom_d6970.s | [src/non_matching/rom_c9000/Anim_Cybele.c](../../src/non_matching/rom_c9000/Anim_Cybele.c) |
+| 1263 |  | 1416 | `Anim_Thor` | rom_c9000/rom_e0564.s | [src/non_matching/rom_c9000/Anim_Thor.c](../../src/non_matching/rom_c9000/Anim_Thor.c) |
 | 1452 |  | 1585 | `OvlFunc_936_2008590` | overlays/ovl_30.s | [src/non_matching/ovl_7c097c/2008590.c](../../src/non_matching/ovl_7c097c/2008590.c) |
 | 1885 |  | 2061 | `OvlFunc_883_20095dc` | overlays/ovl_30.s | [src/non_matching/ovl_780898/20095dc.c](../../src/non_matching/ovl_780898/20095dc.c) |
 | 1934 | 796 | 2364 | `OvlFunc_957_20093f8` | overlays/ovl_30.s | [src/non_matching/ovl_7e3e08/20093f8.c](../../src/non_matching/ovl_7e3e08/20093f8.c) |
 | 3080 |  | 3380 | `BaseAnim_SpecialAttack` | rom_c9000/rom_e47b8.s | [src/non_matching/rom_c9000/e47b8_SpecialAttack.c](../../src/non_matching/rom_c9000/e47b8_SpecialAttack.c) |
 
-## No parseable figure (105)
+## No parseable figure (103)
 
 Prose, triage and class parks, plus any whose claim phrasing `parkcheck` cannot read.
 
 | function | park |
 |---|---|
-| `?` | [src/non_matching/overlays/20082f0.c](../../src/non_matching/overlays/20082f0.c) |
-| `?` | [src/non_matching/overlays/2008308.c](../../src/non_matching/overlays/2008308.c) |
+| `OvlFunc_949_20082f0` | [src/non_matching/overlays/20082f0.c](../../src/non_matching/overlays/20082f0.c) |
+| `OvlFunc_967_2008308` | [src/non_matching/overlays/2008308.c](../../src/non_matching/overlays/2008308.c) |
 | `?` | [src/non_matching/overlays/20083d0.c](../../src/non_matching/overlays/20083d0.c) |
-| `?` | [src/non_matching/overlays/200858c.c](../../src/non_matching/overlays/200858c.c) |
-| `?` | [src/non_matching/overlays/2008950.c](../../src/non_matching/overlays/2008950.c) |
-| `?` | [src/non_matching/overlays/2008dc8.c](../../src/non_matching/overlays/2008dc8.c) |
-| `?` | [src/non_matching/overlays/2008f8c.c](../../src/non_matching/overlays/2008f8c.c) |
+| `OvlFunc_901_200858c` | [src/non_matching/overlays/200858c.c](../../src/non_matching/overlays/200858c.c) |
+| `OvlFunc_943_2008950` | [src/non_matching/overlays/2008950.c](../../src/non_matching/overlays/2008950.c) |
+| `OvlFunc_960_2008dc8` | [src/non_matching/overlays/2008dc8.c](../../src/non_matching/overlays/2008dc8.c) |
+| `OvlFunc_971_2008f8c` | [src/non_matching/overlays/2008f8c.c](../../src/non_matching/overlays/2008f8c.c) |
 | `?` | [src/non_matching/overlays/2009090.c](../../src/non_matching/overlays/2009090.c) |
-| `?` | [src/non_matching/overlays/20090c0.c](../../src/non_matching/overlays/20090c0.c) |
-| `?` | [src/non_matching/overlays/20097a4.c](../../src/non_matching/overlays/20097a4.c) |
+| `OvlFunc_924_20090c0` | [src/non_matching/overlays/20090c0.c](../../src/non_matching/overlays/20090c0.c) |
+| `OvlFunc_881_20097a4` | [src/non_matching/overlays/20097a4.c](../../src/non_matching/overlays/20097a4.c) |
 | `OvlFunc_932_200b668` | [src/non_matching/overlays/200b668.c](../../src/non_matching/overlays/200b668.c) |
-| `?` | [src/non_matching/overlays/common1_78.c](../../src/non_matching/overlays/common1_78.c) |
+| `OvlFunc_common1_78` | [src/non_matching/overlays/common1_78.c](../../src/non_matching/overlays/common1_78.c) |
 | `OvlFunc_880_20083cc` | [src/non_matching/ovl_7795e8/20083cc.c](../../src/non_matching/ovl_7795e8/20083cc.c) |
-| `?` | [src/non_matching/ovl_77a7c8/2009a98.c](../../src/non_matching/ovl_77a7c8/2009a98.c) |
-| `?` | [src/non_matching/ovl_7892c8/200874c.c](../../src/non_matching/ovl_7892c8/200874c.c) |
+| `OvlFunc_881_2009a98` | [src/non_matching/ovl_77a7c8/2009a98.c](../../src/non_matching/ovl_77a7c8/2009a98.c) |
+| `OvlFunc_888_200874c` | [src/non_matching/ovl_7892c8/200874c.c](../../src/non_matching/ovl_7892c8/200874c.c) |
 | `OvlFunc_888_200888c` | [src/non_matching/ovl_7892c8/200888c.c](../../src/non_matching/ovl_7892c8/200888c.c) |
 | `?` | [src/non_matching/ovl_78dee8/2008154.c](../../src/non_matching/ovl_78dee8/2008154.c) |
 | `OvlFunc_896_200a7f8` | [src/non_matching/ovl_78ef88/200a7f8.c](../../src/non_matching/ovl_78ef88/200a7f8.c) |
 | `?` | [src/non_matching/ovl_791794/2009410.c](../../src/non_matching/ovl_791794/2009410.c) |
 | `?` | [src/non_matching/ovl_794ac0/200c754.c](../../src/non_matching/ovl_794ac0/200c754.c) |
 | `OvlFunc_898_2009090` | [src/non_matching/ovl_797990/2008c1c.c](../../src/non_matching/ovl_797990/2008c1c.c) |
-| `?` | [src/non_matching/ovl_79b154/2008328.c](../../src/non_matching/ovl_79b154/2008328.c) |
+| `OvlFunc_907_2008328` | [src/non_matching/ovl_79b154/2008328.c](../../src/non_matching/ovl_79b154/2008328.c) |
 | `?` | [src/non_matching/ovl_79e5c0/2008694.c](../../src/non_matching/ovl_79e5c0/2008694.c) |
 | `?` | [src/non_matching/ovl_79e5c0/20088ec.c](../../src/non_matching/ovl_79e5c0/20088ec.c) |
 | `OvlFunc_913_2008d3c` | [src/non_matching/ovl_7a04ac/2008d3c.c](../../src/non_matching/ovl_7a04ac/2008d3c.c) |
 | `?` | [src/non_matching/ovl_7a5214/20097ec.c](../../src/non_matching/ovl_7a5214/20097ec.c) |
 | `OvlFunc_924_200bd20` | [src/non_matching/ovl_7ac2d8/200bd20.c](../../src/non_matching/ovl_7ac2d8/200bd20.c) |
-| `?` | [src/non_matching/ovl_7b2078/2008afc.c](../../src/non_matching/ovl_7b2078/2008afc.c) |
-| `?` | [src/non_matching/ovl_7b8cb0/2008b2c.c](../../src/non_matching/ovl_7b8cb0/2008b2c.c) |
+| `OvlFunc_926_2008afc` | [src/non_matching/ovl_7b2078/2008afc.c](../../src/non_matching/ovl_7b2078/2008afc.c) |
+| `OvlFunc_931_2008b2c` | [src/non_matching/ovl_7b8cb0/2008b2c.c](../../src/non_matching/ovl_7b8cb0/2008b2c.c) |
 | `?` | [src/non_matching/ovl_7bf5a8/2008170.c](../../src/non_matching/ovl_7bf5a8/2008170.c) |
 | `?` | [src/non_matching/ovl_7c7b9c/20091c8.c](../../src/non_matching/ovl_7c7b9c/20091c8.c) |
 | `?` | [src/non_matching/ovl_7c7b9c/2009920.c](../../src/non_matching/ovl_7c7b9c/2009920.c) |
 | `?` | [src/non_matching/ovl_7c7b9c/200ac84.c](../../src/non_matching/ovl_7c7b9c/200ac84.c) |
-| `?` | [src/non_matching/ovl_7cb2c0/200b51c.c](../../src/non_matching/ovl_7cb2c0/200b51c.c) |
+| `OvlFunc_945_200b51c` | [src/non_matching/ovl_7cb2c0/200b51c.c](../../src/non_matching/ovl_7cb2c0/200b51c.c) |
 | `?` | [src/non_matching/ovl_7cb2c0/200d0e4.c](../../src/non_matching/ovl_7cb2c0/200d0e4.c) |
-| `?` | [src/non_matching/ovl_7ced6c/2009d2c.c](../../src/non_matching/ovl_7ced6c/2009d2c.c) |
+| `OvlFunc_946_2009d2c` | [src/non_matching/ovl_7ced6c/2009d2c.c](../../src/non_matching/ovl_7ced6c/2009d2c.c) |
 | `OvlFunc_948_200938c` | [src/non_matching/ovl_7d30e0/200938c.c](../../src/non_matching/ovl_7d30e0/200938c.c) |
 | `?` | [src/non_matching/ovl_7d5838/20080c0.c](../../src/non_matching/ovl_7d5838/20080c0.c) |
-| `?` | [src/non_matching/ovl_7d6418/20096a8.c](../../src/non_matching/ovl_7d6418/20096a8.c) |
+| `OvlFunc_951_20096a8` | [src/non_matching/ovl_7d6418/20096a8.c](../../src/non_matching/ovl_7d6418/20096a8.c) |
 | `OvlFunc_959_200b054` | [src/non_matching/ovl_7e7574/200b054.c](../../src/non_matching/ovl_7e7574/200b054.c) |
 | `OvlFunc_965_200a8a0` | [src/non_matching/ovl_7ef4f4/200a8a0.c](../../src/non_matching/ovl_7ef4f4/200a8a0.c) |
-| `?` | [src/non_matching/ovl_7f2f14/2009d48.c](../../src/non_matching/ovl_7f2f14/2009d48.c) |
+| `OvlFunc_968_2009d48` | [src/non_matching/ovl_7f2f14/2009d48.c](../../src/non_matching/ovl_7f2f14/2009d48.c) |
 | `OvlFunc_969_20092c8` | [src/non_matching/ovl_7f6e64/20092c8.c](../../src/non_matching/ovl_7f6e64/20092c8.c) |
 | `OvlFunc_969_200a360` | [src/non_matching/ovl_7f6e64/200a360.c](../../src/non_matching/ovl_7f6e64/200a360.c) |
-| `?` | [src/non_matching/ovl_7fb4a8/2008e10.c](../../src/non_matching/ovl_7fb4a8/2008e10.c) |
+| `OvlFunc_971_2008e10` | [src/non_matching/ovl_7fb4a8/2008e10.c](../../src/non_matching/ovl_7fb4a8/2008e10.c) |
 | `?` | [src/non_matching/ovl_7fcd20/200829c.c](../../src/non_matching/ovl_7fcd20/200829c.c) |
-| `?` | [src/non_matching/ovl_common/4cc.c](../../src/non_matching/ovl_common/4cc.c) |
+| `OvlFunc_common1_4cc` | [src/non_matching/ovl_common/4cc.c](../../src/non_matching/ovl_common/4cc.c) |
 | `OvlFunc_common1_920` | [src/non_matching/ovl_common/common1_920.c](../../src/non_matching/ovl_common/common1_920.c) |
-| `?` | [src/non_matching/ovl_common/fac.c](../../src/non_matching/ovl_common/fac.c) |
-| `?` | [src/non_matching/rom_15000/80160fc.c](../../src/non_matching/rom_15000/80160fc.c) |
-| `?` | [src/non_matching/rom_15000/801bc34.c](../../src/non_matching/rom_15000/801bc34.c) |
-| `?` | [src/non_matching/rom_15000/801c8a0.c](../../src/non_matching/rom_15000/801c8a0.c) |
+| `OvlFunc_common1_fac` | [src/non_matching/ovl_common/fac.c](../../src/non_matching/ovl_common/fac.c) |
+| `Func_80160fc` | [src/non_matching/rom_15000/80160fc.c](../../src/non_matching/rom_15000/80160fc.c) |
+| `UploadIcon` | [src/non_matching/rom_15000/801bc34.c](../../src/non_matching/rom_15000/801bc34.c) |
+| `Func_801c8a0` | [src/non_matching/rom_15000/801c8a0.c](../../src/non_matching/rom_15000/801c8a0.c) |
 | `?` | [src/non_matching/rom_15000/8020244.c](../../src/non_matching/rom_15000/8020244.c) |
 | `Func_8022b44` | [src/non_matching/rom_15000/8022a7c.c](../../src/non_matching/rom_15000/8022a7c.c) |
-| `?` | [src/non_matching/rom_15000/8028df4.c](../../src/non_matching/rom_15000/8028df4.c) |
+| `YesNoMenu` | [src/non_matching/rom_15000/8028df4.c](../../src/non_matching/rom_15000/8028df4.c) |
 | `Func_8023178` | [src/non_matching/rom_15000/Func_8023178.c](../../src/non_matching/rom_15000/Func_8023178.c) |
 | `?` | [src/non_matching/rom_15000/Func_8023e70.c](../../src/non_matching/rom_15000/Func_8023e70.c) |
 | `?` | [src/non_matching/rom_15000/Func_8024934.c](../../src/non_matching/rom_15000/Func_8024934.c) |
@@ -668,14 +670,14 @@ Prose, triage and class parks, plus any whose claim phrasing `parkcheck` cannot 
 | `?` | [src/non_matching/rom_15000/MenuBar.c](../../src/non_matching/rom_15000/MenuBar.c) |
 | `?` | [src/non_matching/rom_7d30e0/200949c.c](../../src/non_matching/rom_7d30e0/200949c.c) |
 | `?` | [src/non_matching/rom_8a000/808bec0.c](../../src/non_matching/rom_8a000/808bec0.c) |
-| `?` | [src/non_matching/rom_8a000/80916b0.c](../../src/non_matching/rom_8a000/80916b0.c) |
+| `CutsceneStart` | [src/non_matching/rom_8a000/80916b0.c](../../src/non_matching/rom_8a000/80916b0.c) |
 | `?` | [src/non_matching/rom_8a000/80919d8.c](../../src/non_matching/rom_8a000/80919d8.c) |
-| `?` | [src/non_matching/rom_8a000/8094428.c](../../src/non_matching/rom_8a000/8094428.c) |
-| `?` | [src/non_matching/rom_8a000/809509c.c](../../src/non_matching/rom_8a000/809509c.c) |
-| `?` | [src/non_matching/rom_8a000/95290.c](../../src/non_matching/rom_8a000/95290.c) |
+| `Func_8094428` | [src/non_matching/rom_8a000/8094428.c](../../src/non_matching/rom_8a000/8094428.c) |
+| `StartEarthquake` | [src/non_matching/rom_8a000/809509c.c](../../src/non_matching/rom_8a000/809509c.c) |
+| `StartThunder2` | [src/non_matching/rom_8a000/95290.c](../../src/non_matching/rom_8a000/95290.c) |
 | `?` | [src/non_matching/rom_8a000/FieldMain.c](../../src/non_matching/rom_8a000/FieldMain.c) |
 | `Task_ScreenWindowTransition` | [src/non_matching/rom_8a000/Task_ScreenWindowTransition.c](../../src/non_matching/rom_8a000/Task_ScreenWindowTransition.c) |
-| `?` | [src/non_matching/rom_9000/80f9f4.c](../../src/non_matching/rom_9000/80f9f4.c) |
+| `DecodeMetatileset` | [src/non_matching/rom_9000/80f9f4.c](../../src/non_matching/rom_9000/80f9f4.c) |
 | `Task_Debug_SpriteTest` | [src/non_matching/rom_9000/Task_Debug_SpriteTest.c](../../src/non_matching/rom_9000/Task_Debug_SpriteTest.c) |
 | `UpdateActors` | [src/non_matching/rom_9000/UpdateActors.c](../../src/non_matching/rom_9000/UpdateActors.c) |
 | `?` | [src/non_matching/rom_a1000/80a3ddc.c](../../src/non_matching/rom_a1000/80a3ddc.c) |
@@ -693,11 +695,9 @@ Prose, triage and class parks, plus any whose claim phrasing `parkcheck` cannot 
 | `?` | [src/non_matching/rom_c0/2df0.c](../../src/non_matching/rom_c0/2df0.c) |
 | `?` | [src/non_matching/rom_c9000/80cd52c.c](../../src/non_matching/rom_c9000/80cd52c.c) |
 | `Func_80e7338` | [src/non_matching/rom_c9000/80e7338.c](../../src/non_matching/rom_c9000/80e7338.c) |
-| `Anim_Cybele` | [src/non_matching/rom_c9000/Anim_Cybele.c](../../src/non_matching/rom_c9000/Anim_Cybele.c) |
 | `Anim_Judgment` | [src/non_matching/rom_c9000/Anim_Judgment.c](../../src/non_matching/rom_c9000/Anim_Judgment.c) |
 | `Anim_Neptune` | [src/non_matching/rom_c9000/Anim_Neptune.c](../../src/non_matching/rom_c9000/Anim_Neptune.c) |
 | `Anim_Procne` | [src/non_matching/rom_c9000/Anim_Procne.c](../../src/non_matching/rom_c9000/Anim_Procne.c) |
-| `Anim_Thor` | [src/non_matching/rom_c9000/Anim_Thor.c](../../src/non_matching/rom_c9000/Anim_Thor.c) |
 | `BaseAnim_Bite_Sting` | [src/non_matching/rom_c9000/BaseAnim_Bite_Sting.c](../../src/non_matching/rom_c9000/BaseAnim_Bite_Sting.c) |
 | `BaseAnim_Meteor` | [src/non_matching/rom_c9000/BaseAnim_Meteor.c](../../src/non_matching/rom_c9000/BaseAnim_Meteor.c) |
 | `BaseAnim_ParticleSpray` | [src/non_matching/rom_c9000/BaseAnim_ParticleSpray.c](../../src/non_matching/rom_c9000/BaseAnim_ParticleSpray.c) |

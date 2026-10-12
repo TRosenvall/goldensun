@@ -1,4 +1,71 @@
-/* Func_801c8a0 -- 0x0801c8a0, asm/rom_15000/rom_1aeec_c_a_c_a_b.s
+/* Func_801c8a0 -- NOT MATCHING, a SIZE mismatch: ref 132 bytes against ours 124.
+ *
+ * BODY RECOVERED FROM scratch/ (batch 338).  This park was PROSE and had no
+ * figure; its own header named scratch/L1c8a0_best.c, that file still
+ * existed and it compiles.  70 of 133 prose parks were in that state --
+ * work done, measured, and left in a GITIGNORED directory instead of installed.
+ *
+ * objcmp stops at the size check, so no encoding figure exists yet; the
+ * body must reach the reference's LENGTH before a distance can be read.
+ *
+ * Verify with:
+ *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
+ *     goldensun-build python3 tools/objcmp.py src/non_matching/rom_15000/801c8a0.c \
+ *     asm/rom_15000/rom_1aeec_c_a_c_a_b_c.s --func Func_801c8a0
+ *
+ * The original prose park is preserved below.
+ */
+extern unsigned int gState;
+extern unsigned short ewram_2000462;
+
+void Func_801c8a0(int *out1, int *out2, unsigned short *arr)
+{
+    unsigned short *p;
+    unsigned int key;
+    unsigned int v;
+    unsigned int r2;
+    unsigned int r3;
+    int a;
+    int b;
+    int i;
+
+    *out1 = 0;
+    *out2 = 0;
+
+    r2 = 0x88;
+    r3 = (unsigned int)&gState;
+    r2 <<= 2;
+    r3 += r2;
+    key = *(unsigned short *)r3;
+    a = key & 0x3ff;
+    b = key >> 10;
+    p = arr;
+    i = 0;
+    do {
+        if (p[1] == a && p[0] == b) {
+            *out1 = i;
+            break;
+        }
+        i++;
+        p += 2;
+    } while (i <= 0x1bf);
+
+    p = arr;
+    i = 0;
+    do {
+        v = ewram_2000462;
+        if (p[1] == (v & 0x3ff) && p[0] == (v >> 10)) {
+            *out2 = i;
+            break;
+        }
+        i++;
+        p += 2;
+    } while (i <= 0x1bf);
+}
+
+#if 0
+/* ===== ORIGINAL PROSE PARK, PRESERVED =====
+(* Func_801c8a0 -- 0x0801c8a0, asm/rom_15000/rom_1aeec_c_a_c_a_b.s
  *
  * Best screen: ours 60 lines against the ROM's 63.  Candidate kept at
  * scratch/L1c8a0_best.c.
@@ -48,4 +115,7 @@
  * hoist", and the goto lever is too blunt for it -- it is all-or-nothing.  A
  * function needing partial hoisting is not currently reachable, and that is a
  * cleaner statement of the gap than anything about constant folding.
- */
+ *)
+
+*/
+#endif

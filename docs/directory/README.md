@@ -38,9 +38,9 @@ structure**, and a file can need both.
 |   (census ROM functions landed) | **4,965** |
 | landed .c files | **4,559** |
 | park FILES (not functions) | **660** |
-| parked with a figure | **555** |
-| parked bodyless | **98** |
-| parked unverifiable (no live recipe) | **68** |
+| parked with a figure | **557** |
+| parked bodyless | **65** |
+| parked unverifiable (no live recipe) | **38** |
 | files needing DEPIN | **797** |
 | register pins (shimcount) | **14,517** |
 | fakematch-class barriers | **89** |

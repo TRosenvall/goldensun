@@ -1,4 +1,51 @@
-/* StartThunder2 -- asm/rom_8a000/rom_944ec_a_a_c_c_a.s
+/* StartThunder2 -- NOT MATCHING, a SIZE mismatch: ref 184 bytes against ours 192.
+ *
+ * BODY RECOVERED FROM scratch/ (batch 338).  This park was PROSE and had no
+ * figure; its own header named scratch/nthunc.c, that file still
+ * existed and it compiles.  70 of 133 prose parks were in that state --
+ * work done, measured, and left in a GITIGNORED directory instead of installed.
+ *
+ * objcmp stops at the size check, so no encoding figure exists yet; the
+ * body must reach the reference's LENGTH before a distance can be read.
+ *
+ * Verify with:
+ *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
+ *     goldensun-build python3 tools/objcmp.py src/non_matching/rom_8a000/95290.c \
+ *     asm/rom_8a000/rom_944ec_a_a_c_c_a.s --func StartThunder2
+ *
+ * The original prose park is preserved below.
+ */
+#include "dma.h"
+
+extern void *galloc_ewram(int kind, int size);
+extern unsigned char *iwram_3001ed0;
+extern void Func_8090a5c(int a, void *b, void *c, int d);
+extern void Func_809088c(void *a, void *b, void *c, int d);
+extern void StartTask(void *f, int n);
+extern void Task_Thunder(void);
+
+void StartThunder2(int a, int b)
+{
+    unsigned char *buf;
+    unsigned char *y;
+    unsigned char *p;
+
+    y = iwram_3001ed0;
+    buf = galloc_ewram(0x1e, 0x1f88);
+    DMA3_CLEAR(buf, 0x1f88);
+    Func_8090a5c(a, y, buf, 1);
+    p = buf + (0xa8 << 4);
+    Func_8090a5c(b, y, p, 1);
+    Func_809088c(p, buf, buf + (0xa8 << 5), 0xc);
+    Func_8090a5c((int)buf, 0, y + (0xe0 << 4), 1);
+    *(unsigned short *)(buf + (0xfc << 5)) = 0x78;
+    *(unsigned short *)(buf + 0x1f82) = 0;
+    StartTask(Task_Thunder, 0xc8 << 4);
+}
+
+#if 0
+/* ===== ORIGINAL PROSE PARK, PRESERVED =====
+(* StartThunder2 -- asm/rom_8a000/rom_944ec_a_a_c_c_a.s
  *
  * BLOCKER: REGISTER ALLOCATION at the PARAMETER COPY
  *
@@ -34,4 +81,7 @@
  * signature elsewhere -- copying the first parameter (batch 115) and swapping
  * declarations (batch 115) -- are measured here and are inert, which is worth
  * recording: they are real but they are not general.
- */
+ *)
+
+*/
+#endif

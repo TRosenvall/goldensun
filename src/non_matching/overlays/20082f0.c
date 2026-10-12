@@ -1,4 +1,79 @@
-/* OvlFunc_949_20082f0 -- 0x020082f0, asm/overlays/rom_7d4af4/ovl_30_c_c_a_c_c_a.s
+/* OvlFunc_949_20082f0 -- NOT MATCHING, a LENGTH gap: ref 68 instructions against ours 66 (-2).
+ *
+ * BODY RECOVERED FROM scratch/ (batch 338).  This park was PROSE and had no
+ * figure; its own header named scratch/L82f0.c, that file still
+ * existed and it compiles.  70 of 133 prose parks were in that state --
+ * work done, measured, and left in a GITIGNORED directory instead of installed.
+ *
+ * THE LENGTH-GAP CRITERION APPLIES, and it is this tree's most productive
+ * targeting instrument -- four batches run on it closed 8 of 15, 7 of 25,
+ * 8 of 25 and 10 of 32, and LOCATED the missing-or-extra instruction on
+ * essentially every target.  Our side is 2 instruction(s) SHORTER, so the
+ * search is which statement is missing -- see docs/elevation.md, 'OUR STREAM BEING
+ * SHORTER IS A SIGNATURE'.
+ * No encoding figure exists until the lengths agree.
+ *
+ * Verify with:
+ *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
+ *     goldensun-build python3 tools/objcmp.py src/non_matching/overlays/20082f0.c \
+ *     asm/overlays/rom_7d4af4/ovl_30_c_c_a_c_c_a.s --func OvlFunc_949_20082f0
+ *
+ * The original prose park is preserved below.
+ */
+extern char *iwram_3001ebc;
+
+extern int __GetFlag(int id);
+extern void __MessageID(int id);
+extern void __CutsceneStart(void);
+extern void __CutsceneEnd(void);
+extern void __WaitFrames(int n);
+extern char *__MapActor_GetActor(int slot);
+extern void __MapActor_SetAnim(int slot, int anim);
+extern void __Func_8092848(int a, int b, int c);
+extern void __Func_8093040(int a, int b, int c);
+
+void OvlFunc_949_20082f0(void)
+{
+    char *q;
+    char *p;
+    unsigned short *f;
+    int saved;
+    int id;
+
+    q = iwram_3001ebc;
+    p = __MapActor_GetActor(0x10);
+    saved = *(short *)(p + 6);
+    f = (unsigned short *)(p + 0x64);
+    __CutsceneStart();
+    *f |= 2;
+    if (*(short *)(q + (0xbf << 1)) == 0) {
+        if (__GetFlag(0x95 << 4))
+            id = 0x2365;
+        else if (__GetFlag(0x962))
+            id = 0x21e2;
+        else
+            id = 0x1f95;
+    } else {
+        if (__GetFlag(0x95 << 4))
+            id = 0x2371;
+        else if (__GetFlag(0x962))
+            id = 0x21f5;
+        else
+            id = 0x1faa;
+    }
+    __MessageID(id);
+    __MapActor_SetAnim(0x10, 0);
+    __Func_8092848(0x10, 0, 2);
+    __Func_8093040(0x10, 0, 0xa);
+    *(short *)(p + 6) = saved;
+    __WaitFrames(1);
+    *f &= 1;
+    __CutsceneEnd();
+}
+
+#if 0
+/* ===== ORIGINAL PROSE PARK, PRESERVED =====
+(* OvlFunc_949_20082f0 -- 0x020082f0, asm/overlays/rom_7d4af4/ovl_30_c_c_a_c_c_a.s
  * Twin of OvlFunc_949_20083d0 -- 0x020083d0, SAME .s file.
  *
  * A clean twin family (neither member previously parked).  They differ only in
@@ -74,4 +149,7 @@
  * strength of a line count that still leaves 15 differing -- against the grain
  * of a directory whose only explicit rule is CSE -- is not justified, and none
  * was added. The line-count evidence stands where the note left it.
- */
+ *)
+
+*/
+#endif

@@ -1,4 +1,78 @@
-/* OvlFunc_common1_fac -- asm/overlays/common/common1_a_a_a_a_c_c_a_c.s
+/* OvlFunc_common1_fac -- NOT MATCHING, a SIZE mismatch: ref 204 bytes against ours 200.
+ *
+ * BODY RECOVERED FROM scratch/ (batch 338).  This park was PROSE and had no
+ * figure; its own header named scratch/Nfac_best.c, that file still
+ * existed and it compiles.  70 of 133 prose parks were in that state --
+ * work done, measured, and left in a GITIGNORED directory instead of installed.
+ *
+ * objcmp stops at the size check, so no encoding figure exists yet; the
+ * body must reach the reference's LENGTH before a distance can be read.
+ *
+ * Verify with:
+ *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
+ *     goldensun-build python3 tools/objcmp.py src/non_matching/ovl_common/fac.c \
+ *     asm/overlays/common/common1_a_a_a_a_c_c_a_c_a.s --func OvlFunc_common1_fac
+ *
+ * The original prose park is preserved below.
+ */
+extern unsigned char _TBL_L3[];
+extern unsigned char _TBL_L13[];
+
+extern void __PlaySound(int id);
+extern void __MapTransitionIn(void);
+extern void __MapTransitionOut(void);
+extern void __WaitMapTransition(void);
+extern void __CutsceneWait(int n);
+extern void __WaitFrames(int n);
+extern void OvlFunc_common1_88c(int a);
+extern void __MapActor_Emote(int a, int b, int c);
+extern int __Func_80f954c(void);
+
+void OvlFunc_common1_fac(int a)
+{
+    int n;
+    int m;
+    int e;
+    unsigned char *p;
+    unsigned char *q;
+
+    __PlaySound(0xf7);
+    __MapTransitionIn();
+    __WaitMapTransition();
+    p = _TBL_L13;
+    n = a * 60;
+    *(short *)(p + 0x1a) = n;
+    q = _TBL_L3;
+    m = a < 0 ? -a : a;
+    *(short *)(q + 0x1a) = m * 60;
+    if (a < 0) {
+        __CutsceneWait(0x1e);
+        __PlaySound(0x56);
+        OvlFunc_common1_88c(8);
+        OvlFunc_common1_e10(3, 1);
+        __CutsceneWait(a * -60 + 0x3c);
+        e = 0;
+    } else {
+        __CutsceneWait(0x1e);
+        __PlaySound(a + 0x5a);
+        OvlFunc_common1_88c(4);
+        OvlFunc_common1_e10(3, 0);
+        __CutsceneWait(n + 0x3c);
+        e = 8;
+    }
+    __MapActor_Emote(e, 0x105, 0);
+    while (__Func_80f954c())
+        __WaitFrames(1);
+    __PlaySound(0x13);
+    __CutsceneWait(0x1e);
+    __PlaySound(0x121);
+    __MapTransitionOut();
+    __WaitMapTransition();
+}
+
+#if 0
+/* ===== ORIGINAL PROSE PARK, PRESERVED =====
+(* OvlFunc_common1_fac -- asm/overlays/common/common1_a_a_a_a_c_c_a_c.s
  *
  * 75 lines against the ROM's 77, and the two-line gap is ONE expression.
  * Candidate at scratch/Nfac_best.c.
@@ -45,4 +119,7 @@
  * because docs/elevation.md already documents the alias mechanism under
  * "A short .LN extern can be captured by gcc's labels".  Grep the doc before
  * editing shared asm.
- */
+ *)
+
+*/
+#endif

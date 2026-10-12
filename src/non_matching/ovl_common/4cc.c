@@ -1,4 +1,68 @@
-/* OvlFunc_common1_4cc -- asm/overlays/common/common1_a_a_a_a_c_a_a.s
+/* OvlFunc_common1_4cc -- NOT MATCHING, a SIZE mismatch: ref 188 bytes against ours 196.
+ *
+ * BODY RECOVERED FROM scratch/ (batch 338).  This park was PROSE and had no
+ * figure; its own header named scratch/N04cc_best.c, that file still
+ * existed and it compiles.  70 of 133 prose parks were in that state --
+ * work done, measured, and left in a GITIGNORED directory instead of installed.
+ *
+ * objcmp stops at the size check, so no encoding figure exists yet; the
+ * body must reach the reference's LENGTH before a distance can be read.
+ *
+ * Verify with:
+ *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
+ *     goldensun-build python3 tools/objcmp.py src/non_matching/ovl_common/4cc.c \
+ *     asm/overlays/common/common1_a_a_a_a_c_a_a.s --func OvlFunc_common1_4cc
+ *
+ * The original prose park is preserved below.
+ */
+extern unsigned char gState[];
+extern int _AREA_8f;
+extern int _AREA_90;
+
+extern void __Func_808e118(void);
+extern void __MessageID(int id);
+extern void __ActorMessage(int a, int b);
+extern int __GetFlag(int id);
+extern void __SetFlag(int id);
+extern int __Func_802106c(int a);
+extern void __Func_8092c40(int a, int b);
+extern int __Func_8091c7c(int a, int b);
+
+int OvlFunc_common1_4cc(int a, int b)
+{
+    unsigned char *g;
+    int r;
+
+    __Func_808e118();
+    __Func_8019908(b, 5);
+    g = gState;
+    if (*(short *)(g + (0xe0 << 1)) == (int)&_AREA_8f)
+        __MessageID(0x2076);
+    else if (*(short *)(g + (0xe0 << 1)) == (int)&_AREA_90)
+        __MessageID(0x2078);
+    else
+        __MessageID(0x207a);
+    __ActorMessage(a, 0);
+    if (__GetFlag(b + (0x80 << 2)))
+        return 2;
+    b += 0x82 << 2;
+    if (__GetFlag(b) == 0) {
+        __SetFlag(b);
+        __MessageID(0x207c);
+        __Func_8092c40(a, 0);
+        return __Func_8091c7c(0, 0);
+    }
+    r = __Func_802106c(0);
+    if (r == 1)
+        return 2;
+    if (r == 2 || r == -1)
+        return 3;
+    return r;
+}
+
+#if 0
+/* ===== ORIGINAL PROSE PARK, PRESERVED =====
+(* OvlFunc_common1_4cc -- asm/overlays/common/common1_a_a_a_a_c_a_a.s
  *
  * REFERENCE .s REPOINTED (batch 337).  The split that landed its piece-mate
  * OvlFunc_common1_588 consumed common1_a_a_a_a_c_a.s; this function is now in
@@ -61,4 +125,7 @@
  * and _AREA_8f / _AREA_90 were already in the file -- adding them again is the
  * mistake I made first.  Also: the gState base needs a named pointer or the
  * +0x1c0 folds into the pool constant.
- */
+ *)
+
+*/
+#endif

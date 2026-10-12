@@ -1,4 +1,77 @@
-/* Func_8094428 -- 0x08094428, asm/rom_8a000/rom_93304_c_c_c.s
+/* Func_8094428 -- NOT MATCHING, a SIZE mismatch: ref 196 bytes against ours 188.
+ *
+ * BODY RECOVERED FROM scratch/ (batch 338).  This park was PROSE and had no
+ * figure; its own header named scratch/L4428.c, that file still
+ * existed and it compiles.  70 of 133 prose parks were in that state --
+ * work done, measured, and left in a GITIGNORED directory instead of installed.
+ *
+ * objcmp stops at the size check, so no encoding figure exists yet; the
+ * body must reach the reference's LENGTH before a distance can be read.
+ *
+ * Verify with:
+ *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
+ *     goldensun-build python3 tools/objcmp.py src/non_matching/rom_8a000/8094428.c \
+ *     asm/rom_8a000/rom_93304_c_c_c.s --func Func_8094428
+ *
+ * The original prose park is preserved below.
+ */
+extern unsigned char gState[];
+
+extern int _GetFlag(int id);
+extern void _ClearFlag(int id);
+extern void _PlaySound(int id);
+extern void _Actor_SetAnim(char *actor, int anim);
+extern void Player_ExitStairs(int n);
+extern char *GetFieldActor(int n);
+extern void CutsceneWait(int n);
+extern void WaitFrames(int n);
+extern void SetCameraTarget(int a, int b);
+extern void Func_80933f8(int a, int b, int c, int d);
+
+int Func_8094428(void)
+{
+    int id;
+    int r;
+    int who;
+    char *p;
+
+    id = 0x90 << 1;
+    r = 0;
+    if (_GetFlag(id)) {
+        Player_ExitStairs(0x18);
+        _ClearFlag(id);
+        r = 1;
+    } else {
+        id = 0x121;
+        if (_GetFlag(id)) {
+            Player_ExitStairs(0x17);
+            _ClearFlag(id);
+            r = 2;
+        } else {
+            id = 0x91 << 1;
+            if (_GetFlag(id)) {
+                _ClearFlag(id);
+                who = *(int *)(gState + (0xfa << 1));
+                p = GetFieldActor(who);
+                *(int *)(p + 0xc) = *(int *)(p + 0xc) + (0xa0 << 16);
+                Func_80933f8(-1, -1, -1, 0);
+                while (*(int *)(p + 0xc) + *(int *)(p + 0x28) > *(int *)(p + 0x14))
+                    WaitFrames(1);
+                _PlaySound(0x9f);
+                *(int *)(p + 0xc) = *(int *)(p + 0x14);
+                _Actor_SetAnim(p, 0x16);
+                CutsceneWait(0xf);
+                SetCameraTarget(who, 1);
+                r = 3;
+            }
+        }
+    }
+    return r;
+}
+
+#if 0
+/* ===== ORIGINAL PROSE PARK, PRESERVED =====
+(* Func_8094428 -- 0x08094428, asm/rom_8a000/rom_93304_c_c_c.s
  *
  * 83 ROM lines against 80 of ours; the 48 differing are a three-line shift from
  * ONE construct, and everything else -- three flag-guarded arms sharing an id
@@ -32,4 +105,7 @@
  * precisely what OvlFunc_965_2008eac was parked for NOT doing at the same
  * callee.  The same call is spelled both ways in the same ROM, so neither form
  * is a property of the callee.
- */
+ *)
+
+*/
+#endif

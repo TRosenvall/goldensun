@@ -1,4 +1,73 @@
-/* CutsceneStart -- 0x080916b0, asm/rom_8a000/rom_91584_a_c_a_c_c_c.s
+/* CutsceneStart -- NOT MATCHING, a SIZE mismatch: ref 160 bytes against ours 156.
+ *
+ * BODY RECOVERED FROM scratch/ (batch 338).  This park was PROSE and had no
+ * figure; its own header named scratch/Ncs_best.c, that file still
+ * existed and it compiles.  70 of 133 prose parks were in that state --
+ * work done, measured, and left in a GITIGNORED directory instead of installed.
+ *
+ * objcmp stops at the size check, so no encoding figure exists yet; the
+ * body must reach the reference's LENGTH before a distance can be read.
+ *
+ * Verify with:
+ *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
+ *     goldensun-build python3 tools/objcmp.py src/non_matching/rom_8a000/80916b0.c \
+ *     asm/rom_8a000/rom_91584_a_c_a_c_c_c.s --func CutsceneStart
+ *
+ * The original prose park is preserved below.
+ */
+struct Ctx {
+    unsigned char pad000[0xcb6];
+    short fcb6;
+    unsigned char padcb8[0xcc2 - 0xcb8];
+    short fcc2;
+    short fcc4;
+};
+
+extern unsigned char *iwram_3001ebc;
+extern unsigned char gState[];
+
+extern void _Func_801c428(void);
+extern void Func_8091660(void);
+extern void Func_808e118(void);
+extern int StartTask(void *f, int pri);
+extern void _ClearFlag(int id);
+extern void Task_Cutscene(void);
+
+void CutsceneStart(void)
+{
+    unsigned char *p;
+    short *q;
+    int o;
+    int z;
+
+    p = iwram_3001ebc;
+    _Func_801c428();
+    Func_8091660();
+    if (((struct Ctx *)p)->fcb6 != 0)
+        Func_808e118();
+    z = 0;
+    o = 0xcc2;
+    q = (short *)(p + o);
+    o += 2;
+    *q = z;
+    q = (short *)(p + o);
+    *q = z;
+    *(int *)(p + (0xe4 << 1)) = 0x10;
+    *(int *)(p + (0xe6 << 1)) = z;
+    *(unsigned short *)(p + (0xed << 1)) = 0xffff;
+    *(short *)(p + (0xee << 1)) = -1;
+    *(short *)(p + (0xef << 1)) = -1;
+    StartTask(Task_Cutscene, 0xc8 << 4);
+    _ClearFlag(0x99 << 1);
+    o = 0xfa << 1;
+    *(int *)(p + o) = *(int *)(gState + o);
+    o += 4;
+    *(int *)(p + o) = z;
+}
+
+#if 0
+/* ===== ORIGINAL PROSE PARK, PRESERVED =====
+(* CutsceneStart -- 0x080916b0, asm/rom_8a000/rom_91584_a_c_a_c_c_c.s
  *
  * 60 lines against the ROM's 64, 39 differing.  Candidate at scratch/Ncs_best.c.
  *
@@ -35,4 +104,7 @@
  * iwram store and then mutated by 4, which is the register-offset pair the ROM
  * has; and the guard reads a SIGNED halfword at 0xcb6 through the
  * register-offset `ldrsh` thumb requires.
- */
+ *)
+
+*/
+#endif

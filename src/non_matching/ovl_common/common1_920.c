@@ -1,4 +1,57 @@
-/* OvlFunc_common1_920 -- overlay COMMON1, asm/overlays/common/common1_a_a_a_a_c_c_a_a_a_c.s
+/* OvlFunc_common1_920 -- NOT MATCHING, a SIZE mismatch: ref 1264 bytes against ours 628.
+ *
+ * BODY RECOVERED FROM scratch/ (batch 338).  This park was PROSE and had no
+ * figure; its own header named scratch_elev/b302d/probe_labels.c, that file still
+ * existed and it compiles.  70 of 133 prose parks were in that state --
+ * work done, measured, and left in a GITIGNORED directory instead of installed.
+ *
+ * objcmp stops at the size check, so no encoding figure exists yet; the
+ * body must reach the reference's LENGTH before a distance can be read.
+ *
+ * Verify with:
+ *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
+ *     goldensun-build python3 tools/objcmp.py src/non_matching/ovl_common/common1_920.c \
+ *     asm/overlays/common/common1_a_a_a_a_c_c_a_a_a_c.s --func OvlFunc_common1_920
+ *
+ * The original prose park is preserved below.
+ */
+extern int f(int);
+extern void g(int);
+int probe(int x) {
+  int i, a=0;
+  for (i = 0; i < 100; i++) {
+    switch (f(i)) {
+    case 0: if (f(0)) { g(0); } else { g(1); } a += 0; break;
+    case 1: if (f(1)) { g(1); } else { g(2); } a += 1; break;
+    case 2: if (f(2)) { g(2); } else { g(3); } a += 2; break;
+    case 3: if (f(3)) { g(3); } else { g(4); } a += 3; break;
+    case 4: if (f(4)) { g(4); } else { g(5); } a += 4; break;
+    case 5: if (f(5)) { g(5); } else { g(6); } a += 5; break;
+    case 6: if (f(6)) { g(6); } else { g(7); } a += 6; break;
+    case 7: if (f(7)) { g(7); } else { g(8); } a += 7; break;
+    case 8: if (f(8)) { g(8); } else { g(9); } a += 8; break;
+    case 9: if (f(9)) { g(9); } else { g(10); } a += 9; break;
+    case 10: if (f(10)) { g(10); } else { g(11); } a += 10; break;
+    case 11: if (f(11)) { g(11); } else { g(12); } a += 11; break;
+    default: a -= 1; break;
+    }
+    if (f(a) > 0) g(0); else a += 0;
+    if (f(a) > 1) g(1); else a += 1;
+    if (f(a) > 2) g(2); else a += 2;
+    if (f(a) > 3) g(3); else a += 3;
+    if (f(a) > 4) g(4); else a += 4;
+    if (f(a) > 5) g(5); else a += 5;
+    if (f(a) > 6) g(6); else a += 6;
+    if (f(a) > 7) g(7); else a += 7;
+    if (f(a) > 8) g(8); else a += 8;
+    if (f(a) > 9) g(9); else a += 9;
+  }
+  return a;
+}
+
+#if 0
+/* ===== ORIGINAL PROSE PARK, PRESERVED =====
+(* OvlFunc_common1_920 -- overlay COMMON1, asm/overlays/common/common1_a_a_a_a_c_c_a_a_a_c.s
  *
  * NOT ATTEMPTED -- BLOCKED BEFORE A CANDIDATE EXISTS.
  * There is deliberately NO "NON-MATCHING, N of M encodings differ" line and no
@@ -102,4 +155,7 @@
  *
  * FINAL INSTALLED PATH (when unblocked):
  *   src/overlays/common/common1_a_a_a_a_c_c_a_a_a_c.c
- */
+ *)
+
+*/
+#endif

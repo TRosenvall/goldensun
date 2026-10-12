@@ -1,4 +1,50 @@
-/* YesNoMenu -- asm/rom_15000/rom_23178_a_a_c_c_a.s
+/* YesNoMenu -- NOT MATCHING, a SIZE mismatch: ref 96 bytes against ours 92.
+ *
+ * BODY RECOVERED FROM scratch/ (batch 338).  This park was PROSE and had no
+ * figure; its own header named scratch/Cyesno.c, that file still
+ * existed and it compiles.  70 of 133 prose parks were in that state --
+ * work done, measured, and left in a GITIGNORED directory instead of installed.
+ *
+ * objcmp stops at the size check, so no encoding figure exists yet; the
+ * body must reach the reference's LENGTH before a distance can be read.
+ *
+ * Verify with:
+ *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
+ *     goldensun-build python3 tools/objcmp.py src/non_matching/rom_15000/8028df4.c \
+ *     asm/rom_15000/rom_23178_a_a_c_c_a.s --func YesNoMenu
+ *
+ * The original prose park is preserved below.
+ */
+extern void Func_80284dc(void);
+extern void AddMenuBarOption(int n);
+extern void Func_8028808(int a, int b, int c);
+extern int Func_8028574(int n);
+extern void Func_802851c(void);
+
+int YesNoMenu(int a, int b, int c, int d)
+{
+    int k;
+    int r;
+
+    k = 0;
+    Func_80284dc();
+    if (c == 0)
+        c = 3;
+    if (a != 0)
+        k = 0x11;
+    AddMenuBarOption(5);
+    AddMenuBarOption(6);
+    Func_8028808(k, c, b);
+    r = Func_8028574(d);
+    Func_802851c();
+    if (r == -1)
+        r = 1;
+    return r;
+}
+
+#if 0
+/* ===== ORIGINAL PROSE PARK, PRESERVED =====
+(* YesNoMenu -- asm/rom_15000/rom_23178_a_a_c_c_a.s
  *
  * BLOCKER: REGISTER ALLOCATION -- a five-way permutation, ours 43 of the ROM's 45
  *
@@ -24,4 +70,7 @@
  * value here to trade against.
  *
  * Best C: scratch/Cyesno.c.
- */
+ *)
+
+*/
+#endif
