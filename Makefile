@@ -333,6 +333,32 @@ asm/overlays/rom_7d0e88/ovl_314_c_a_c_c.o: src/overlays/rom_7d0e88/ovl_314_c_a_c
 # NOT a general key -- do not reach for it without reading the diff first.
 GCSE_CFLAGS := $(GCC296_CFLAGS) -fno-gcse
 
+# GCSE_CFLAGS for Func_80b90ac, batch 343 brief A.  A THREE-WAY CROSSING and NONE
+# OF THE THREE WORKS ALONE (all four combinations measured): two pointer names,
+# this flag, and the 0x12b flag byte reached through its own struct tag.
+#
+# The park had recorded SEVEN spellings "exactly inert" -- all taken at default
+# flags, where gcse pass 07 eats the copy whatever you call it.  `.07.gcse` prints
+# both `COPY-PROP: Replacing reg 33 ... with reg 32` lines, so cprop IS the pass
+# here.  NOTE that batch 334's "not a copy at all, it is a reload" correction is
+# about the SIBLING Func_80c1014 and does NOT apply to this function -- brief A
+# re-ran the dump from scratch and recorded that believing my brief would have
+# cost the landing.
+#
+# Once the copy survives pass 07, r7 falls out free (arm.h:898-899,
+# local-alloc.c:1978-1990) -- so the lever is entirely UPSTREAM of the allocator
+# and none of the five allocno routes is what paid.
+#
+# The last 3 encodings were an ALIAS SET, not the allocator: `_GetUnit` returns
+# `unsigned char *`, alias set 0 conflicts with everything, so the byte store
+# pinned the roster re-read behind it and sched2 could not hoist it.  That is
+# elevation.md's "a char * lvalue pins it" RUN BACKWARDS -- a non-char lvalue
+# RELEASING a pinned load.
+asm/rom_b5000/rom_b8228_c_a_c_c_a_c_a_c_a.o: src/rom_b5000/rom_b8228_c_a_c_c_a_c_a_c_a.c
+	$(GCC296_CC) $(GCSE_CFLAGS) -S -o $(@:.o=.s) $<
+	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
+	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
+
 # GCSE_CFLAGS for DecodeMetatileset, batch 342 brief C.  A FOUR-WAY CROSSING, and
 # each half is worthless alone: -fno-gcse is BIT-IDENTICALLY INERT on the parked
 # body, the source change alone measures 42 of 73 (WORSE than the 24 the park

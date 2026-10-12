@@ -98,7 +98,47 @@
  * 80bd424 lands, both functions land in the SAME commit (they must stay in one
  * object, since one is nested inside the other) and this park is retired
  * without a separate candidate.
-*/
+*
+ * ===================== BATCH 343 BRIEF A =====================
+ *
+ * FIGURE CORRECTED.  The header above says "30 of 32 encodings differ
+ * STANDALONE".  Re-measured with the recipe above: 30 of **31**, not 32 --
+ * the reference stream is 31 encodings.  In full, standalone: ENCODINGS
+ * ref 31 / ours 23, 16-bit INSTRUCTIONS ref 29 / ours 21, SIZE ref 64 /
+ * ours 48.  The gap is the eight static-chain prologue/epilogue
+ * instructions, exactly as the text above describes.  It remains an
+ * isolation ARTEFACT -- the operative figure is the NESTED one, which is
+ * zero.
+ *
+ * BOTH CHEAP AXES ARE CLOSED.  tools/autosweep.py, on the standalone body:
+ *   FLAG AXIS    all eight per-file groups read 30 of 31.  Every one inert:
+ *     -O1, -fno-gcse, -fno-schedule-insns2, -ffixed-r7,
+ *     -fno-strict-aliasing, -fno-strength-reduce, -fno-rerun-cse-after-loop,
+ *     -fno-rerun-loop-opt.
+ *   ANCHOR AXIS  13 top-level boundaries, 11 measured and all inert or worse
+ *     (2 produced no row, so that fraction of the axis is UNTESTED rather
+ *     than inert).
+ * This is expected and not interesting: the standalone body's residue is the
+ * static-chain prologue, which no flag and no anchor can invent.
+ *
+ * "CANNOT LAND ALONE" WAS CHECKED THIS BATCH, NOT ASSUMED, AND IT HOLDS.
+ * The batch-343 brief flagged this park as one of several claiming it "cannot
+ * land whole" and told me to treat that as a claim to check, since split_s.py
+ * cuts before/target/after and any member of a piece can be cut out alone.
+ * That is right in general and it does not apply here: GNU C nested functions
+ * are the one real exception the brief itself names, because the child must be
+ * lexically inside the parent and therefore in the same translation unit.
+ * Confirmed on disk rather than from the prose -- src/non_matching/rom_b5000/
+ * 80bd424.c already carries `int Func_80bd3e4(u8 *tbl)` nested inside
+ * `Func_80bd424`, with the three call sites, and reports it byte-identical as
+ * the emitted local `Func_80bd3e4.0`.  tools/piece.py agrees the .s holds
+ * exactly these two functions and both are parked.
+ *
+ * SO THIS PARK IS STILL GATED ENTIRELY ON Func_80bd424 and there is nothing
+ * for a brief to do here.  Do not draw it again until 80bd424 closes; the two
+ * land in one commit and this park is then retired without a candidate of its
+ * own.
+ */
 extern int _RPGRandom(void);
 
 int Func_80bd3e4(unsigned char *p)

@@ -220,8 +220,71 @@
  *
  * Recording the refutation rather than leaving the lead standing, because it was
  * flagged as the most promising open experiment in the tree and it is not one.
- */
 
+ * ===================== BATCH 343 BRIEF A =====================
+ *
+ * CURRENT FIGURE, in stream terms:
+ *   AT PRODUCTION FLAGS  26 of 34 encodings (ref 34, ours 32); 16-bit
+ *     INSTRUCTIONS ref 28, ours 27; SIZE ref 76, ours 72.  Relocations
+ *     identical (both sides have none in this function).
+ *   UNDER -fno-strict-aliasing (ALIAS_CFLAGS)  16 of 34 encodings
+ *     (ref 34, ours 34); INSTRUCTIONS 28 and 28, EQUAL; SIZE EQUAL at 76.
+ *
+ * *** THE BODY ON DISK HAD REGRESSED AND THE HEADER DID NOT KNOW. ***
+ * The proof above is written against a residue of 16.  The body that was
+ * actually installed measured 20 of 34 under the flag, with 29 instructions
+ * against the reference's 28 -- ONE INSTRUCTION LONG, which the "pool ORDER
+ * plus its register cascade" reading cannot explain and which no reader could
+ * have reconciled with the header.  The extra instruction was a THIRD
+ * `ldr r3, [r0]`: with strict aliasing off, each of the three `a->p` derefs in
+ * the tail is re-read, where the reference reads it exactly twice.
+ *
+ * FIXED IN THE BODY BELOW by naming the tail pointer -- `c = a->p;` once
+ * before the `a->fa` store, then `c->f8` and `c->f14`.  That restores the
+ * header's 16 and makes the instruction counts equal.  It is the park's own
+ * settled finding 4 ("a->p is re-read after the field write") applied a second
+ * time, at the second re-read, which nobody had done because at DEFAULT flags
+ * strict aliasing hides it: the two bodies are indistinguishable at production
+ * flags (both 26 of 34, both 28/27), so parkcheck could never have caught the
+ * regression.  A park whose claim is measured under a flag MUST state the
+ * flag's figure as well as the default one; this header now does.
+ *
+ * THE REMAINING 16 IS STILL THE POOL, AND THE PROOF ABOVE SURVIVES.  Measured
+ * from the .26.mach minipool fixup list for the body below:
+ *
+ *     ;; HImode fixup for i41; addr  6, range (0,64):   0x0
+ *     ;; SImode fixup for i19; addr 10, range (0,1020): 0xffff
+ *     ;; SImode fixup for i93; addr 14, range (0,1020): 0x1ff
+ *     ;; SImode fixup for i121; addr 30, range (0,1020): 0xfffffe00
+ *     ;; Emitting minipool after insn 232; address 50
+ *
+ * giving [0, ffff, 1ff, fe00] against the reference's [ffff, 0, 1ff, fe00].
+ *
+ * ONE CORRECTION TO THE PROOF'S ARITHMETIC, and it makes the problem HARDER,
+ * not easier.  Step 2 is written as though SImode-ising the zero were the
+ * thing to try.  It is not sufficient: the sort key is address + pool_range,
+ * so with both entries SImode the key is 6+1020 = 1026 for the zero against
+ * 10+1020 = 1030 for the 0xffff, and the ZERO STILL SORTS FIRST.  Getting the
+ * reference's order needs the zero SImode *and* its load emitted AFTER the
+ * 0xffff load in the instruction stream -- which is how the reference gets it
+ * (`ldr r6, =0xffff` at its insn 3, `ldr r4, =0` at its insn 5).  Two
+ * conditions, not one.
+ *
+ * ALSO WORTH RECORDING: the "branch over an in-function pool" is NOT missing
+ * from our output and has not been for some time.  The body below emits
+ * `b .L4 / .L3: / .word 0 / .word 65535 / .word 511 / .word -512 / .L4: /
+ * pop ...` -- the reference's exact shape.  The long argument above about
+ * mid-function pools is settled in our favour and only the ORDER of the four
+ * words, and the register cascade from it, is left.
+ *
+ * AUTOSWEEP, recorded so nobody re-screens it (run on the PREVIOUS body):
+ *   FLAG AXIS    -fno-strict-aliasing 20 (now 16 with the body below);
+ *     -O1 33 (much worse), -fno-schedule-insns2 29 (worse), and -fno-gcse /
+ *     -ffixed-r7 / -fno-strength-reduce / -fno-rerun-cse-after-loop /
+ *     -fno-rerun-loop-opt all 26, i.e. inert.
+ *   ANCHOR AXIS  20 of 20 top-level boundaries; six placements read 25 but all
+ *     with dsize=-4, which is misalignment, not an improvement.  CLOSED.
+ */
 struct B {
     unsigned char pad00[6];
     unsigned short f6;
@@ -245,6 +308,7 @@ struct A {
 void Func_80b0a20(struct A *a, int x, int y)
 {
     struct B *b;
+    struct B *c;
     int m;
     int t;
     int z;
@@ -263,9 +327,10 @@ void Func_80b0a20(struct A *a, int x, int y)
     t = 0xfffffe00 & t;
     t |= x;
     b->f16 = t;
+    c = a->p;
     a->fa = y;
     a->f6 = y;
-    a->p->f8 = y;
+    c->f8 = y;
     y &= m;
-    a->p->f14 = y;
+    c->f14 = y;
 }

@@ -36,6 +36,18 @@ figures, their park paths, what each park claims) goes on top of this.
   landed two of three targets that way after spelling-level search had failed on
   both. Count hits in the generated half against the hand-written half for a
   reachability bound; partition by `shimcount` for a pin-free bound.
+- **If a brief's piece-membership block is EMPTY, say so and re-derive it.** In
+  batch 343 all twenty blocks shipped empty: the coordinator added a filter to
+  strip `piece.py`'s new duplicate-park warning, and because that warning prints
+  FIRST the filter cut the entire output. Brief A caught it; the others worked
+  without the data. A `piece.py` block that is empty is a coordinator bug, never a
+  statement that the piece holds nothing.
+- **`parkcheck` verifies at PRODUCTION flags, so a flag-dependent regression is
+  invisible to it.** Batch 343 brief A found an installed park body that had
+  silently regressed to one instruction LONG under the very flag its own proof is
+  written against, while reading identically to the correct body at production
+  flags. If a park's argument depends on a flag group, re-measure under that flag
+  before trusting its figure.
 - **THE TWO CHEAPEST AXES MAY ALREADY BE CLOSED — check the brief.**
   `tools/autosweep.py` runs the judgment-free half of a park from bash at zero
   token cost: the **flag axis** (the unchanged body under each per-file flag
