@@ -73,6 +73,104 @@
  * residue under those flags is 2-4 instructions, not 148 differences.
 */
 
+
+/* ===== BATCH 341: FIGURE RE-DERIVED, DEVICE LADDER MEASURED, AND AN INHERITED
+ * ===== ESCAPE REFUTED BY MEASUREMENT PLUS A DUMP ==============================
+ *
+ * RE-DERIVED with tools/objcmp.py:
+ *     XX ENCODINGS differ in 19 place(s) (ref 184, ours 184)
+ *        [STREAM length, pool+pad INCLUDED; instructions are 143/143]
+ *        first at index 6: ref 4f64  ours 602b
+ *     XX RELOCATIONS differ
+ * BOTH INSTRUCTION COUNTS ARE 143 and size is silent.  The relocation banner is
+ * the BENIGN relocation-FORM class and that is now checked rather than asserted:
+ * _AREA_a0..a3 are absolute symbols defined BY VALUE in `area.sym` (lines
+ * 126, 127, 128 and 190: `_AREA_a0 = 0xa0;` ... `_AREA_a3 = 0xa3;`), which
+ * stage1.ld INCLUDEs, so an R_ARM_ABS32 against them links to the literal the
+ * hand-written .s writes directly.  19 IS A PLAIN DISTANCE.
+ *
+ * THE DEVICE LADDER, each device removed ONE AT A TIME (base 19 of 184, dsize 0):
+ *     drop PIN0  (SetPos 0x10)            22 of 184   dsize 0
+ *     drop PIN1  (Func_8092adc 0x10)      38 of 184   dsize 0
+ *     drop PIN2  (SetPos 0xd)             33 of 184   dsize 0
+ *     drop PIN3  (Func_8092adc 0xd)       21 of 184   dsize 0
+ *     drop PIN4  (SetPos 0x11)            21 of 184   dsize 0
+ *     ALL FIVE -- PIN-FREE                42 of 184   dsize 0      <-- a distance
+ *     drop barrier B0 (the first `off`)  149 of 184   dsize -4
+ *     drop barrier B1 (the iwram `o2`)   148 of 184   dsize -4
+ *     drop barrier B2 (the iwram addr)   149 of 184   dsize -4
+ *     ALL THREE BARRIERS                 147 of 184   dsize -8
+ *     FULLY DEVICE-FREE                  145 of 184   dsize -8
+ * So the nine pins buy 42 -> 19 and every one of the five blocks is load-bearing;
+ * the three barriers are worth 2 instructions each and CANNOT be dropped at all
+ * -- the device-free body is FOUR INSTRUCTIONS SHORT, so 145 is misalignment and
+ * not a distance.  THERE IS NO DEVICE-FREE FIGURE TO SHIP HERE.  This confirms
+ * the header's own "all six spellings come out 2 instructions SHORT" from the
+ * other side: it is not that no source form rebuilds the value, it is that the
+ * value is commoned however it is spelled and the barrier is the only thing that
+ * stops it.
+ *
+ * THE CLASS: the pins are the ARGUMENT-WINDOW class batches 339/340 named, and
+ * this park is the THIRD member found.  precompute_register_parameters
+ * (calls.c:805-854) copies every argument whose rtx_cost(value, SET) > 2 -- i.e.
+ * >= 256 in Thumb (arm.c:2077-2084) -- into a pseudo BEFORE
+ * load_register_parameters writes any hard argument register.  Here the expensive
+ * arguments (`0xd8 << 17`, `0xa0 << 7`, `0xe4 << 17`, ...) are hoisted and the
+ * CHEAP `mov r0, #<slot>` (0x10, 0xd, 0x11 -- all under 256) is left with the
+ * highest LUID, so sched2's last tie-break, INSN_LUID at
+ * haifa-sched.c:4110-4113, emits it last.  That matches this header's own
+ * reading: "the residue being 12 encodings of `mov r0` POSITION ... any pin-free
+ * spelling lets gcc fold".
+ *
+ * ##########################################################################
+ * ## AN INHERITED BOUND IS NOW REFUTED, AND THIS PARK IS THE COUNTEREXAMPLE ##
+ * ##########################################################################
+ * Batches 339 and 340 recorded the pin-free ESCAPE for this class as
+ * local-alloc.c:884-889 (`update_equiv_regs`), gated on REG_BASIC_BLOCK (regno)
+ * < 0 -- the set and its single use in DIFFERENT basic blocks -- and recorded
+ * that none of their parks had such a boundary, "so all three hold".  The
+ * implication a reader takes from that is that a boundary WOULD be the escape.
+ *
+ * THIS PARK HAS THE BOUNDARY AND THE ESCAPE DOES NOT FIRE.  The five pinned calls
+ * sit inside `if (__GetFlag(0x941) != 0) { ... }`, so a slot assigned above that
+ * branch is set in one block and used in another.  Five pin-free spellings, each
+ * with five `int` locals used exactly once:
+ *     slots assigned at the top of the function       42 of 184  dsize 0
+ *     slots assigned just before `if (__GetFlag(...))` 42 of 184  dsize 0
+ *     slots assigned just before `if (*p == 3)`        42 of 184  dsize 0
+ *     slots assigned inside the block (SAME basic block) 42 of 184  dsize 0
+ *     bare literals, no locals at all                 42 of 184  dsize 0
+ * ALL FIVE ARE THE SAME NUMBER.  The source distinction is erased before any
+ * allocator pass runs, and the dump says where: compiled with `-da`, the
+ * boundary variant's `.00.rtl` holds the five slot pseudos as
+ *     (insn 259 ... (set (reg/v:SI 36) (const_int 16 [0x10])))
+ *     (insn 261 ... (set (reg/v:SI 37) (const_int 16 [0x10])))
+ *     (insn 263 ... (set (reg/v:SI 38) (const_int 13 [0xd])))
+ *     (insn 265 ... (set (reg/v:SI 39) (const_int 13 [0xd])))
+ *     (insn 267 ... (set (reg/v:SI 40) (const_int 17 [0x11])))
+ * set ABOVE insn 270, which builds the 0x941 argument for the branch test -- so
+ * the boundary is real in the RTL.  By `.03.cse` pseudos 36-40 DO NOT EXIST
+ * (zero occurrences), and the argument is a direct
+ *     (insn 293 ... (set (reg:SI 0 r0) (const_int 16 [0x10])) 173 {*thumb_movsi_insn})
+ * CSE1 FOLDS THE SUB-256 CONSTANT BACK (cse.c:509-514: COST is 1 for a pseudo
+ * against rtx_cost*2 for the constant), so there is NO PSEUDO LEFT for
+ * update_equiv_regs to find and REG_BASIC_BLOCK is never consulted.
+ * THE CORRECT STATEMENT OF THE BOUND: the REG_BASIC_BLOCK < 0 gate is real but it
+ * sits DOWNSTREAM of a gate that always closes first for a constant under 256.
+ * A basic-block boundary is NOT the escape for this class; anything that reaches
+ * it has to survive cse1, which a bare constant assignment does not.
+ * Harness: scratch_elev/b341/E/b341E_gen_p4b.py, dumps in .../dump_i1/.
+ *
+ * AUTOSWEPT, BOTH CHEAP AXES CLOSED (tools/autosweep.py, batch 341).  Flag axis,
+ * unchanged body: -fno-strict-aliasing and -fno-rerun-loop-opt 19;
+ * -fno-schedule-insns2 52; -O1 170; -fno-gcse and -fno-rerun-cse-after-loop 171
+ * and 177; -ffixed-r7 182.  Anchor axis: all 40 `do { } while (0);` placements
+ * measured, all 19 or worse.  Do not re-screen either axis.
+ *
+ * VERDICT: HOLDS at 19 of 184 with 9 pins and 3 barriers.  No device-free figure
+ * exists (145 at four instructions short); the pin-free figure of 42 is a
+ * distance but 23 encodings worse.  Pass-3 depin material.
+ */
 typedef struct { unsigned char _bytes[704]; } GlobalState;
 extern GlobalState gState;
 extern unsigned char *iwram_3001ebc;

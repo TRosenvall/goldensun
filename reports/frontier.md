@@ -111,7 +111,6 @@
 | **13** | 55 | `overlays/2008d54.c` | — |
 | **13** | 32 | `ovl_7795e8/2008384.c` | symbol-table |
 | **13** | 91 | `ovl_7ac2d8/20096c4.c` | alloc-order, reload |
-| **13** | 262 | `ovl_7b0400/2009af0.c` | — |
 | **13** | 72 | `ovl_7ced6c/200add0.c` | frame |
 | **13** | 262 | `ovl_7f2f14/2009af0.c` | — |
 | **13** | 47 | `rom_8a000/80979a4.c` | alloc-order, cse-gcse |

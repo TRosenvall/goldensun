@@ -4,6 +4,72 @@
  * function or no function at all. Notes go UNDER this line. Added in batch
  * 341 after the pre-fix autosweep was found sweeping wrong subjects.
  */
+/* ===== BATCH 341: FIGURE RE-DERIVED, PIN LADDER MEASURED, CLASS NAMED ========
+ *
+ * RE-DERIVED with tools/objcmp.py:
+ *     XX ENCODINGS differ in 17 place(s) (ref 160, ours 160)
+ *        [STREAM length, pool+pad INCLUDED; instructions are 125/125]
+ *        first at index 61: ref 4651  ours 4653
+ * BOTH INSTRUCTION COUNTS ARE 125, size is silent and RELOCATIONS ARE IDENTICAL
+ * (29 of 29, same symbols at the same 29 offsets), so 17 is a TRUE DISTANCE.
+ * NOTE the units: this header elsewhere says "160 instructions" -- 160 is the
+ * STREAM encoding count including pool and padding; the instruction count is 125.
+ *
+ * THE PIN-FREE FIGURE IS 44 OF 160, and unlike most pin-free figures it IS a
+ * distance: dsize 0, instructions 125/125.  Its relocation banner is BENIGN --
+ * the same 29 symbols in the same order, only the offsets shifted (0x3e against
+ * 0x3c and so on), which is instruction movement and not a wrong program.
+ * So the five pins buy 44 -> 17.
+ *
+ * THE PIN LADDER, each PIN3 block dropped ONE AT A TIME (base 17 of 160):
+ *     drop P0 (SetPos 0x5)   32 of 160   first 22   RELOCDIFF(offsets)
+ *     drop P1 (SetPos 0x9)   20 of 160   first 34   rel ok
+ *     drop P2 (SetPos 0xb)   31 of 160   first 33   RELOCDIFF(offsets)
+ *     drop P3 (SetPos 0xa)   20 of 160   first 44   rel ok
+ *     drop P4 (SetPos 0xe)   20 of 160   first 50   rel ok
+ *     all five dropped       44 of 160   first 22   RELOCDIFF(offsets)
+ * EVERY ONE OF THE FIVE IS LOAD-BEARING -- there is no inert pin to shed here,
+ * which is the opposite of the sibling park src/non_matching/ovl_7f2f14/2009af0.c
+ * where batch 341 shed three of fifteen for free.  This confirms the header's own
+ * drop-table in objcmp units rather than `aligned` ones.  (The "P5" that the
+ * header drops as inert scaffolding is the SIXTH SetPos site, 0xd, which already
+ * ships unpinned -- it is not one of the five above.)
+ *
+ * THE CLASS, AND IT IS SHARED.  This park's pins are an ARGUMENT-WINDOW class,
+ * not an allocation class, and it is the class batches 339/340 named:
+ * precompute_register_parameters (calls.c:805-854) copies every argument whose
+ * rtx_cost(value, SET) > 2 -- i.e. >= 256 in Thumb (arm.c:2077-2084) -- into a
+ * pseudo BEFORE load_register_parameters writes any hard argument register, so
+ * the two expensive arguments (`0x1db0000`, `0xa6 << 17`, ...) are hoisted and
+ * THE CHEAP `mov r0, #<slot>` IS LEFT WITH THE HIGHEST LUID.  sched2's last
+ * tie-break is INSN_LUID (haifa-sched.c:4110-4113), so it emits last.  The pin is
+ * what denies the hoist.
+ *
+ * NAMING THE SLOT IS INERT, MEASURED, AND THE REASON IS cse.c:509-514 -- COST is
+ * 1 for a pseudo against rtx_cost*2 for the constant, so cse1 folds a sub-256
+ * constant straight back into the argument.  Two spellings, both 44 of 160, i.e.
+ * EXACTLY the bare-literal pin-free figure:
+ *     int t0..t4, each assigned immediately before its own call      44
+ *     int t0..t4, all five assigned at the top of the function       44
+ * AND THE REMATERIALISATION ESCAPE IS NOT AVAILABLE TO THIS PARK AT ALL: the
+ * local-alloc.c:884-889 arm needs REG_BASIC_BLOCK (regno) < 0, i.e. the set and
+ * its single use in DIFFERENT basic blocks, and THIS FUNCTION IS BRANCH-FREE --
+ * one straight-line block from `__MapActor_GetActor(0x0)` to `__CutsceneEnd()`,
+ * with no `if`, no loop and no `?:` anywhere.  A call does not end a basic block
+ * here, so no boundary exists to put the set on the other side of.  See the
+ * sibling src/non_matching/ovl_7e7574/200cda0.c, where the boundary DOES exist
+ * and the escape still does not fire.
+ *
+ * AUTOSWEPT, BOTH CHEAP AXES CLOSED (tools/autosweep.py, batch 341).  Flag axis,
+ * unchanged body: -fno-gcse / -ffixed-r7 / -fno-strict-aliasing /
+ * -fno-strength-reduce / -fno-rerun-cse-after-loop / -fno-rerun-loop-opt all 17;
+ * -O1 and -fno-schedule-insns2 both 41.  Anchor axis: all 40 `do { } while (0);`
+ * placements measured, all 17 or worse.  Do not re-screen either axis.
+ *
+ * VERDICT: HOLDS at 17 of 160 with 15 pins.  The pin-free figure of 44 is
+ * evidence about the blocker, not a shippable body, and by the standing pin
+ * policy this is pass-3 depin material.
+ */
 /* PARKED -- OvlFunc_896_200a27c -- 0x0200a27c
  *
  * NON-MATCHING, 17 of 160 encodings  (MEASURED, batch 319 recipe backfill).
