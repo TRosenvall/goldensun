@@ -1,19 +1,89 @@
-/* StartEarthquake -- NOT MATCHING, a SIZE mismatch: ref 196 bytes against ours 192.
+/* StartEarthquake -- NOT MATCHING.  Body REPLACED by batch 344 brief C.
  *
- * BODY RECOVERED FROM scratch/ (batch 338).  This park was PROSE and had no
- * figure; its own header named scratch/Nquake_best.c, that file still
- * existed and it compiles.  70 of 133 prose parks were in that state --
- * work done, measured, and left in a GITIGNORED directory instead of installed.
- *
- * objcmp stops at the size check, so no encoding figure exists yet; the
- * body must reach the reference's LENGTH before a distance can be read.
+ * CURRENT FIGURE, in stream terms: 14 of 83 stream encodings (ref 83, ours 83),
+ * first at index 8.  ref 66 16-bit instructions and ours 66, SIZE 196 BOTH,
+ * 15/15 32-bit entries, relocations IDENTICAL.  *** THE SIZE MISMATCH IS GONE
+ * AND THE COUNTS AGREE, so this 14 is the first REAL DISTANCE this park has
+ * ever had -- the previous 51 was phase, and objcmp used to stop at the size
+ * check. ***  Pin-free, device-free.
  *
  * Verify with:
  *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
  *     goldensun-build python3 tools/objcmp.py src/non_matching/rom_8a000/809509c.c \
  *     asm/rom_8a000/rom_944ec_a_a_a_a_c_c_a_c_c.s --func StartEarthquake
  *
- * The original prose park is preserved below.
+ * ========== WHAT CLOSED THE LENGTH GAP: THE `*q++` IDIOM ================
+ *
+ * The prose park's own batch-154 CORRECTION was right and had never been
+ * applied to this function.  The ROM writes the first three entry fields
+ * through a MOVING POINTER --
+ *     mov r1, r7 / stmia r1!, {r6} / ... / stmia r1!, {r3} / str r3, [r1]
+ * -- and `*q++ = v;` emits a single-register `stmia` directly.  Written as
+ * struct fields gcc uses `str rX, [r7, #off]` for all three, which is ONE
+ * INSTRUCTION SHORTER: the ROM's extra instruction is the `mov r1, r7` that
+ * initialises the cursor.  Applying it:  51 (phase, size 192/196) -> 14 (real).
+ * The park said "THIS FUNCTION IS WORTH RE-OPENING on that basis"; it was.
+ *
+ * Fields 0xc and 0x14 stay addressed off the base `e`, which is what the ROM
+ * does (`str r6, [r7, #0xc]`, `str r6, [r7, #0x14]`).  Carrying the cursor on
+ * past the third store instead (`*q++ = 0xd4<<8; *q = z;`) is WORSE, 17.
+ *
+ * GAP ARITHMETIC, per region:
+ *   park body   REF pre-loop 30 / in-loop 28 / post-loop 8 = 66
+ *               OURS pre-loop 30 / in-loop 27 / post-loop 8 = 65  -1, ALL IN-LOOP
+ *   this body   OURS 30 / 28 / 8 = 66                              0
+ *
+ * ========== THE REMAINING 14, IN THREE PIECES ============================
+ *
+ * (1) THE DMA3_CLEAR ZERO -- 3 instructions, register and order.
+ *       rom   mov r1, #0 / mov r0, sp / str r1, [r0]
+ *       ours  mov r0, sp / mov r3, #0 / str r3, [r0]
+ *     Inside include/dma.h's shared inline, whose scratch for the zero is not
+ *     pinned.  NOT TOUCHED here -- 82 landed files use that header.
+ *
+ * (2) A REGISTER ROTATION of exactly two values, everything else 1:1.
+ *       rom   q -> r1, w -> r2        ours  q -> r2, w -> r0
+ *     This is docs/elevation.md's "recurring residue class: the parameter
+ *     pointer one register too low" -- same instruction stream, one rotation.
+ *     Both values are born and die inside the loop body without crossing the
+ *     call, so they are allocated from REG_ALLOC_ORDER's {3,2,1,0,...}
+ *     (arm.h:989).  SIX probes measured EXACTLY INERT at 14: `w` assigned after
+ *     the first / second `*q++`, `w` assigned before `q`, and three
+ *     declaration orders (q before w, w last, both at the top).  Assigning `w`
+ *     AFTER all three stores is WORSE (21, relocations differ).
+ *
+ * (3) THE HALFWORD NARROWING -- and the BOUND here is now stated with its
+ *     precondition, which the park's "neither stops the narrowing" lacked.
+ *       rom   ldr r1, [r2] / ldr r2, [r2,#8] / asr r1,#16 / asr r2,#16
+ *       ours  mov r3,#2 / ldrsh r1,[r0,r3] / mov r3,#0xa / ldrsh r2,[r0,r3]
+ *     combine's `make_extraction` rewrites `(ashiftrt (mem:SI x) 16)` into
+ *     `(sign_extend:SI (mem:HI x+2))` at combine.c:5921-5938.  Of the two
+ *     escapes that gate leaves for a MEM, `mode_dependent_address_p` is
+ *     ALWAYS FALSE on Thumb -- arm.h:2287-2290 defines
+ *     GO_IF_MODE_DEPENDENT_ADDRESS to do nothing unless TARGET_ARM, with the
+ *     comment "Nothing helpful to do for the Thumb" -- so the ONLY remaining
+ *     escape is `MEM_VOLATILE_P`.
+ *     *** AND VOLATILE DOES WORK, refuting the park's note that it was inert:
+ *     `((volatile int *)w)[0]` restores the ROM's `ldr / ldr / asr / asr`
+ *     exactly and measures 13.  It is worth ONE encoding and is a semantic
+ *     change the ROM's source need not have had, so it is NOT shipped; it is
+ *     recorded as the instrument that proves the mechanism. ***
+ *     So: no non-volatile C spelling reaches this.  Five were measured and all
+ *     read EXACTLY 14 (loads inline at the call, shifts into named locals, `y`
+ *     loaded first, `*w` / `*(w+2)` pointer form, `(x>>8)>>8`); masking the low
+ *     half first is far worse (61, +5 instructions, SIZE 208).
+ *
+ * FLAG AXIS on THIS body: -fno-gcse, -fno-strict-aliasing, -fno-rerun-loop-opt
+ * and -fno-rerun-cse-after-loop all EXACTLY 14 (inert); -fcall-saved-r4 33;
+ * -fno-schedule-insns2 35; -O1 53 (184 bytes, 64 instructions); -ffixed-r7 90
+ * (212 bytes, 74 instructions).
+ *
+ * NEXT, in order of size: the register rotation (2) is 13 of the 14 together
+ * with (1), and neither spelling nor declaration order nor any flag group
+ * reaches either.  Both are allocator-side; the rotation is the documented
+ * class whose recommended handling is to recognise it and move on.
+ *
+ * The previous header and the original prose park are preserved below.
  */
 #include "dma.h"
 
@@ -50,6 +120,7 @@ void StartEarthquake(void)
     int z;
     int t;
     int *w;
+    int *q;
     int x;
     int y;
 
@@ -66,9 +137,10 @@ void StartEarthquake(void)
     z = 0;
     do {
         w = *iwram_3001e70;
-        e->f0 = z;
-        e->f4 = 0x40000400;
-        e->f8 = 0xd4 << 8;
+        q = (int *)e;
+        *q++ = z;
+        *q++ = 0x40000400;
+        *q = 0xd4 << 8;
         e->fc = z;
         e->f14 = z;
         x = w[0];
@@ -80,6 +152,26 @@ void StartEarthquake(void)
     } while (i <= 0x1f);
     StartTask(Task_Earthquake, 0xc8 << 4);
 }
+
+/* ===== PREVIOUS PARK HEADER, batch 338 recovery, PRESERVED =====
+(* StartEarthquake -- NOT MATCHING, a SIZE mismatch: ref 196 bytes against ours 192.
+ *
+ * BODY RECOVERED FROM scratch/ (batch 338).  This park was PROSE and had no
+ * figure; its own header named scratch/Nquake_best.c, that file still
+ * existed and it compiles.  70 of 133 prose parks were in that state --
+ * work done, measured, and left in a GITIGNORED directory instead of installed.
+ *
+ * objcmp stops at the size check, so no encoding figure exists yet; the
+ * body must reach the reference's LENGTH before a distance can be read.
+ *
+ * Verify with:
+ *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
+ *     goldensun-build python3 tools/objcmp.py src/non_matching/rom_8a000/809509c.c \
+ *     asm/rom_8a000/rom_944ec_a_a_a_a_c_c_a_c_c.s --func StartEarthquake
+ *
+ * The original prose park is preserved below.
+ *)
+*/
 
 #if 0
 /* ===== ORIGINAL PROSE PARK, PRESERVED =====

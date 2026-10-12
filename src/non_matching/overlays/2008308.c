@@ -1,4 +1,171 @@
-/* OvlFunc_967_2008308 -- NOT MATCHING.  HELD by batch 339 brief C.
+/* OvlFunc_967_2008308 -- NOT MATCHING.  Body REPLACED by batch 344 brief C.
+ *
+ * CURRENT FIGURE, in stream terms: 2 of 89 stream encodings (ref 89, ours 89),
+ * first at index 19.  ref 60 16-bit instructions and ours 60, SIZE 236 both,
+ * 29/29 32-bit entries, relocations IDENTICAL.  *** THE COUNTS NOW AGREE, SO
+ * THIS 2 IS A REAL DISTANCE -- the park's 56 was PHASE. ***  Pin-free.
+ *
+ * ONE PIN TAKES IT TO ZERO.  `{ PIN1; q0 = 0xe; __MapActor_Emote(q0, 0x81 << 1,
+ * 0x32); }` with `#define PIN1 register int q0 __asm__("r0")` is
+ * BYTE-IDENTICAL.  Per the pin policy this ships PIN-FREE at 2 and the one-pin
+ * 0 is recorded here for pass 3.  r0 ALONE is enough; PIN3 also gives 0.
+ *
+ * Verify with:
+ *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
+ *     goldensun-build python3 tools/objcmp.py src/non_matching/overlays/2008308.c \
+ *     asm/overlays/rom_7f21b8/ovl_30_c_c_a_c_c_c_c_c.s --func OvlFunc_967_2008308
+ *
+ * ========== THE PARK'S OWN QUESTION, ANSWERED ============================
+ *
+ * The held park located the missing instruction exactly -- a `b` over a
+ * MID-FUNCTION LITERAL POOL at the reference's lines 38-43 -- and asked:
+ * "WHICH REFERENCE REACHES THE ROM'S FIRST POOL ENTRY WITH A NARROW
+ * `pool_range`?"  Answer: THE MASK, once the AND is HImode and the mask is
+ * SIGNED.  One token:
+ *
+ *     m &= 0xffffc000;  w = m;        ->        w = m & ~0x3fff;
+ *
+ * - Dropping the `int` intermediate narrows the AND to HImode, so the constant
+ *   load becomes `*thumb_movhi_insn` alternative 1 (arm.md:4318-4353) at
+ *   `pool_range` 64 instead of `*thumb_movsi_insn` alternative 6's 1020
+ *   (arm.md:3838-3857).  `-da` shows it directly: before, ";; SImode fixup for
+ *   i23; addr 18, range (0,1020): 0xffffc000"; after, an HImode fixup at 64.
+ * - 18 + 64 = 82, the end-of-function barrier sits at ~232, so `arm_reorg`
+ *   (arm.c:5550-5572) finds `last_barrier == NULL` and `create_fix_barrier`
+ *   (arm.c:5243-5318) manufactures the `b`.  Pool ORDER is still 0xffffc000
+ *   then 0x26ec because the SImode entry's `max_address` is larger
+ *   (`add_minipool_forward_ref`, arm.c:4820-4860).
+ * - THE SIGN IS LOAD-BEARING and is why the park's prose said "gcc pools
+ *   0xc000": `0xffffc000` has type `unsigned int` in C, so the narrowed HImode
+ *   constant is 49152 and the figure is 3.  `~0x3fff` and `-0x4000` are `int`,
+ *   the constant is -16384, the pool word is the ROM's 0xffffc000, figure 2.
+ * - gcc prints `ldrh r3, .L4`; gas assembles the ROM's `ldr r3,[pc,#60]`
+ *   (`4b0f`) because Thumb-1 has no pc-relative `ldrh`.  Batch 79's finding,
+ *   and the same mechanism dma.h's DMA3_FILL16 comment documents.
+ *
+ * ========== THE REMAINING 2: AN INSN_LUID TIE, WITH ITS CAUSE ============
+ *
+ *     rom   mov r1,#0x81 / mov r0,#0xe / lsl r1,#1 / mov r2,#0x32 / bl Emote
+ *     ours  mov r1,#0x81 / lsl r1,#1   / mov r0,#0xe / mov r2,#0x32 / bl Emote
+ *
+ * From `-fsched-verbose=6` (which writes into `.23.sched2`, NOT stderr): at
+ * t=206 the ready list is `29 61 57 219` and insn 219 (`mov r1,#129`) wins on
+ * priority 19 against 18.  At t=207 the list is `29 61 57 220` and insn 220
+ * (`lsl`), 57 (`mov r0,#14`) and 61 (`mov r2,#50`) are all priority 18,
+ * class 3 and three dependents each, so every rung of `rank_for_schedule` is
+ * dead down to INSN_LUID (haifa-sched.c:4111-4114).
+ *
+ * WHY OUR LUIDS ARE IN THE WRONG ORDER.  `precompute_register_parameters`
+ * (calls.c:845-857) forces an argument into a pseudo when
+ * `rtx_cost (value, SET) > 2 && SMALL_REGISTER_CLASSES && reg_parm_seen`.
+ * SMALL_REGISTER_CLASSES is TARGET_THUMB (arm.h:1061), and arm_rtx_costs for a
+ * Thumb CONST_INT under SET is 0 below 256 and COSTS_N_INSNS(2) = 6 for a
+ * shiftable constant (arm.c:2077-2084, COSTS_N_INSNS at arm.c:2029).  So 0x102
+ * is PRECOMPUTED -- emitted before `load_register_parameters` ever writes r0 --
+ * while 0xe and 0x32 are not.  The split of `(set r1 258)` into mov+lsl
+ * (arm.md:3859-3870) happens in place, so the `lsl` inherits a LUID below r0's.
+ *
+ * The tree already holds the proof that the ROM's order needs r0 FIRST:
+ * asm/overlays/rom_77a7c8/ovl_30_c_a_c_c_a_c_a_c_c_a_b.s:132-136 is a
+ * GENERATED, byte-matching file with the identical window, and the `.c` beside
+ * it reaches it with a pinned argument block -- its own header says
+ * "UN-PINNING q1 ... so the mov/lsl pair stays expanded and sched2 can slot the
+ * pinned `mov r0` BETWEEN the mov and the lsl."
+ *
+ * THE DEVICE-FREE ROUTE, WITH ITS PRECONDITION.  A named local
+ * (`int e = 0x81 << 1;`) does skip precompute -- `args[i].value` is then a REG
+ * -- and is still 2, because the pseudo is COALESCED INTO r1 AT ITS OWN
+ * DEFINITION SITE, which is above r0.  What would move the constant down to the
+ * parameter-load slot is `update_equiv_regs` (local-alloc.c:845-862), which
+ * substitutes a single-use constant pseudo at its use and deletes the def --
+ * gated on `REG_N_REFS == 2 && REG_BASIC_BLOCK (regno) < 0`.  This function is
+ * straight-line up to the Emote call, so the pseudo is block-local and
+ * REG_BASIC_BLOCK >= 0.  (Same gate batch 341 brief E hit.)  **So the open
+ * question is sharp: a carrier for the 0x102 argument whose definition is in a
+ * DIFFERENT BASIC BLOCK from the call.**
+ *
+ * GAP ARITHMETIC, per region (the only branch is the `if` at the end):
+ *   park body   REF pre-if 48 / if-body 9 / post-if 3 = 60
+ *               OURS pre-if 47 / if-body 9 / post-if 3 = 59   -1, ALL PRE-IF
+ *   this body   OURS 48 / 9 / 3 = 60                           0
+ *
+ * ========== MEASURED INERT / WORSE (batch 344 brief C) ===================
+ *
+ * EMOTE SITE, all EXACTLY 2 -- the park's negative reproduces at a REAL
+ * distance, which it could not before:
+ *   `0x102` literal; `(0x40<<2)|2`; `0x81*2`; `0x81+0x81`;
+ *   `(unsigned short)(0x81<<1)`; `0xe` as a named local used at EVERY call
+ *   site; `int e = 0x81<<1;` in a block immediately before the call
+ *   `do { } while (0);` immediately before the call            40  WORSE
+ * MASK SPELLINGS:
+ *   `w = m & 0xffffc000`                                        3
+ *   `w = (short)(m & ~0x3fff)` / `w = m & -0x4000`               2
+ *   `m &= ~0x3fff; w = m;` / `m &= -0x4000; w = m;`             56, 59 insns
+ *   `w = m; w &= ~0x3fff;`                                      81, SIZE 232/236
+ * FLAG AXIS, re-run on THIS body (the park's was run on the old one):
+ *   -fno-gcse, -fno-strict-aliasing, -ffixed-r7, -fno-rerun-loop-opt,
+ *   -fno-rerun-cse-after-loop                        all EXACTLY 2 (inert)
+ *   -fcall-saved-r4 11; -fno-schedule-insns2 75 (91 encodings); -O1 72
+ *
+ * The park's two earlier headers and its original prose are preserved below.
+ */
+extern unsigned char *__MapActor_GetActor(int slot);
+extern void __SetFlag(int id);
+extern void __CutsceneStart(void);
+extern void __CutsceneEnd(void);
+extern void __Func_808e118(void);
+extern void __MessageID(int id);
+extern void __CutsceneWait(int n);
+extern void __MapActor_Emote(int slot, int a, int b);
+extern void __Func_809280c(int a, int b, int c);
+extern void __ActorMessage(int a, int b);
+extern void __MapActor_DoAnim(int a, int b);
+extern void __Func_80925cc(int a, int b);
+extern void __Func_8092304(int a, int b, int c);
+extern void __Func_8092adc(int a, int b, int c);
+extern void __MapActor_SetBehavior(int slot, void *b);
+extern unsigned char ActorCmd_ARRAY_944__02009314[];
+
+void OvlFunc_967_2008308(void)
+{
+    unsigned char *a;
+    int m;
+    short w;
+
+    a = __MapActor_GetActor(0);
+    m = *(unsigned short *)(a + 6) + (0x80 << 6);
+    w = m & ~0x3fff;
+    __SetFlag(0xc0 << 2);
+    __CutsceneStart();
+    __Func_808e118();
+    __MessageID(0x26ec);
+    __CutsceneWait(0x32);
+    __MapActor_Emote(0xe, (0x81 << 1), 0x32);
+    __Func_809280c(0xe, 0, 0x14);
+    __ActorMessage(0xe, 0);
+    __CutsceneWait(0xa);
+    __MapActor_DoAnim(0xe, 4);
+    __CutsceneWait(0x1e);
+    __ActorMessage(0xe, 0);
+    __CutsceneWait(0xa);
+    __Func_80925cc(0xe, 2);
+    __CutsceneWait(0x1e);
+    __ActorMessage(0xe, 0);
+    __CutsceneWait(0xa);
+    __MapActor_DoAnim(0xe, 3);
+    __CutsceneWait(0x14);
+    __ActorMessage(0xe, 0);
+    if ((w << 16) == (0x80 << 24)) {
+        __Func_8092304(0, 0, 0x10);
+        __Func_8092adc(0, 0xc0 << 8, 0);
+        __CutsceneWait(0x14);
+    }
+    __MapActor_SetBehavior(0xe, ActorCmd_ARRAY_944__02009314);
+    __CutsceneEnd();
+}
+
+/* ===== PREVIOUS PARK HEADER (batch 339 brief C), PRESERVED =====
+(* OvlFunc_967_2008308 -- NOT MATCHING.  HELD by batch 339 brief C.
  *
  * CURRENT FIGURE, in stream terms: 56 of 89 stream encodings (ref 89, ours 89),
  * first at index 8.  THE TWO SIDES ARE NOT THE SAME LENGTH -- ref 60 16-bit
@@ -69,62 +236,8 @@
  * differing, only TWO are real ... the pool point is downstream of nothing we
  * control" -- the pool point is the ENTIRE length gap, and arm.c:5550 says what
  * controls it, so it is not downstream of nothing.
- */
-extern unsigned char *__MapActor_GetActor(int slot);
-extern void __SetFlag(int id);
-extern void __CutsceneStart(void);
-extern void __CutsceneEnd(void);
-extern void __Func_808e118(void);
-extern void __MessageID(int id);
-extern void __CutsceneWait(int n);
-extern void __MapActor_Emote(int slot, int a, int b);
-extern void __Func_809280c(int a, int b, int c);
-extern void __ActorMessage(int a, int b);
-extern void __MapActor_DoAnim(int a, int b);
-extern void __Func_80925cc(int a, int b);
-extern void __Func_8092304(int a, int b, int c);
-extern void __Func_8092adc(int a, int b, int c);
-extern void __MapActor_SetBehavior(int slot, void *b);
-extern unsigned char ActorCmd_ARRAY_944__02009314[];
-
-void OvlFunc_967_2008308(void)
-{
-    unsigned char *a;
-    int m;
-    short w;
-
-    a = __MapActor_GetActor(0);
-    m = *(unsigned short *)(a + 6) + (0x80 << 6);
-    m &= 0xffffc000;
-    w = m;
-    __SetFlag(0xc0 << 2);
-    __CutsceneStart();
-    __Func_808e118();
-    __MessageID(0x26ec);
-    __CutsceneWait(0x32);
-    __MapActor_Emote(0xe, (0x81 << 1), 0x32);
-    __Func_809280c(0xe, 0, 0x14);
-    __ActorMessage(0xe, 0);
-    __CutsceneWait(0xa);
-    __MapActor_DoAnim(0xe, 4);
-    __CutsceneWait(0x1e);
-    __ActorMessage(0xe, 0);
-    __CutsceneWait(0xa);
-    __Func_80925cc(0xe, 2);
-    __CutsceneWait(0x1e);
-    __ActorMessage(0xe, 0);
-    __CutsceneWait(0xa);
-    __MapActor_DoAnim(0xe, 3);
-    __CutsceneWait(0x14);
-    __ActorMessage(0xe, 0);
-    if ((w << 16) == (0x80 << 24)) {
-        __Func_8092304(0, 0, 0x10);
-        __Func_8092adc(0, 0xc0 << 8, 0);
-        __CutsceneWait(0x14);
-    }
-    __MapActor_SetBehavior(0xe, ActorCmd_ARRAY_944__02009314);
-    __CutsceneEnd();
-}
+ *)
+*/
 
 #if 0
 /* ===== ORIGINAL PROSE PARK, PRESERVED =====
