@@ -1,68 +1,146 @@
 /* Func_8093304 (SetDialoguePortrait) -- 0x08093304,
  * asm/rom_8a000/rom_93304_a_a_a_a_a_a.s
  *
- * 29 of 37 stream encodings, 28 instructions against the ROM's 29 -- ONE SHORT,
- * so the 29 is PHASE, not distance.  Position-tolerant: 26 of 37 aligned-equal
- * (70.3%), 13 differing in 10 hunks.  Pin-free.  THIS PARK NOW HAS A BODY; it
- * was prose only until batch 338, and the 19-of-37 aligned figure below is what
- * its `Best C:` (scratch/L93304.c) measured.
+ * 15 of 37 stream encodings, AND THE INSTRUCTION COUNTS NOW AGREE: 29 against
+ * the ROM's 29, 88 bytes against 88, relocations IDENTICAL.  So for the first
+ * time this park's figure is a DISTANCE and not phase.  It was 29 of 37 at
+ * 28/29 instructions -- ONE SHORT -- for six batches.  Pin-free and
+ * device-free (`tools/shimcount.py` prints nothing on this body).
  *
  * Verify with:
- *     python3 tools/objcmp.py src/non_matching/rom_8a000/8093304.c \
- *         asm/rom_8a000/rom_93304_a_a_a_a_a_a.s --func Func_8093304
- *     python3 tools/aligncmp.py src/non_matching/rom_8a000/8093304.c \
- *         asm/rom_8a000/rom_93304_a_a_a_a_a_a.s Func_8093304 -v
- *   Use the SECOND one while iterating.  The positional count read 27 for the
- *   parked body and 27 for five materially different variants of it.
+ *     docker run --rm -v "$PWD:/work" -w /work goldensun-build python3 \
+ *       tools/objcmp.py src/non_matching/rom_8a000/8093304.c \
+ *       asm/rom_8a000/rom_93304_a_a_a_a_a_a.s --func Func_8093304
+ *     docker run --rm -v "$PWD:/work" -w /work goldensun-build python3 \
+ *       tools/aligncmp.py src/non_matching/rom_8a000/8093304.c \
+ *       asm/rom_8a000/rom_93304_a_a_a_a_a_a.s Func_8093304 -v
+ *   Both figures are real now; use aligncmp while iterating.
  *
- * ---- batch 338, brief E: A DOCUMENTED BOUND IS WRONG ----
+ * Split shape: tools/piece.py -- the .s holds ONE .thumb_func_start, so no
+ * split and the whole file converts.  tools/datacheck.py: no rows, no data.
  *
- * docs/elevation.md:6394-6402 ("The named-pointer lever needs the offset to be
- * mutated afterwards") says of THIS function: "Where the offset is dead after
- * the store, gcc always folds it into the addressing mode and no spelling tried
- * recovers the separate `add`".  One spelling does.
+ * ============================================================
+ * BATCH 344, BRIEF B -- THE GAP IS CLOSED.  GAP ARITHMETIC FIRST.
  *
- * Write the join offset as a LITERAL rather than the offset variable:
+ * 16-bit instructions, counted per REGION rather than in total, because the
+ * net -1 was THREE separate effects (batch 344's brief warns of exactly this
+ * and this park is a clean instance):
  *
- *     parked   r3 = (unsigned int)base; r3 += off;    -> strh r1, [r5, r2]   FOLDED
- *     here     r3 = (unsigned int)base; r3 += 0x12f6; -> add r3, r5, r1
- *                                                        strh r2, [r3]       ROM's shape
+ *   region                 ref   OLD park   v1a arms   this body
+ *   head (push..bne)         7       7          7          7
+ *   sentinel arm             6       5  (-1)     6          6
+ *   non-sentinel arm        11      10  (-1)    11         11
+ *   join (add..bx)           5       6  (+1)     4  (-1)    5
+ *   TOTAL                   29      28          28         29
  *
- * MECHANISM, with the citation.  THUMB_GO_IF_LEGITIMATE_ADDRESS accepts
- * REG+REG for any mode <= 4 bytes (arm.h:2135-2148) but REG+const only when
- * LEGITIMATE_OFFSET holds (arm.h:2149-2155) -- a 5-bit scaled offset for
- * HImode, max 62.  0x12f6 fails it, so `legitimize_address` force_regs the whole
- * sum at expand time and `combine` CANNOT re-fold: the only form it could
- * substitute back is `(plus reg const_int)`, which the predicate rejects, and
- * combine will not invent a second index register of its own.
+ * The old park was -1/-1/+1 netting -1.  Two independent mechanisms, and
+ * fixing either one alone leaves the count wrong.
  *
- * With the offset in a VARIABLE the expanded address is `(plus reg reg)`, which
- * the predicate accepts directly, and the `add` never exists to be preserved.
- * So the rule in elevation.md should read: the fold is avoidable, but only by
- * making the offset a constant the HImode addressing mode cannot hold.
+ * MECHANISM 1 -- the two arms.  The ROM carries the join offset 0x12f6 in a
+ * register ACROSS the join: `ldr r1,=0x12f6` on the sentinel path and
+ * `ldr r1,=0x12f4 / add r1,#2` on the other.  That is only reachable if the
+ * offset is a SOURCE-LEVEL VARIABLE read at the join -- it is not something a
+ * pass does for you.  Checked, with the citation: gcse cannot have put it
+ * there, because `want_to_gcse_p` (gcse.c:1193-1209) returns 0 for CONST_INT,
+ * and in Thumb a large integer STAYS a CONST_INT all the way to the minipool
+ * (THUMB_LEGITIMATE_CONSTANT_P, arm.h:1807-1810, accepts any CONST_INT), so no
+ * pass ever sees a hoistable pool-load expression.  Writing the join offset as
+ * the literal 0x12f6 -- what the park did from batch 338 -- puts the `ldr`
+ * in the JOIN and deletes the arms' `a += 2` as dead.  That is the -1/-1/+1.
  *
- * WHAT IS LEFT, and it is the other half of the same conflict.  The ROM carries
- * 0x12f6 in a REGISTER into the join -- `ldr r1,=0x12f6` on the sentinel path,
- * `ldr r1,=0x12f4 / add r1,#2` on the other, the derived-constant shape this
- * park already documents.  That needs the offset to be a mutated VARIABLE, which
- * is exactly what re-folds the store.  Measured both ways:
+ * MECHANISM 2 -- and this is what the park could not get past.  Once the join
+ * reads the VARIABLE, its address is `(plus reg reg)`, which
+ * THUMB_GO_IF_LEGITIMATE_ADDRESS accepts for any mode of size <= 4
+ * (arm.h:2133-2148), so combine folds the `add` into the store and the join
+ * goes to 4 instructions: `strh r1, [r5, r2]`.  The park recorded this as the
+ * other half of a conflict it called unresolvable.  It is resolvable: a
+ * use-site `volatile` on the join store alone keeps the `add`.
  *
- *     join offset a literal, arms uniform (`off=0x12f4; ...; off+=2`)   26 aligned
- *     join offset the variable, arms uniform                            15 aligned
- *     join offset the variable (the parked body)                         19 aligned
+ *     join spelling                                     figure   gap
+ *     literal 0x12f6 (the batch-338 park body)          29 of 37   -1
+ *     the variable, 10 spellings (see below)            27 of 37   -1
+ *     the variable + use-site `volatile`                16 of 37    0
  *
- * gcc deletes the arms' `off += 2` as dead once the join stops reading it, so
- * the sentinel arm never materialises 0x12f6 and the derivation is lost.  The
- * residue is 2 real instructions: the sentinel arm's missing `ldr r1,=0x12f6`
- * and the non-sentinel arm's missing `add r1,#2`, plus a pool-offset shift and
- * the section-tail pad that both follow from being 4 bytes short.
+ * Why the arms do NOT fold while the join does, measured from the .12.life and
+ * .20.ce2 dumps: in the sentinel arm the offset register is overwritten by the
+ * stored value (`mov r2,#0` kills the 0x12f4 that the `add` read), and in the
+ * other arm it is modified by `add r1,#2` between the `add` and the `strh`.
+ * Both cases put a write to a source operand between i2 and i3, which is
+ * precisely what combine's can_combine_p refuses.  The join has nothing
+ * between them, which is why it is the only one of the three that folds.
+ * `volatile` is the use-site form documented at docs/elevation.md:6212 and
+ * :10827; it is not a device and shimcount does not count it.
  *
- * RECORDED INERT at 19 aligned (the parked figure), five spellings: mirroring
- * the ROM's register roles with reused `unsigned int` locals; the join written
- * as `a += (unsigned int)base`; as `*(short *)((unsigned int)base + a)`; as
- * `a + (unsigned int)base`; and the arm's `off += 2` moved after its store (18,
- * worse).  The three minimal forms of the literal fix all read 26, so the
- * role-mirroring is NOT what pays -- the literal is the whole gain.
+ * TEN JOIN SPELLINGS MEASURED, all 27 of 37 at gap -1 (so this is not a
+ * spelling question -- the fold is structural):
+ *   `*(short *)((unsigned int)base + a) = b` | `a += (unsigned int)base` then
+ *   `*(short *)a` | `c = (unsigned int)base; c += a` | `*(short *)(base + a)`
+ *   (pointer arithmetic) | `do { } while (0);` between the add and the store |
+ *   `c = a + (unsigned int)base` | a dead `a = c;` after the store | a block
+ *   with a `short *p` | `b &= 0xffff;` before the store | the parked
+ *   literal.  ONLY the `volatile` cast moves it.
+ *
+ * ---- WHAT THE REMAINING 15 IS, and it is ONE THING ----
+ *
+ * r1 and r2 are SWAPPED against the ROM in both arms and the join, and nothing
+ * else differs.  ROM: r1 = the join offset, r2 = the style value (and in the
+ * sentinel arm r2 doubles as 0x12f4, in the other arm as &.L9fc28).  Ours has
+ * them the other way round.  Every differing encoding is that swap except the
+ * sentinel arm's `ldr =0x12f6`, which the ROM schedules second and sched2 puts
+ * fourth here.
+ *
+ * THE ALLOCATION ARITHMETIC, from the dumps rather than from the formula.
+ * `.18.greg` prints `;; 5 regs to allocate: 36 32 34 35 33` -- that list is
+ * allocno_order AFTER the qsort (global.c:542 sorts, :547 dumps), so 34 (the
+ * offset) is allocated before 35 (the value).  Dispositions `34 in 2  35 in 1`.
+ * With 36 -> r3 and 32 -> r0 already placed, REG_ALLOC_ORDER (arm.h:989) is
+ * `3, 2, 1, 0, ...`, so whichever of the two is allocated FIRST takes r2 and
+ * the second takes r1.  The ROM needs the VALUE allocated first.  There are no
+ * hard-reg preferences on either (the greg dump prints preferences only for
+ * allocno 32), so find_reg is pure REG_ALLOC_ORDER and the whole question is
+ * the sort.
+ *
+ * AND THE OBVIOUS PRIORITY LEVER DOES NOT REACH IT -- this is the finding the
+ * next agent should start from.  allocno_compare (global.c:597-620) is
+ * floor_log2(n_refs)*n_refs/live_length*10000*size.  From `.12.life`:
+ *     34 (offset)  10 refs across 15 insns  -> 3*10/15 = 2.00
+ *     35 (value)    8 refs across 15 insns  -> 3* 8/15 = 1.60
+ * Moving the 0x83<<2 scratch out of the offset variable into its own local
+ * takes 34 to `6 refs across 11 insns` -> 2*6/11 = 1.09, which is BELOW 35's
+ * 1.60 -- and the sort order is STILL `36 32 34 35 33` and the dispositions are
+ * STILL `34 in 2  35 in 1`.  So the .12.life refs are NOT the numbers
+ * allocno_compare sees (they are recomputed between .12.life and lreg) and the
+ * .12.life figures must not be used to predict this sort.  Getting the true
+ * n_refs/live_length at greg time is the next step; `-dg` prints conflicts and
+ * preferences but not those two fields.
+ *
+ * MEASURED INERT, with figures (all at gap 0 unless noted):
+ *   all SIX declaration orders of {a,b,c} ................ 16, every one
+ *   0x83<<2 scratch moved to its own local ............... 16
+ *   0x83<<2 scratch carried by the value variable ........ 16
+ *   0x83<<2 scratch carried by the address temp .......... 16
+ *   sentinel's 0x12f4 moved to its own local ............. 16
+ *   sentinel storing the literal 0 instead of the value .. 16
+ *   &.L9fc28 moved to its own local ...................... 18
+ *   the value copied through a temp at the join .......... 16
+ *   table lookup split to `b += c; b = *(unsigned char *)b`
+ *     (raises the value's refs by 2), both decl orders ... 16
+ *   offset set BEFORE the `if` (lengthens its range) ..... 19
+ *   other arm re-loading 0x12f6 instead of `a += 2` ...... 29, gap -1
+ *   offset's increment split to `a = d + 2` .............. 30, gap -1
+ *   ALL EIGHT per-file flag groups on this body .......... 16, 16, 16, 16,
+ *     16, 16, and 18 for -O1 and 18 for -fno-schedule-insns2
+ *   a SECOND anchor at all 20 remaining boundaries ....... 15, every one
+ *
+ * The anchor this body does carry was found by sweeping all 25 boundaries of
+ * the volatile body: 24 of 25 read 16 and the two that read 15 are the two
+ * sides of `a += 2`.  It fences sched2 between `c = base + a` and `a += 2`,
+ * where the ROM has `add r3,r5,r1 / add r1,#2 / strh r0,[r3]` and gcc wants
+ * `add / strh / add`.  Device-free and emits nothing (haifa-sched.c:3714,
+ * :3735-3736); Func_80a7440 landed carrying one.
+ *
+ * BOTH CHEAP AXES WERE CLOSED ON THE OLD BODY FIRST (tools/autosweep.py):
+ * all eight flag groups 29 or 32, all 21 anchor placements 29.
  */
 extern unsigned char *iwram_3001e8c;
 extern unsigned int gState;
@@ -96,9 +174,10 @@ void Func_8093304(unsigned int slot)
         b = *(unsigned char *)(b + c);
         a = 0x12f4;
         c = (unsigned int)base + a;
+        do { } while (0);
         a += 2;
         *(short *)c = id;
     }
-    c = (unsigned int)base + 0x12f6;
-    *(short *)c = b;
+    c = (unsigned int)base + a;
+    *(volatile short *)c = b;
 }

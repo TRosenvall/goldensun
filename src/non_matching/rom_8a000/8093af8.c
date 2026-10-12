@@ -148,6 +148,103 @@
  * 2 of 26 anchor placements produced NO ROW (untested, not inert).
  *
  * ###########################################################################
+ * ## BATCH 344, BRIEF B.  THE GAP IS 100% POST-LOOP, AND THE MISSING
+ * ## INSTRUCTION IS A CONSEQUENCE OF THE r2/r3 PHASE *BY REGISTER CLASS*,
+ * ## NOT BY HOPE.  THE PARK'S "FOR FREE" CLAIM NOW HAS A MECHANISM.
+ * ###########################################################################
+ *
+ * GAP ARITHMETIC, counted per REGION as batch 344's brief requires (16-bit
+ * instructions; the 8/8 32-bit entries are 2 `bl` plus 6 pool words):
+ *
+ *     region                                ref   ours   gap
+ *     pre-loop   push .. `mov r8, r2`        17     17     0
+ *     loop body  .L93b1a .. `bge .L93b1a`    79     79     0
+ *     post-loop  `mov r3,r10` .. `bx r1`     20     19    -1
+ *     TOTAL                                 116    115    -1
+ *
+ * So the loop body -- 68% of the function and where 11 of the 13 reload sites
+ * live -- is instruction-for-instruction EXACT, and the whole gap is the
+ * post-loop block.  Nothing in the loop needs to be added or removed; only the
+ * registers inside it are swapped from site 12 on.  **Do not spend a round
+ * looking for a missing statement in the loop.**
+ *
+ * THE MISSING INSTRUCTION IS `mov r2, r10`, and here is WHY it exists in the
+ * ROM and not here.  Both sides need a LOW copy of `best` (which lives in r10
+ * for its whole range -- `.18.greg` says `34 in 10`) twice in the post-loop:
+ * once for `cmp ..., #0` and once as the base of `ldr rD, [base, #0x50]`.  The
+ * two uses are in DIFFERENT basic blocks separated by the `beq`, but the second
+ * block carries NO code label (the fallthrough target; the label is the `beq`'s
+ * own destination further down), so reload's inheritance is NOT forgotten
+ * across the edge and the second reload CAN inherit the first one's register.
+ *
+ *     ROM    test copy lands in r3;  the dereference is `ldr r3, [r2, #0x50]`,
+ *            whose OUTPUT is r3.  Inheriting r3 for the base would collide
+ *            with the output, so the inheritance is refused and reload has to
+ *            materialise a fresh copy -> `mov r2, r10`.
+ *     ours   test copy lands in r2;  the dereference is `ldr r3, [r2, #80]`,
+ *            output r3, base r2.  r2 still holds `best`, the inheritance is
+ *            accepted, and there is nothing left to materialise.
+ *
+ * `.26.mach` shows our side exactly: insn 379 `(set (reg:SI 2 r2) (reg/v:SI 10
+ * sl))` at the head of bb 18, and insn 235 in bb 19 is
+ * `(set (reg:SI 3 r3) (mem/s:SI (plus:SI (reg:SI 2 r2) (const_int 80))))`
+ * carrying a `REG_EQUIV` that names r2 -- r2 is live across the bb18 -> bb19
+ * edge.  So the park's "fixing the phase should produce the missing
+ * instruction for free" is upgraded from a guess to a derivation: it is forced,
+ * because r3 is the dereference's destination in both compilations.
+ *
+ *   >> THE COROLLARY, AND IT IS THE TARGETING FACT: THERE IS EXACTLY ONE
+ *      BLOCKER AND IT IS THE r2/r3 CURSOR PARITY AT SITE 12.  Any probe that
+ *      does not move that parity cannot move this park, whatever its figure. <<
+ *
+ * AND WHERE SITE 12 ACTUALLY IS, with both streams side by side:
+ *
+ *     ROM    lsl r3,#16 | asr r0,r3,#16 | ldr r3,=0xffffd001 | cmp r0,r3 | blt
+ *            ldr r2,=0x2fff | cmp r0,r2 | bgt
+ *     ours   lsl r3,r3,#16 | ldr r2,=0xffffd001 | asr r0,r3,#16 | cmp r0,r2
+ *            | blt | ldr r3,=0x2fff | cmp r0,r3 | bgt
+ *
+ * The `ldr` sitting ABOVE the `asr` in our stream is sched2, not reload:
+ * reload emits a constant reload immediately before its `cmp`, which is AFTER
+ * the `asr`, where r3 is dead and therefore FREE.  So r3 was available and the
+ * cursor still chose r2 -- this is `allocate_reload_reg`'s round robin
+ * (`i = last_spill_reg; i++` at reload1.c:5003 and :5009-5013, cursor updated
+ * at :4937, reset once per function at :821) and NOT an availability
+ * constraint.  The ROM is one advance further along, and because
+ * `last_spill_reg` is a single per-function global the extra advance must lie
+ * between site 11 and site 12, i.e. between the `bl atan2` and the
+ * `ldr =0xffffd001`.  That window is `lsl / lsr / cmp r6,#0x17 / ble /
+ * ldrh r3,[r7,#6] / sub / lsl / asr` -- eight instructions, identical on both
+ * sides, with one basic-block boundary in it.
+ *
+ * ---- A SECOND POSITIONAL ARTIFACT, CAUGHT THE SAME WAY AS anchor18 ----
+ *
+ * A use-site `volatile` on the halfword read,
+ * `if (*(volatile short *)best->f50->f28 == kind)`, makes the INSTRUCTION
+ * COUNTS EQUAL (116/116) and the stream figure 29 -> **17 of 124**.  IT IS NOT
+ * AN IMPROVEMENT.  Aligned: **109 equal / 23 differing in 8 hunks**, against
+ * the parked body's 110 / 22 in 7.  The counts equalise for the wrong reason --
+ * `volatile` loses the `ldrsh rD,[rB,rI]` form and spends three instructions
+ * (`ldrh / lsl / asr`) where the ROM spends two (`mov r2,#0 / ldrsh r3,[r3,r2]`)
+ * -- and the `mov r2, r10` is STILL missing.  So the gap closed by +1 in one
+ * place and the real defect grew.  **Equal instruction counts are a
+ * precondition for reading the positional figure, not evidence of progress**,
+ * and on this park the ALIGNED pair is the only number to rank.
+ *
+ * NINE POST-LOOP TAIL SPELLINGS MEASURED THIS BATCH, every one 29 of 124 at
+ * 116/115 with relocations clean, i.e. EXACTLY INERT:
+ *   the parked spelling (control) | the dereference through a second name
+ *   taken before the test (`a = best;`) | `struct Sprite *s = best->f50;`
+ *   named inside the guard | `short *p = best->f50->f28;` named inside the
+ *   guard | a `volatile` qualifier on the f50 POINTER read
+ *   (`*(struct Sprite *volatile *)&best->f50`) | the TEST on a copy and the
+ *   dereference on `best` | `do { } while (0);` between the test and the
+ *   dereference | `res` assigned through `iwram_3001e64 + (best -
+ *   iwram_3001e64)`.  Only the halfword `volatile` moved anything, and that
+ *   move is the artifact above.  This corroborates the park's standing finding
+ *   that the tail is not reachable by spelling.
+ *
+ * ###########################################################################
  * ## EVERYTHING BELOW IS CARRIED FORWARD AND STILL THE MAP.
  * ###########################################################################
  *
