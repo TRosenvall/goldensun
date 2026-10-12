@@ -13,9 +13,18 @@ reference can read 109, 143, even 159 differing encodings.  Every targeting
 instrument in this tree ranks on that figure, so those parks have been sorted to
 the bottom while being structurally the CLOSEST work available.
 
-Measured when this was written: **99 of 145 out-of-phase parks are within three
-instructions**, with figures from 17 to 159.  Thirty-seven are at a ONE-
-instruction gap.
+Measured over the whole tree when this was written -- 558 parks carrying a
+verify recipe:
+
+    200  equal instruction length
+    358  OUT OF PHASE
+           100  within 1 instruction
+           156  within 2
+           192  within 3
+           244  within 5
+
+**192 parks are within three instructions and their MEDIAN FIGURE IS 134**,
+ranging from 17 to 1934.  A hundred of them are at a ONE-instruction gap.
 
 That matters because the LENGTH-GAP CRITERION is this tree's most productive
 targeting rule by a wide margin -- four batches run on it closed 8 of 15, 7 of
@@ -55,7 +64,12 @@ import sys
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DOCKER = ["docker", "run", "--rm", "--security-opt", "seccomp=unconfined",
           "-v", f"{ROOT}:/work", "-w", "/work", "goldensun-build"]
-VERIFY = re.compile(r"objcmp\.py[\s\\]+(\S+)[\s\\]+(\S+\.s)(?:[\s\\]+--func\s+(\S+))?")
+# The separator class MUST allow `*`.  A park writes its verify command across
+# several lines of a BLOCK COMMENT, so the continuation begins " *     src/...".
+# Without `*` this regex matched only the 56 parks that fit the command on one
+# line and silently skipped 550 -- a clean negative over 90% of the tree.
+VERIFY = re.compile(r"objcmp\.py[\s\\*]+(src/\S+\.c)[\s\\*]+(asm/\S+\.s)"
+                    r"(?:[\s\\*]+--func\s+(\S+))?")
 
 
 def main():
@@ -72,13 +86,11 @@ def main():
         if not m:
             continue
         rel = os.path.relpath(p, ROOT)
-        cmd = DOCKER + ["python3", "tools/objcmp.py", rel, m.group(2)]
+        cmd = DOCKER + ["python3", "tools/objcmp.py", m.group(1), m.group(2)]
         if m.group(3):
             cmd += ["--func", m.group(3)]
         out = subprocess.run(cmd, capture_output=True, text=True).stdout
         im = re.search(r"instructions are (\d+)/(\d+)", out)
-        if not im:
-            im = re.search(r"INSTRUCTION COUNT\s+ref (\d+), ours (\d+)", out)
         if not im:
             continue
         ref, ours = int(im.group(1)), int(im.group(2))
