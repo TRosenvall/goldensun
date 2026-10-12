@@ -171,6 +171,24 @@ the helper's four register pins live in the header as its house pattern for
   the original source plausibly had. The question is whether *our* reason for
   writing it — frame slack, to match — makes it one.
 
+- **Is `__asm__ volatile ("" :: "i"(0))` admissible as a landed device?** Raised
+  by batch 340 brief C. It is the ONLY asm form that flushes `cse`'s table
+  (`cse.c:5741-5745` tests `GET_CODE (PATTERN (insn)) == ASM_OPERANDS`, which the
+  bare and `::: "memory"` forms both fail), and on `OvlFunc_959_200a06c` it takes
+  the park **17 → 8** where the other two forms reach only 16 and never touch the
+  length. Crossed with a named slot it reaches **2 of 38**.
+
+  **The precedent asymmetry is the question.** Measured by brief C: the bare
+  barrier appears in **34 landed files**; the `:: "i"(0)` form appears in **13
+  files, every one of them a park**. So it has never shipped, and admitting it
+  here would be the first time — which is exactly the shape of decision this page
+  exists for.
+
+  Brief C did **not** install it; the park holds at 17 device-free with the route
+  recorded. Note for whoever rules: the batch-337/338 pattern is worth trying
+  first — on two separate occasions a device-free construct reached the same place
+  and the question dissolved rather than needing a ruling.
+
 ## Standing standards these decisions rest on
 
 1. **A `*.sym` entry needs structural impossibility, not plausibility** — and the

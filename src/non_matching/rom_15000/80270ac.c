@@ -156,6 +156,31 @@
  * `unsigned short *` for the halfword instead of the struct pointer is
  * twenty-two instructions of eighteen and brings back the pool word the old
  * park warns about above.
+ *
+ * ========== BATCH 340 BRIEF C: FIGURE RE-DERIVED, BOTH CHEAP AXES CLOSED ======
+ *
+ * RE-MEASURED with tools/objcmp.py at production flags, pin-free and
+ * device-free, and the header above is ACCURATE in every particular:
+ *     ENCODINGS differ in 18 of 20   INSTRUCTIONS ref 18 / ours 13
+ *     SIZE ref 44 bytes / ours 36    RELOCATIONS DIFFER (offset shift only)
+ * so the figure is a PHASE reading -- we are FIVE instructions short, exactly
+ * the five the header names -- and it must not be ranked against a distance.
+ * The "five, not four" correction and the padding-trap note both stand.
+ *
+ * BOTH CHEAP AXES ARE NOW CLOSED, measured by tools/autosweep.py (log at
+ * scratch_elev/b340/C/c_autosweep.log).  All eight per-file flag groups read
+ * 18 of 20 on the unchanged body, and so do all five anchor placements.  Do
+ * not re-screen them.
+ *
+ * NO FURTHER ATTEMPT WAS MADE, DELIBERATELY, and this is the reason: step 3 in
+ * the list above is not a spelling question.  The function is a gcc nested
+ * function whose only caller sets up its static chain, so the unit of work is
+ * Func_8027114 -- 2004 lines, the largest function in rom_15000 -- elevated
+ * with this function and probably Func_80270d8 lexically inside it.  Nothing a
+ * standalone body can do changes that, and the one standalone body that reaches
+ * one encoding of twenty does it with a hard-register declaration on r9, which
+ * is an instrument.  This park should be scheduled as a PARENT-FUNCTION job
+ * alongside src/non_matching/rom_15000/8022a7c.c, not handed out as a park.
  */
 struct S { unsigned short a; unsigned short pad; int b; };
 

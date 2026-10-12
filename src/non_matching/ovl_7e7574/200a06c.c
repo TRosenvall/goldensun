@@ -1,9 +1,12 @@
-/* OvlFunc_959_200a06c (0x0200a06c) -- NON-MATCHING.
+/* OvlFunc_959_200a06c (0x0200a06c) -- STILL NON-MATCHING, device-free.
  *
- * NON-MATCHING, 17 of 38 encodings  (MEASURED, batch 319 recipe backfill).
- *   RELOCATIONS differ, but THE SAME SYMBOLS AT A SHIFTED OFFSET -- which
- *   this project treats as a CONSEQUENCE of the length difference, not a
- *   separate blocker.  Re-classified in batch 322; the figure IS a distance.
+ * THIS BODY'S OWN FIGURE: 17 of 38 encodings.  RE-DERIVED batch 340 brief C and
+ * UNCHANGED from the park's claim, with the detail the claim needs:
+ *     ENCODINGS differ in 17 of 38   INSTRUCTIONS ref 27 / ours 28
+ *     SIZE equal at 96 bytes         RELOCATIONS DIFFER (same symbols, shifted)
+ *   OURS IS ONE INSTRUCTION LONG, so this figure is a PHASE reading, not a
+ *   distance; an alignment pad absorbs the extra halfword, which is why the
+ *   sizes agree.  PINS 0, shims 0, devices 0.
  *
  * Verify with:
  *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
@@ -11,128 +14,117 @@
  *     src/non_matching/ovl_7e7574/200a06c.c \
  *     asm/overlays/rom_7e7574/ovl_9dc_c_a_c_c_a_a_c_c_c_c_a_c.s --func OvlFunc_959_200a06c
  *
- * This recipe was ADDED by the batch-319 backfill: the park had none, so
- * parkcheck.py could not report its figure and nothing had ever checked it.
- * Blocker class: DUPLICATE-CONSTANT CSE, straight-line variant. THIRD instance
- * this batch, after ovl_7d30e0/200938c.c (a pair) and ovl_7e7574/200a1c4.c.
+ * Split shape: none needed for this function.  Pins: 0.
  *
- * 38 lines against the ROM's 37, and the extra line is the prologue:
- * `push {r5, r14}` where the ROM has `push {r14}`.
+ * ========== THE BATCH-332 VERDICT IS REFUTED: PINS ARE NOT THE ONLY ROUTE ======
  *
- * A NEW PRESENTATION OF THE CLASS, and the reason this one is worth its own
- * file. The three __MapActor_SetPos calls pass 0xac<<18, 0xb0<<15; 0xb0<<18,
- * 0xb0<<15; 0xb4<<18, 0xc0<<15. gcc does not common the shifted VALUE -- it
- * commons the PRE-SHIFT BASE, hoisting `mov r5, #0xb0` and shifting copies of
- * it at each site, where the ROM writes `mov r1, #0xb0` and `mov r2, #0xb0`
- * separately.
+ * The header this replaces ended "THE ONLY ROUTE THAT REACHES ZERO IS PINS" on
+ * nine `register ... __asm__` declarations.  That verdict was reached without
+ * trying the one construct that reaches cse's hash table.  Batch 336 had already
+ * established it and batch 340 measured it here:
  *
- * So the shared operand does not have to be the argument. `0xb0 << 15` and
- * `0xb0 << 18` are different values and neither is repeated in a way the
- * earlier two parks would describe; what is repeated is the eight-bit
- * immediate underneath both of them.
+ *     __asm__ volatile ("" :: "i"(0));   between the first and second
+ *                                        __MapActor_SetPos call
  *
- * This is straight-line from __CutsceneStart to __MapTransitionIn, so the
- * dominating-boundary remedy has nothing to attach to, exactly as in the other
- * two parks. Not re-measured here: the flag table in ovl_7d30e0/200938c.c
- * (-fno-rerun-cse-after-loop, -fno-gcse, -fno-cse-follow-jumps, and per-site
- * named locals) was inert on both earlier instances and this is the same
- * mechanism.
+ *     17 of 38, relocations DIRTY, 28 instructions   ->
+ *      8 of 38, relocations CLEAN, 27 instructions
  *
- * NOT COPIED FROM ITS EXEMPLAR, deliberately. tools/fuzzy_solved.py offered
- * OvlFunc_925_200aeb8 at ratio 0.865, and that file is marked `// fakematch`:
- * it forces its register allocation with `__asm__ volatile ("" : "+r" (x))`
- * on thirteen locals. Copying that would have produced a match and propagated
- * a hack into a function that does not need one. The C below is written
- * plainly from the disassembly.
+ * ONE statement, no register named, and the length defect and the relocation
+ * shift both disappear.  THE MECHANISM, read on disk: `cse_insn` flushes the
+ * whole hash table at cse.c:5741-5745 when, and only when,
+ * `GET_CODE (PATTERN (insn)) == ASM_OPERANDS && MEM_VOLATILE_P (PATTERN (insn))`.
+ * A bare `__asm__ volatile ("")` has an ASM_INPUT pattern and a
+ * `::: "memory"` form has a PARALLEL, so neither reaches it -- and both were
+ * measured here, at that same position, reaching only 16 of 38: one better than
+ * the base, relocations STILL DIRTY and the stream STILL 28 instructions, so
+ * neither touches the length defect.  A `do { } while (0);` anchor there reads
+ * the same 16.  The `:: "i"(0)` spelling is the only one that pays.
  *
- * NEXT: nothing source-level. Three specimens of this class now sit in the
- * tree; the useful next step is a tool that flags a repeated 8-bit immediate
- * across argument sites BEFORE the C is written, since all three were only
- * discovered from the prologue after screening.
-  *
- * ================================================================
- * BATCH 332 -- RE-MEASURED, THE FIGURE CONFIRMED, THE MECHANISM CORRECTED,
- * THE FLAG TABLE MEASURED HERE RATHER THAN INHERITED, AND THE ONLY KNOWN
- * ROUTE SHOWN TO BE A PINNED ONE.
- * ================================================================
+ * THE PARK'S READING OF *WHAT* IS COMMONED STANDS: cse unifies the whole
+ * SHIFTED value `0xb0 << 15` (const_int 5767168) across the first two calls, the
+ * unified pseudo is live across a call, r4 is call-used under this tree's flags,
+ * so the value lands in call-saved r5 and the epilogue pays `pop {r5}`.  Net one
+ * instruction.  Its cost argument from cse.c:509-514 also stands, and explains
+ * why no spelling of the two numbers can present them as two rtxes.
  *
- * THE FIGURE ABOVE STANDS at production flags, pin-free: seventeen of
- * thirty-eight in stream terms, with the two streams 27 against 28 sixteen-bit
- * instructions and ten 32-bit entries each, size 96 against 96 (an alignment
- * pad absorbs the instruction difference, which is why the size agrees).
+ * ========== AND THE REST OF THE RESIDUE IS A SCHEDULING TIE, NOT A LENGTH ======
  *
- * DIRECTION: OURS IS LONGER.  We emit an extra instruction; this is not a
- * missing statement.
+ * Once the length is closed, the remaining 8 are PURE ORDER, the same shape at
+ * all three call sites:
+ *     ROM    mov r1,#K / mov r2,#K / mov r0,#slot / lsl r1,#18 / lsl r2,#15
+ *     ours   mov r1,#K / mov r2,#K / lsl r1,#18   / lsl r2,#15 / mov r0,#slot
+ * Read out of .23.sched2: the two `mov` halves carry INSN_PRIORITY 74, the two
+ * `lsl` halves and `mov r0` all carry 73.  Among the three at 73 the class rung
+ * (haifa-sched.c:4069-4094) ties -- all class 3, because arm.md gives the
+ * mov->lsl dependence cost 1 -- and the dependent-count rung
+ * (haifa-sched.c:4098-4110) ties at three dependents each, so it falls through
+ * to INSN_LUID (haifa-sched.c:4113-4116) and `mov r0` loses because it has the
+ * LARGEST luid.
  *
- * WHICH instruction, corrected.  The header above says "the extra line is the
- * prologue".  It is not: both sides push exactly one register list, and the
- * extra encoding is the EPILOGUE's `pop {r5}`.  The arithmetic is
- *   we save two instructions at the first two call sites (one `mov` and one
- *   `lsl` each become a single `mov r2, r5`), we spend two setting r5 up
- *   (`mov r5, #0xb0` before the first call and `lsl r5, #15` after it), and we
- *   spend one more restoring it.  Net one.
+ * WHY IT HAS THE LARGEST LUID, and the lever that fixes it.
+ * `precompute_register_parameters` (calls.c:845-855) copies any argument whose
+ * `rtx_cost (value, SET) > 2` into a pseudo BEFORE `load_register_parameters`
+ * emits the hard-register loads, and in thumb that test is unconditional
+ * (SMALL_REGISTER_CLASSES is TARGET_THUMB, arm.h:1061, and *reg_parm_seen is set
+ * by argument 0 itself at calls.c:816).  `0xac << 18` is thumb_shiftable_const
+ * so it costs COSTS_N_INSNS (2) = 8 (arm.c:2077-2082) and IS precomputed; `0xc`
+ * is under 256 so it costs 0 and is NOT.  The cheap argument's `mov` is
+ * therefore always emitted last.
  *
- * WHAT IS COMMONED, corrected.  The header above says gcc commons the
- * PRE-SHIFT BASE and shifts copies at each site.  It does not: it commons the
- * SHIFTED VALUE.  There is exactly one `lsl r5, #15` in our output and the two
- * sharing sites both read `mov r2, r5`; the third site, whose value differs,
- * builds its own `mov`+`lsl` normally.  So the duplicate is the whole third
- * argument of the first two __MapActor_SetPos calls, not an eight-bit
- * immediate underneath two different values.
+ * THE FIX IS TO MAKE THE SLOT A NAMED LOCAL assigned before the call, so its def
+ * insn sits at that statement's position and takes the SMALLEST luid -- but only
+ * if cse is stopped from propagating the constant into the argument load and
+ * killing that early def, which is the SECOND job the same volatile asm does.
+ * With the slot and both coordinates as named locals and a flush before each of
+ * the first two calls:
  *
- * WHY NO SPELLING CAN REACH IT -- read in the dumps and then in cse.c.
- * In the .00.rtl dump the two sharing sites' third arguments are ONE insn
- * each, `(set (reg) (const_int 5767168))`, identical rtx.  cse.c's own
- * cost macro at cse.c:509-514 scores a pseudo REG at 1 and sends anything
- * else to notreg_cost, and a Thumb two-instruction constant costs more than
- * that, so an available equivalent register ALWAYS wins and the unification is
- * unconditional.  The value is then live across a call, r4 is call-used under
- * this tree's flags, and every remaining low register is call-saved -- hence
- * the save.  Since fold collapses any equal-valued expression to the same
- * const_int before expansion, two spellings of the same number cannot present
- * as two rtxes.  MEASURED: writing the two values as different-looking but
- * equal expressions is byte-identical to writing them plainly.
+ *     17 of 38  ->  2 of 38, instructions 27/27, relocations clean
  *
- * MEASURED HERE AND INERT (the header above declined to re-measure these; they
- * were measured, with tools/flagcmp.py, and all five leave the instruction
- * count at 27 against 28):
- *   the gcse-disabling flag                       -- inert
- *   the cse-rerun-after-loop flag                 -- inert
- *   the cse-follow-jumps flag                     -- inert
- *   the post-reload scheduling flag               -- changes the residue, not the length
- *   the pre-reload scheduling flag                -- inert
- * So there is no per-file flag row that lands this, and none should be
- * written.
+ * and sites one and two are EXACT.  The variant is c_v4d/c_oon.c in this brief's
+ * scratch directory.
  *
- * ALSO MEASURED AND WORSE OR INERT, pin-free:
- *   per-site named locals for both coordinates           -- inert
- *   per-site named local for the shared coordinate only  -- worse
- *   one reused local assigned before each call            -- much worse, and
- *                                                           four bytes longer
- *   an identity written into the second occurrence        -- inert
+ * SITE THREE IS THE LAST TWO ENCODINGS AND IT IS A GENUINE CONFLICT.  Its ROM
+ * order is NOT the other two sites' -- `mov r1 / mov r2 / lsl r2 / mov r0 / lsl
+ * r1` -- because with the window left open `lsl r2` has SIX dependents against
+ * three (the following __MapActor_SetAnim insns anti-depend on r2) and wins the
+ * dependent-count rung outright.  So site three needs the window OPEN for
+ * `lsl r2` to win and the early slot def PRESERVED for `mov r0` to beat `lsl r1`
+ * on luid -- and the only construct that preserves the def is the volatile asm,
+ * which closes the window.  Measured: a device at site three gives 3 of 38, no
+ * device gives 2, and the floor over 78 further site-three bodies (its slot and
+ * coordinate locals present or absent, three statement orders, both device kinds
+ * at every internal position and after the call) is 2.
  *
- * THE ONLY ROUTE THAT REACHES ZERO IS PINS, AND IT IS RECORDED AS A DEVICE,
- * NOT AS A RESULT.  Forcing all three arguments of each call into r0/r1/r2
- * with `register ... __asm__` declarations -- nine declarations, three per
- * site -- gives a byte-identical object, relocations included.  That is the
- * same construction the LANDED src/overlays/rom_7b9cb4/ovl_30_a_c_c_c_a_a.c
- * already ships for OvlFunc_932_200b028, which has the very same duplicate
- * (`0xb0 << 15` twice across two __MapActor_SetPos calls) and is booked as a
- * fakematch.  Under this tree's pin policy that is NOT a landing: it belongs
- * to pass 3.  The device-free body below is what ships, and the number above
- * is its honest distance.
+ * WHY THIS IS NOT INSTALLED.  `__asm__ volatile ("" :: "i"(0))` is a DEVICE, not
+ * a result.  tools/shimcount.py counts it in its `operand` class, and it has no
+ * landed precedent in this tree: it appears in thirteen files, every one of them
+ * a park under src/non_matching, while the bare `__asm__ volatile ("")` -- which
+ * docs/elevation.md:15143-15145 records as carrying NO fakematch row -- ships in
+ * thirty-four landed files.  Under the pin policy (owner decisions, batch 319)
+ * this body ships device-free at its honest 17 of 38 and the two-device route is
+ * recorded for pass 3, where it should REPLACE the nine-pin route the old header
+ * named: two statements that reserve no register are strictly less scaffolding
+ * than nine hard-register declarations, and reach 2 rather than 0.
  *
- * WHAT THIS MAKES THE CLASS.  Three specimens were recorded as
- * "duplicate-constant CSE" needing a dominating boundary.  The boundary is a
- * red herring: the unification is a cost comparison with no boundary in it,
- * and the discriminator for the whole class is simply whether the duplicated
- * value's live range crosses a call.  Where it does, the only known source
- * -level answer is to keep the value out of a pseudo altogether, which from C
- * means a hard-register declaration.  A tool that flags a repeated LARGE
- * CONSTANT (not a repeated eight-bit immediate) across argument sites, and
- * reports whether a call sits between them, would have priced all three
- * before any C was written.
-*/
+ * THE DEVICE-FREE FLOOR, measured: 15 of 38 (still 28 instructions, relocations
+ * still dirty, so still a phase reading and NOT a better distance).  It comes
+ * from a `do { } while (0);` anchor immediately after __CutsceneStart, found by
+ * tools/autosweep.py, and it does not improve when crossed with named locals for
+ * the slot or the coordinates -- 66 bodies, floor 15.  It is recorded rather than
+ * installed because an anchor with no mechanism behind it would make the park's
+ * claim line harder to read, not easier.
+ *
+ * ALSO MEASURED IN BATCH 340 and inert or worse (pin-free, device-free):
+ *   per-site named locals for the two coordinates, every flush position   8 floor
+ *   the coordinate shifts split into `x = K; x <<= S;`                    8 floor
+ *   one reused slot local for all three sites                             8 floor
+ *   all eight per-file flag groups on the parked body (autosweep)         17, except
+ *     -O1 and -fno-schedule-insns2, both 18 -- worse
+ * The pre-reload scheduler is UNREACHABLE on this target and the old header's
+ * "the pre-reload scheduling flag -- inert" row has a reason:
+ * `if (TARGET_THUMB && flag_schedule_insns) flag_schedule_insns = 0;` at
+ * arm.c:634-638 turns it off unconditionally.  Nobody should re-measure it.
+ */
 extern void __CutsceneStart(void);
 extern void __CutsceneEnd(void);
 extern void __MapActor_SetPos(int slot, int x, int z);

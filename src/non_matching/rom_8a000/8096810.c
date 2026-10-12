@@ -1,3 +1,21 @@
+/* ===== BATCH 340 PRE-PASS: THE ANCHOR AXIS REACHES 6, NOT 7 =====
+ *
+ * tools/autosweep.py finds `do { } while (0);` placements at statement
+ * boundaries 3 AND 4 that each take this park 7 of 122 -> 6, at dsize=0 (so a
+ * genuine distance closing, not misalignment -- the tool now distinguishes
+ * those, after batch 339 brief D was handed two "BETTER" rows that were only
+ * length moving).  NOT installed: the body below is unchanged and still reads 7.
+ *
+ * Whoever takes this next should START FROM THAT VARIANT rather than the body
+ * below, and should treat the anchor as a free starting point rather than the
+ * answer -- it is device-free (emits nothing, shimcount does not count it), so
+ * it costs no pass-3 debt if it survives into the landing.  Reproduce with:
+ *   python3 tools/autosweep.py src/non_matching/rom_8a000/8096810.c --anchor
+ *
+ * Note also that brief E of batch 337 recorded this park claiming "122
+ * instructions" when objcmp reports 75 -- the header was quoting the STREAM
+ * count on the instruction line.
+ */
 /*
  * FieldMove_NoTarget -- PARK at 7 differing STREAM ENCODINGS of 122; 75
  * INSTRUCTIONS against 75 (lengths agree, so a DISTANCE).  PIN-FREE.
