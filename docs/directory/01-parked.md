@@ -1,6 +1,6 @@
 # Parked functions
 
-**675 park files**, 524 carrying a parseable figure, 144 bodyless (prose/triage/class parks), 114 with no live verify recipe.
+**669 park files**, 524 carrying a parseable figure, 138 bodyless (prose/triage/class parks), 108 with no live verify recipe.
 
 A figure is the park's own claim. `tools/parkcheck.py` is what verifies it.
 
@@ -568,13 +568,12 @@ none. **Rank by (figure, pins).** Pin counts are `shimcount`'s.
 | 1934 | 796 | 2364 | `OvlFunc_957_20093f8` | overlays/ovl_30.s | [src/non_matching/ovl_7e3e08/20093f8.c](../../src/non_matching/ovl_7e3e08/20093f8.c) |
 | 3080 |  | 3380 | `BaseAnim_SpecialAttack` | rom_c9000/rom_e47b8.s | [src/non_matching/rom_c9000/e47b8_SpecialAttack.c](../../src/non_matching/rom_c9000/e47b8_SpecialAttack.c) |
 
-## No parseable figure (151)
+## No parseable figure (145)
 
 Prose, triage and class parks, plus any whose claim phrasing `parkcheck` cannot read.
 
 | function | park |
 |---|---|
-| `?` | [src/non_matching/overlays/200807c.c](../../src/non_matching/overlays/200807c.c) |
 | `?` | [src/non_matching/overlays/20082b4.c](../../src/non_matching/overlays/20082b4.c) |
 | `?` | [src/non_matching/overlays/20082f0.c](../../src/non_matching/overlays/20082f0.c) |
 | `?` | [src/non_matching/overlays/2008308.c](../../src/non_matching/overlays/2008308.c) |
@@ -586,7 +585,6 @@ Prose, triage and class parks, plus any whose claim phrasing `parkcheck` cannot 
 | `?` | [src/non_matching/overlays/2008fc8.c](../../src/non_matching/overlays/2008fc8.c) |
 | `?` | [src/non_matching/overlays/2009090.c](../../src/non_matching/overlays/2009090.c) |
 | `?` | [src/non_matching/overlays/20090c0.c](../../src/non_matching/overlays/20090c0.c) |
-| `?` | [src/non_matching/overlays/20091c4.c](../../src/non_matching/overlays/20091c4.c) |
 | `?` | [src/non_matching/overlays/20097a4.c](../../src/non_matching/overlays/20097a4.c) |
 | `?` | [src/non_matching/overlays/2009818.c](../../src/non_matching/overlays/2009818.c) |
 | `OvlFunc_932_200b668` | [src/non_matching/overlays/200b668.c](../../src/non_matching/overlays/200b668.c) |
@@ -595,7 +593,6 @@ Prose, triage and class parks, plus any whose claim phrasing `parkcheck` cannot 
 | `?` | [src/non_matching/overlays/200c78c.c](../../src/non_matching/overlays/200c78c.c) |
 | `?` | [src/non_matching/overlays/common1_78.c](../../src/non_matching/overlays/common1_78.c) |
 | `OvlFunc_880_20083cc` | [src/non_matching/ovl_7795e8/20083cc.c](../../src/non_matching/ovl_7795e8/20083cc.c) |
-| `?` | [src/non_matching/ovl_77a7c8/20081c4.c](../../src/non_matching/ovl_77a7c8/20081c4.c) |
 | `?` | [src/non_matching/ovl_77a7c8/2009a98.c](../../src/non_matching/ovl_77a7c8/2009a98.c) |
 | `?` | [src/non_matching/ovl_77a7c8/200a4a8.c](../../src/non_matching/ovl_77a7c8/200a4a8.c) |
 | `?` | [src/non_matching/ovl_77a7c8/200b57c.c](../../src/non_matching/ovl_77a7c8/200b57c.c) |
@@ -608,7 +605,6 @@ Prose, triage and class parks, plus any whose claim phrasing `parkcheck` cannot 
 | `OvlFunc_896_200a7f8` | [src/non_matching/ovl_78ef88/200a7f8.c](../../src/non_matching/ovl_78ef88/200a7f8.c) |
 | `?` | [src/non_matching/ovl_791794/2009410.c](../../src/non_matching/ovl_791794/2009410.c) |
 | `?` | [src/non_matching/ovl_791794/200a84c.c](../../src/non_matching/ovl_791794/200a84c.c) |
-| `?` | [src/non_matching/ovl_793768/2009754.c](../../src/non_matching/ovl_793768/2009754.c) |
 | `?` | [src/non_matching/ovl_794ac0/200c754.c](../../src/non_matching/ovl_794ac0/200c754.c) |
 | `OvlFunc_898_2009090` | [src/non_matching/ovl_797990/2008c1c.c](../../src/non_matching/ovl_797990/2008c1c.c) |
 | `?` | [src/non_matching/ovl_79b154/2008328.c](../../src/non_matching/ovl_79b154/2008328.c) |
@@ -655,7 +651,6 @@ Prose, triage and class parks, plus any whose claim phrasing `parkcheck` cannot 
 | `OvlFunc_969_200a360` | [src/non_matching/ovl_7f6e64/200a360.c](../../src/non_matching/ovl_7f6e64/200a360.c) |
 | `?` | [src/non_matching/ovl_7fb4a8/2008e10.c](../../src/non_matching/ovl_7fb4a8/2008e10.c) |
 | `?` | [src/non_matching/ovl_7fcd20/200829c.c](../../src/non_matching/ovl_7fcd20/200829c.c) |
-| `?` | [src/non_matching/ovl_common/15b8.c](../../src/non_matching/ovl_common/15b8.c) |
 | `?` | [src/non_matching/ovl_common/4cc.c](../../src/non_matching/ovl_common/4cc.c) |
 | `?` | [src/non_matching/ovl_common/common1_2060.c](../../src/non_matching/ovl_common/common1_2060.c) |
 | `OvlFunc_common1_920` | [src/non_matching/ovl_common/common1_920.c](../../src/non_matching/ovl_common/common1_920.c) |
@@ -675,7 +670,6 @@ Prose, triage and class parks, plus any whose claim phrasing `parkcheck` cannot 
 | `Func_8027114` | [src/non_matching/rom_15000/Func_8027114.c](../../src/non_matching/rom_15000/Func_8027114.c) |
 | `?` | [src/non_matching/rom_15000/MenuBar.c](../../src/non_matching/rom_15000/MenuBar.c) |
 | `?` | [src/non_matching/rom_7d30e0/200949c.c](../../src/non_matching/rom_7d30e0/200949c.c) |
-| `?` | [src/non_matching/rom_7d30e0/2009df8.c](../../src/non_matching/rom_7d30e0/2009df8.c) |
 | `?` | [src/non_matching/rom_8a000/808bec0.c](../../src/non_matching/rom_8a000/808bec0.c) |
 | `?` | [src/non_matching/rom_8a000/80916b0.c](../../src/non_matching/rom_8a000/80916b0.c) |
 | `?` | [src/non_matching/rom_8a000/80919d8.c](../../src/non_matching/rom_8a000/80919d8.c) |
