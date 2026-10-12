@@ -1,6 +1,6 @@
 # Parked functions
 
-**637 park files**, 547 carrying a parseable figure, 64 bodyless (prose/triage/class parks), 37 with no live verify recipe.
+**633 park files**, 545 carrying a parseable figure, 64 bodyless (prose/triage/class parks), 38 with no live verify recipe.
 
 A figure is the park's own claim. `tools/parkcheck.py` is what verifies it.
 
@@ -11,14 +11,14 @@ A figure is the park's own claim. `tools/parkcheck.py` is what verifies it.
 | 0 | 1 |
 | 1–2 | 19 |
 | 3–5 | 29 |
-| 6–10 | 21 |
+| 6–10 | 22 |
 | 11–20 | 41 |
-| 21–50 | 88 |
+| 21–50 | 85 |
 | 51–100 | 75 |
 | 101–300 | 162 |
 | 301+ | 111 |
 
-Median **98**.
+Median **101**.
 
 ## By figure
 
@@ -93,6 +93,7 @@ none. **Rank by (figure, pins).** Pin counts are `shimcount`'s.
 | 5 |  | 175 | `OvlFunc_970_2008da4` | overlays/ovl_30.s | [src/non_matching/ovl_7fa4ec/2008da4.c](../../src/non_matching/ovl_7fa4ec/2008da4.c) |
 | 5 |  | 7 | `free` | — | [src/non_matching/rom_c0/rom_2df0.c](../../src/non_matching/rom_c0/rom_2df0.c) |
 | 6 |  | 44 | `Func_800bfa4` | rom_9000/rom_be70.s | [src/non_matching/rom_9000/rom_bfa4.c](../../src/non_matching/rom_9000/rom_bfa4.c) |
+| 6 |  | 64 | `Func_808f498` | rom_8a000/rom_8d9a4.s | [src/non_matching/rom_8a000/808f498.c](../../src/non_matching/rom_8a000/808f498.c) |
 | 6 |  | 167 | `Func_80a8f40` | — | [src/non_matching/rom_a1000/80a8f40.c](../../src/non_matching/rom_a1000/80a8f40.c) |
 | 6 |  | 75 | `OvlFunc_883_2009490` | overlays/ovl_30.s | [src/non_matching/ovl_780898/2009490.c](../../src/non_matching/ovl_780898/2009490.c) |
 | 6 |  | 110 | `OvlFunc_927_200a1b0` | overlays/ovl_30.s | [src/non_matching/ovl_7b4558/200a1b0.c](../../src/non_matching/ovl_7b4558/200a1b0.c) |
@@ -159,12 +160,9 @@ none. **Rank by (figure, pins).** Pin counts are `shimcount`'s.
 | 22 |  | 151 | `Func_801908c` | rom_15000/rom_18cac.s | [src/non_matching/rom_15000/801908c.c](../../src/non_matching/rom_15000/801908c.c) |
 | 23 |  | 133 | `Func_80a68ec` | rom_a1000/rom_a5534.s | [src/non_matching/rom_a1000/80a68ec.c](../../src/non_matching/rom_a1000/80a68ec.c) |
 | 23 |  | 30 | `Func_80c1014` | rom_b5000/rom_bffb8.s | [src/non_matching/rom_b5000/80c1014.c](../../src/non_matching/rom_b5000/80c1014.c) |
-| 24 |  | 73 | `DecodeMetatileset` | rom_9000/rom_f9cc.s | [src/non_matching/rom_9000/800f9f4.c](../../src/non_matching/rom_9000/800f9f4.c) |
-| 24 |  | 44 | `Func_8006088` | rom_c0/rom_5cf8.s | [src/non_matching/rom_c0/8006088.c](../../src/non_matching/rom_c0/8006088.c) |
 | 24 |  | 202 | `NintendoLogo` | rom_f2000/rom_f2028.s | [src/non_matching/rom_f2000/NintendoLogo.c](../../src/non_matching/rom_f2000/NintendoLogo.c) |
 | 24 | 2 | 49 | `Func_80b84c0` | rom_b5000/rom_b8228.s | [src/non_matching/rom_b5000/80b84c0.c](../../src/non_matching/rom_b5000/80b84c0.c) |
 | 24 | 6 | 379 | `OvlFunc_935_2008ca0` | overlays/ovl_b8c.s | [src/non_matching/ovl_7bf5a8/2008ca0.c](../../src/non_matching/ovl_7bf5a8/2008ca0.c) |
-| 25 |  | 64 | `Func_808f498` | rom_8a000/rom_8d9a4.s | [src/non_matching/rom_8a000/808f498.c](../../src/non_matching/rom_8a000/808f498.c) |
 | 25 |  | 58 | `Func_80a3354` | rom_a1000/rom_a1814.s | [src/non_matching/rom_a1000/80a3354.c](../../src/non_matching/rom_a1000/80a3354.c) |
 | 25 |  | 73 | `OvlFunc_887_2008e34` | overlays/ovl_30.s | [src/non_matching/overlays/2008e34.c](../../src/non_matching/overlays/2008e34.c) |
 | 26 |  | 472 | `Anim_Whirlwind` | rom_c9000/rom_d2d98.s | [src/non_matching/rom_c9000/Anim_Whirlwind.c](../../src/non_matching/rom_c9000/Anim_Whirlwind.c) |
@@ -260,7 +258,7 @@ none. **Rank by (figure, pins).** Pin counts are `shimcount`'s.
 | 58 | 5 | 233 | `Anim_Curse` | rom_c9000/rom_d5258.s | [src/non_matching/rom_c9000/d5c48_Curse.c](../../src/non_matching/rom_c9000/d5c48_Curse.c) |
 | 59 |  | 60 | `Func_8011f54` | rom_9000/rom_11ce0.s | [src/non_matching/rom_9000/8011f54.c](../../src/non_matching/rom_9000/8011f54.c) |
 | 59 | 2 | 136 | `Func_80123f4` | rom_9000/rom_1219c.s | [src/non_matching/rom_9000/80123f4.c](../../src/non_matching/rom_9000/80123f4.c) |
-| 60 |  | 69 | `CutsceneStart` | rom_8a000/rom_91584.s | [src/non_matching/rom_8a000/916b0.c](../../src/non_matching/rom_8a000/916b0.c) |
+| 60 |  | 69 | `CutsceneStart` | — | [src/non_matching/rom_8a000/80916b0.c](../../src/non_matching/rom_8a000/80916b0.c) |
 | 60 |  | 87 | `Func_808d828` | rom_8a000/rom_8d5dc.s | [src/non_matching/rom_8a000/808d828.c](../../src/non_matching/rom_8a000/808d828.c) |
 | 60 |  | 309 | `ScreenTransitionIn` | rom_8a000/rom_8d9a4.s | [src/non_matching/rom_8a000/808fefc.c](../../src/non_matching/rom_8a000/808fefc.c) |
 | 62 |  | 61 | `GetLocationName` | rom_8a000/rom_8ace0.s | [src/non_matching/rom_8a000/808b158.c](../../src/non_matching/rom_8a000/808b158.c) |
@@ -591,7 +589,7 @@ none. **Rank by (figure, pins).** Pin counts are `shimcount`'s.
 | 1934 | 796 | 2364 | `OvlFunc_957_20093f8` | overlays/ovl_30.s | [src/non_matching/ovl_7e3e08/20093f8.c](../../src/non_matching/ovl_7e3e08/20093f8.c) |
 | 3080 |  | 3380 | `BaseAnim_SpecialAttack` | rom_c9000/rom_e47b8.s | [src/non_matching/rom_c9000/e47b8_SpecialAttack.c](../../src/non_matching/rom_c9000/e47b8_SpecialAttack.c) |
 
-## No parseable figure (90)
+## No parseable figure (88)
 
 Prose, triage and class parks, plus any whose claim phrasing `parkcheck` cannot read.
 
@@ -650,14 +648,12 @@ Prose, triage and class parks, plus any whose claim phrasing `parkcheck` cannot 
 | `?` | [src/non_matching/rom_15000/MenuBar.c](../../src/non_matching/rom_15000/MenuBar.c) |
 | `?` | [src/non_matching/rom_7d30e0/200949c.c](../../src/non_matching/rom_7d30e0/200949c.c) |
 | `?` | [src/non_matching/rom_8a000/808bec0.c](../../src/non_matching/rom_8a000/808bec0.c) |
-| `CutsceneStart` | [src/non_matching/rom_8a000/80916b0.c](../../src/non_matching/rom_8a000/80916b0.c) |
 | `?` | [src/non_matching/rom_8a000/80919d8.c](../../src/non_matching/rom_8a000/80919d8.c) |
 | `Func_8094428` | [src/non_matching/rom_8a000/8094428.c](../../src/non_matching/rom_8a000/8094428.c) |
 | `StartEarthquake` | [src/non_matching/rom_8a000/809509c.c](../../src/non_matching/rom_8a000/809509c.c) |
 | `StartThunder2` | [src/non_matching/rom_8a000/95290.c](../../src/non_matching/rom_8a000/95290.c) |
 | `?` | [src/non_matching/rom_8a000/FieldMain.c](../../src/non_matching/rom_8a000/FieldMain.c) |
 | `Task_ScreenWindowTransition` | [src/non_matching/rom_8a000/Task_ScreenWindowTransition.c](../../src/non_matching/rom_8a000/Task_ScreenWindowTransition.c) |
-| `DecodeMetatileset` | [src/non_matching/rom_9000/80f9f4.c](../../src/non_matching/rom_9000/80f9f4.c) |
 | `Task_Debug_SpriteTest` | [src/non_matching/rom_9000/Task_Debug_SpriteTest.c](../../src/non_matching/rom_9000/Task_Debug_SpriteTest.c) |
 | `UpdateActors` | [src/non_matching/rom_9000/UpdateActors.c](../../src/non_matching/rom_9000/UpdateActors.c) |
 | `?` | [src/non_matching/rom_a1000/80a3ddc.c](../../src/non_matching/rom_a1000/80a3ddc.c) |

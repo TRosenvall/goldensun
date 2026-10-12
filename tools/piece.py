@@ -66,6 +66,7 @@ def park_index():
     leads with.
     """
     idx = {}
+    dupes = {}
     for p in glob.glob(os.path.join(ROOT, "src/non_matching/**/*.c"), recursive=True):
         try:
             t = open(p, errors="replace").read()
@@ -85,6 +86,14 @@ def park_index():
         for m in re.finditer(
                 r"^[A-Za-z_][A-Za-z0-9_ \t\*]*?\b(\w+)\s*\([^;{]*?\)\s*\{",
                 code, re.M | re.S):
+            if m.group(1) in idx and idx[m.group(1)] != rel:
+                # TWO PARKS NAMING ONE FUNCTION.  setdefault silently kept the
+                # first and hid the second, so a piece could resolve to a STALE
+                # duplicate -- batch 342 brief C was briefed "(no claim)" for a
+                # park verified at 24 of 73 because this index had picked the
+                # batch-338 copy.  Second duplicate found in two batches (batch
+                # 341 brief E found the other).  Record both and say so.
+                dupes.setdefault(m.group(1), {idx[m.group(1)]}).add(rel)
             idx.setdefault(m.group(1), rel)
             found = True
         if found:
@@ -104,6 +113,41 @@ def park_index():
         first = re.match(r"\s*/\*+\s*((?:Ovl)?Func_\w+|[A-Z][A-Za-z0-9_]*)", t)
         if first:
             idx.setdefault(first.group(1), rel)
+    # FILTER TWO KINDS OF NON-DUPLICATE before reporting, both found the moment
+    # this check was added:
+    #
+    #   * A SHARED HELPER NAME.  `call_via` is defined locally in 13 parks and
+    #     `QueuePush1..4` in the two AnimStart parks that inline the same queue.
+    #     A name defined in more than three parks is a helper, not a duplicate.
+    #   * AN ADDRESS COLLISION ACROSS OVERLAYS.  Overlays share address space, so
+    #     overlays/20090c0.c and ovl_7ac2d8/20090c0.c can be DIFFERENT functions
+    #     at the same offset -- both of this tree's same-basename pairs differ in
+    #     code.  Those are a NAMING question (two bodies declaring one name), not
+    #     a stale copy, so they are reported separately.
+    # THE DISCRIMINATOR IS THE SUBJECT, not a count.  A HELPER is a function a
+    # park defines without being about it -- call_via_r3 appears in three parks
+    # and QueuePush1..4 in two, and a count threshold cannot tell those from a
+    # real duplicate.  A DUPLICATE is the same name being the SUBJECT (line 1)
+    # of two parks, which is exactly what the batch-341 and batch-342 cases were.
+    def subject_of(path):
+        tx = open(os.path.join(ROOT, path), errors="replace").read()
+        m = re.match(r"\s*/\*+\s*((?:Ovl)?Func_\w+|[A-Za-z][A-Za-z0-9_]*)", tx)
+        return m.group(1) if m else None
+    real = {fn: ps for fn, ps in dupes.items()
+            if sum(1 for x in ps if subject_of(x) == fn) > 1}
+    collide = {fn: ps for fn, ps in real.items()
+               if len({os.path.basename(x) for x in ps}) == 1}
+    stale = {fn: ps for fn, ps in real.items() if fn not in collide}
+    if stale:
+        print("!! TWO OR MORE PARKS NAME THE SAME FUNCTION -- one is probably stale:")
+        for fn, paths in sorted(stale.items()):
+            print(f"     {fn}: " + ", ".join(sorted(paths)))
+        print("   (check which carries the newer measurement before trusting either)")
+    if collide:
+        print("!! SAME BASENAME IN TWO OVERLAY DIRECTORIES -- overlays share address")
+        print("   space, so these may be DIFFERENT functions declaring one name:")
+        for fn, paths in sorted(collide.items()):
+            print(f"     {fn}: " + ", ".join(sorted(paths)))
     return idx
 
 

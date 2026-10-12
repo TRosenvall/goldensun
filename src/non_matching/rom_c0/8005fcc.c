@@ -6,7 +6,7 @@
  * Verify with:
  *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
  *     goldensun-build python3 tools/objcmp.py src/non_matching/rom_c0/8005fcc.c \
- *     asm/rom_c0/rom_5cf8_a_a_a_c_c_a_c.s --func Func_8005fcc
+ *     asm/rom_c0/rom_5cf8_a_a_a_c_c_a_c_a.s --func Func_8005fcc
  *
  * HEADER RESTORED, batch 334.  The batch-334 body replaced this park and took
  * its header with it -- the recipe, the claim and every measured negative went
@@ -15,7 +15,7 @@
  * The content below is recovered from the previous revision and re-dated.
  * **A park body may be replaced; its header must be carried forward.**
  *
- * THE PIECE.  asm/rom_c0/rom_5cf8_a_a_a_c_c_a_c.s holds TWO functions and BOTH
+ * THE PIECE.  asm/rom_c0/rom_5cf8_a_a_a_c_c_a_c_a.s holds TWO functions and BOTH
  * are parked -- this one and Func_8006088 (at twenty-four, its instruction
  * counts differing).  One .c is one TU, so NEITHER CONVERTS ALONE.  This
  * function is the gate on that piece.

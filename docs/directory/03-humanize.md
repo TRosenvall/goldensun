@@ -1,6 +1,6 @@
 # Pass 4 — humanizing
 
-**4,336 landed functions are still named `Func_<addr>`** against 770 with a real name, across **4,513 split-named files** of 4,575 landed.
+**4,337 landed functions are still named `Func_<addr>`** against 771 with a real name, across **4,515 split-named files** of 4,577 landed.
 
 See `docs/humanization.md` for the method and the artifact taxonomy. Two
 structural facts bound this work:
@@ -23,7 +23,7 @@ structural facts bound this work:
 | rom_15000 | 216 |
 | rom_b5000 | 153 |
 | rom_a1000 | 150 |
-| rom_c0 | 76 |
+| rom_c0 | 77 |
 | rom_b0000 | 61 |
 | rom_9000 | 59 |
 | rom_77000 | 56 |
@@ -101,6 +101,7 @@ structural facts bound this work:
 | `Func_8005e70` | [src/rom_c0/rom_5cf8_a_a_a_b.c](../../src/rom_c0/rom_5cf8_a_a_a_b.c) |
 | `Func_8005e88` | [src/rom_c0/rom_5cf8_a_a_a_c_b.c](../../src/rom_c0/rom_5cf8_a_a_a_c_b.c) |
 | `Func_8005ee0` | [src/rom_c0/rom_5cf8_a_a_a_c_c_a_b.c](../../src/rom_c0/rom_5cf8_a_a_a_c_c_a_b.c) |
+| `Func_8006088` | [src/rom_c0/rom_5cf8_a_a_a_c_c_a_c_b.c](../../src/rom_c0/rom_5cf8_a_a_a_c_c_a_c_b.c) |
 | `Func_80060e8` | [src/rom_c0/rom_5cf8_a_a_a_c_c_b.c](../../src/rom_c0/rom_5cf8_a_a_a_c_c_b.c) |
 | `Func_8006240` | [src/rom_c0/rom_5cf8_a_a_a_c_c_c_b.c](../../src/rom_c0/rom_5cf8_a_a_a_c_c_c_b.c) |
 | `Func_8006358` | [src/rom_c0/rom_5cf8_a_a_b.c](../../src/rom_c0/rom_5cf8_a_a_b.c) |

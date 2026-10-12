@@ -333,6 +333,24 @@ asm/overlays/rom_7d0e88/ovl_314_c_a_c_c.o: src/overlays/rom_7d0e88/ovl_314_c_a_c
 # NOT a general key -- do not reach for it without reading the diff first.
 GCSE_CFLAGS := $(GCC296_CFLAGS) -fno-gcse
 
+# GCSE_CFLAGS for DecodeMetatileset, batch 342 brief C.  A FOUR-WAY CROSSING, and
+# each half is worthless alone: -fno-gcse is BIT-IDENTICALLY INERT on the parked
+# body, the source change alone measures 42 of 73 (WORSE than the 24 the park
+# held), and together they are 0.  The full subset table is in the landed file's
+# header.
+#
+# That combination is why the flag sat recorded as inert since batch 335:
+# tools/sweep_variants.py cannot cross a flag group against a source change, so
+# nothing in the toolchain could have found it.  The crossing is the lesson --
+# A FLAG MEASURED INERT ON THE PARKED BODY IS NOT A CLOSED AXIS.
+#
+# The pass is `loop` at 08, not cse: the *.LC0 load count is 2 through .07.gcse
+# and 1 at .08.loop, which is the pool-load-to-copy rewrite.
+asm/rom_9000/rom_f9cc_a_c_b.o: src/rom_9000/rom_f9cc_a_c_b.c
+	$(GCC296_CC) $(GCSE_CFLAGS) -S -o $(@:.o=.s) $<
+	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
+	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
+
 # GCSE_CFLAGS for Func_80b2720, batch 342 brief A.  -fno-gcse takes the parked body 23 of 32 -> 11
 # (found by tools/autosweep.py's flag axis), and the landing closes from there on a
 # route that does NOT touch allocation priority: the priority order is IDENTICAL in
