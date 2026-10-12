@@ -176,6 +176,77 @@
  * spellings, both declaration orders, four temp placements and the single and
  * paired flag sweeps were all read and none was re-run; the brief's own
  * instruction was to stop at temp spellings, and that is still the right call.
+
+ * ========================================================================
+ * BATCH 344 BRIEF D -- FIGURE RE-DERIVED, AND THE +1 IS *TWO INDEPENDENT
+ * MECHANISMS OF OPPOSITE SIGN*.  BOTH CHEAP AXES NOW CLOSED.
+ * ========================================================================
+ *
+ * RE-DERIVED FROM SCRATCH: 37 of 105, ref 95 instructions against ours 96,
+ * 9 against 9 thirty-two-bit entries, SIZE EXACT, relocations CLEAN.
+ * Unchanged from batches 277, 316 and 333.
+ *
+ * THE NET +1 IS -1 AND +2, AND THEY ARE IN DIFFERENT REGIONS.  Batch 333
+ * recorded both residues but reported the gap as a single "+1"; counted per
+ * region (which is what the batch-344 brief asks for) it is:
+ *
+ *     LOOP 1 (the move-priority scan)      ref 3  ours 2   ***  -1  ***
+ *         ref   bls .L58 / adds r3,r2,#0 / cmp r3,#0x35 / bne .L6c
+ *         ours  bls .L56 /                 cmp r2,#0x35  / bne .L68
+ *       OURS IS SHORT HERE.  The reference COPIES b into another register
+ *       before comparing it; we compare in place.
+ *
+ *     BETWEEN THE LOOPS (`last` and `&tmp`)   ref 4  ours 6   ***  +2  ***
+ *         ref   mov r9,r7 / movs r3,#0 / mov r7,r9 / mov sl,r3
+ *         ours  add r3,sp,#4 / str r7,[sp] / mov r9,r3 / ldr r7,[sp] /
+ *               movs r1,#0 / mov sl,r1
+ *
+ *     frame               ref sub sp,#16 / add sp,#16   ours #20 / #20   even
+ *     the two temp uses   ref mov r0,sp  / mov r1,sp    ours r9   / r9   even
+ *     the reference also carries a `.short 0x0000` pad that we do not, which
+ *     is why "SIZE EXACT" and "ours one instruction long" are both true.
+ *
+ * >> SO A FUTURE ROUND MUST NOT TREAT THIS AS ONE SITE.  Fixing the -1 makes
+ * >> the stream +2, not 0, and fixing the +2 makes it -1.  They are separate
+ * >> and both have to be solved.  The park's own text names both; what it
+ * >> never did was count them separately, and the single "+1" has been
+ * >> steering attention to the allocation wall as though it were the whole gap.
+ *
+ * THE -1 IS NOT REACHABLE BY NAMING A SECOND VALUE.  The reference's
+ * `adds r3, r2, #0` is a register copy with a dead destination, i.e. two
+ * pseudos that gcc coalesces and the ROM's compiler did not.  Seven spellings
+ * intended to force a second pseudo for the `== 0x35` arm are ALL
+ * BYTE-IDENTICAL to the base at 37:
+ *     an `int q = b` carrier used only in the 0x35 arm            37
+ *     an `unsigned char q` carrier, same                          37
+ *     a `short q` carrier, same                                   37
+ *     `(int)b == 0x35` (a cast at the use)                        37
+ *     the existing local `m` as the carrier                       37
+ *     a second `mi[3]` read into a separate local                 37  (this
+ *         reproduces the park's own "a second read of `mi[3]`" negative)
+ *     the carrier used for the RANGE test and `b` for the 0x35 arm  83 WORSE
+ *         (93 instructions -- it loses two, and dirties relocations)
+ * cse and combine fold every carrier back into one pseudo, so the copy has to
+ * be won in local-alloc/regmove, not in the source.  `-fno-regmove` and
+ * `-fno-optimize-register-move` are already recorded worse.
+ *
+ * tools/autosweep.py's ANCHOR AXIS -- NEVER RUN ON THIS PARK BEFORE, AND IT IS
+ * NOW CLOSED.  Twenty-three `do { } while (0);` placements at EVERY brace depth
+ * (both loop bodies and the inner `if` included): twenty are inert at 37, one
+ * is 39, and two are 75/76 at 93 instructions with dirty relocations.  Combined
+ * with the park's single and paired flag sweeps, BOTH CHEAP AXES ARE CLOSED --
+ * do not re-screen them.
+ *
+ * TWO B-SIDE LONGSHOTS AT THE ALLOCATION WALL, both negative:
+ *     `e = n - 1; last = e;` -- route 3, split the range by adding a def  37
+ *     `&tmp` inlined at both uses with `t` deleted                        45 WORSE
+ * The park's eight temp spellings and four placements were read and NOT re-run,
+ * per its own instruction and batch 333's.
+ *
+ * NEXT, unchanged in substance and now correctly priced: the +2 is batch 333's
+ * question -- can the frame hold the temp ALONE so that `virtual-stack-vars - 16`
+ * folds to bare `sp` -- and the -1 is a separate local-alloc copy that no source
+ * spelling reaches.  TWO problems, not one.
  */
 struct Act {
     short id;

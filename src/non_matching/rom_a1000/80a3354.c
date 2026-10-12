@@ -1,3 +1,107 @@
+/* Func_80a3354 (0x080a3354) -- asm/rom_a1000/rom_a1814_c_a_c_c_a_c_c_c_c_c_a.s
+ *
+ * NON-MATCHING, 20 of 58 stream encodings, ref 51 / ours 50 16-BIT
+ *   INSTRUCTIONS, ref 128 bytes against ours 128 (a trailing `nop` absorbs the
+ *   one-instruction gap, so the stream LENGTHS now agree and the figure is
+ *   STILL PHASE).  aligned-equal 45 of 58, 18 differing/ins/del in 10 hunks.
+ *   PINS 0 (tools/shimcount.py).  Device-free.  No split (piece.py: 1 function).
+ *   BODY REPLACED IN BATCH 344, BRIEF A: 25 -> 20 encodings, 34 -> 45
+ *   aligned-equal, and the loop preheader's register choice now matches.
+ *
+ * Verify with:
+ *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
+ *     goldensun-build python3 tools/objcmp.py \
+ *     src/non_matching/rom_a1000/80a3354.c \
+ *     asm/rom_a1000/rom_a1814_c_a_c_c_a_c_c_c_c_c_a.s --func Func_80a3354
+ *
+ * ============ BATCH 344, BRIEF A: WHAT CHANGED AND WHAT IS LEFT ============
+ *
+ * GAP ARITHMETIC, PER REGION (the number the next batch wants):
+ *   prologue + the two calls      idx 0-11    ref 12 / ours 12   EXACT
+ *   loop preheader                idx 12-16   ref  5 / ours  5   EXACT COUNT,
+ *                                 one ADJACENT SWAP left (`movs r2,#3` against
+ *                                 `adds r3,r7,r0`); the register the offset
+ *                                 lives in is now the ROM's r0, which it was
+ *                                 not before
+ *   loop body                     idx 17-21   ref  5 / ours  5   EXACT, BYTE-EQUAL
+ *   mid-section + CreateUIBox     idx 22-31   ref 10 / ours 10   EXACT, BYTE-EQUAL
+ *   the 0x110/0x111 store pair    idx 32-40   ref  9 / ours  9   EXACT COUNT,
+ *                                 scheduling order differs
+ *   `b` over the pool + pool      idx 41-45   ref  5 / ours  5   EXACT, BYTE-EQUAL
+ *                                 (0x1e, iwram_3001f2c, 0x111 -- same order)
+ *   the 0x112/0x113 store pair    idx 46-53   ref  8 / ours  7   -1  <- the gap
+ *   epilogue                      idx 54-57   ref  4 / ours  4   EXACT
+ * SO THE GAP IS ENTIRELY IN THE LAST STORE and it is the ROM's
+ * `adds r3, r7, r0` -- the materialised address for `g[0x113]`, which combine
+ * folds away in ours into the register-offset form `strb r6, [r7, r2]`.
+ *
+ * WHAT THE NEW BODY BUYS, AND WHY.  Hoisting BOTH address computations above
+ * the four byte stores --
+ *     r = g + off;  off += 2;  s = g + off;
+ *     g[0x88 << 1] = z;  *r = z;  g[0x89 << 1] = 8;  *s = two;
+ * -- fixes the loop PREHEADER, which the batch-342 header had filed as a
+ * separate "preheader-LUID" residue.  With both addresses born before the
+ * stores, the preheader comes out as the ROM's
+ *     movs r0,#0xa5 / lsls r0,r0,#1 / ldr r1,[pc] (0x1e)
+ * -- offset in r0, exactly the ROM -- against the old body's r1.  The two
+ * residues were ONE residue.  It also leaves the mid-function pool, its `b` and
+ * all three pool words byte-identical, which the old body already had.
+ *
+ * THE FOLD: WHAT CAN BLOCK IT, WITH LINE NUMBERS, AND WHICH ROUTES ARE
+ * DEVICE-FREE.  The park named the pass (combine) and the discriminator (the
+ * offset's RTL code: CONST_INT at 0x110/0x111/0x112, a runtime pseudo at 0x113
+ * from `off += 2`).  Both confirmed.  The address predicate is NOT a route --
+ * `GO_IF_LEGITIMATE_ADDRESS` for Thumb accepts REG+REG for any
+ * `GET_MODE_SIZE (MODE) <= 4` with both regs index-ok and neither the frame
+ * pointer (arm.h:2133-2147), so `(mem:QI (plus pseudo pseudo))` is legitimate
+ * and `recog_for_combine` matches.  The refusals that exist are all in
+ * `can_combine_p`:
+ *     combine.c:1081       DEST used after SUCC but before I3   (succ is 0 here)
+ *     combine.c:1103-1108  `INSN_CUID (insn) < last_call_cuid && ! CONSTANT_P (src)`
+ *                          -- a CALL between the add and the store
+ *     combine.c:1160-1175  INSN itself volatile / an asm
+ *     combine.c:1182-1188  any volatile insn BETWEEN insn and i3
+ * The last two are the park's two instruments and both are devices.  THE CALL
+ * ROUTE IS DEVICE-FREE AND WAS MEASURED: moving both address births above the
+ * `_CreateUIBox` call (v/t4_f.c) DOES refuse the fold -- and costs ten
+ * instructions, 61 against 51, because both addresses then live across the call
+ * and need callee-saved registers the ROM does not spend.  That is a figure
+ * ABOUT the blocker: the mechanism at combine.c:1108 is real and reachable from
+ * source, and unaffordable here.
+ *
+ * AND SEPARATION ALONE DOES NOT REACH IT.  Putting unrelated insns between the
+ * add and the store does not block combine, which works through LOG_LINKS and
+ * not adjacency.  MEASURED (encodings of 58; 16-bit counts in brackets):
+ *   v/t4_d  both addresses hoisted above all four stores ..... 20 [51/50] <- THIS FILE
+ *   v/t4_e  addresses hoisted, `s` born after the 0x110 pair . 20 [51/50]
+ *   v/t4_a  address for 0x113 born before the 0x112 store .... 21 [51/50]
+ *   v/t4_b  the same with a second address local `s` ......... 21 [51/50]
+ *   v/t4_c  as t4_d plus a repeated `g+0x20` store (SEMANTIC
+ *           CHANGE, measured only as a control) ............. 25 [51/51]
+ *   v/t4_f  both addresses born before _CreateUIBox .......... 67 [51/61]
+ * FLAG AXIS RE-CROSSED AGAINST THE NEW BODY (a_flags.sh, all eight groups, as
+ * the brief asks after a real source change): -fno-gcse, -fno-strict-aliasing,
+ * -fno-strength-reduce, -fno-rerun-cse-after-loop, -fno-rerun-loop-opt all
+ * INERT at 18/10; -O1 and -fno-schedule-insns2 both 27/14; -ffixed-r7 34/13 and
+ * 6 encodings long.  NOTHING IMPROVES.
+ *
+ * NEXT, UNCHANGED FROM THE PARK AND NARROWED: find a spelling in which 0x113 is
+ * a CONST_INT at combine time (so the fold has no legitimate address to make)
+ * WHILE 0x111 stays the pooled word and 0x113 is rematerialised from it.  The
+ * four constant-offset spellings the park measured recover the instruction and
+ * invert the constant layout (pooling 0x113, deriving 0x111 from 0x110 by one).
+ * The pass that performs THAT derivation is still unnamed and is still the one
+ * thing worth a round; the park's elimination of cse's related_value chain
+ * (cse.c:1633-1661 builds it only `if (GET_CODE (x) == CONST)`) stands.
+ *
+ * ---------------------------------------------------------------------------
+ * EVERYTHING BELOW IS THE BATCH-334/342 HEADER, CARRIED FORWARD.  Two of its
+ * statements are now superseded and are flagged where they appear: the
+ * "preheader-LUID class" residue is closed by the body above, and the claim
+ * that the address predicate might be made to reject `(plus reg reg)` is
+ * refuted by arm.h:2133-2147.
+ * ---------------------------------------------------------------------------
+ */
 /* Func_80a3354 (0x080a3354) -- NON-MATCHING.
  *
  * NON-MATCHING, 25 of 58 stream encodings  (RE-DERIVED, batch 342 brief C, on
@@ -322,6 +426,7 @@ void Func_80a3354(void)
     int two;
     int off;
     unsigned char *r;
+    unsigned char *s;
 
     g = iwram_3001f2c;
     q = Func_80a1814(g);
@@ -340,11 +445,11 @@ void Func_80a3354(void)
     *(void **)(g + 0x2c) = _CreateUIBox(0, 0x11, 0x1e, 3, two);
     off = 0x111;
     *(int *)(g + 0x20) = z;
-    g[0x88 << 1] = z;
     r = g + off;
+    off += 2;
+    s = g + off;
+    g[0x88 << 1] = z;
     *r = z;
     g[0x89 << 1] = 8;
-    off += 2;
-    r = g + off;
-    *r = two;
+    *s = two;
 }

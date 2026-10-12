@@ -124,6 +124,95 @@
  * "the pre-reload scheduling flag -- inert" row has a reason:
  * `if (TARGET_THUMB && flag_schedule_insns) flag_schedule_insns = 0;` at
  * arm.c:634-638 turns it off unconditionally.  Nobody should re-measure it.
+
+ * ========================================================================
+ * BATCH 344 BRIEF D -- FIGURE RE-DERIVED; THE GAP IS LOCATED TO FOUR SITES;
+ * AND THE CLASS MECHANISM IS NOW NAMED, WHICH EXPLAINS WHY PINS ARE THE ONLY
+ * ROUTE AND NO PIN-FREE SPELLING CAN BE
+ * ========================================================================
+ *
+ * RE-DERIVED FROM SCRATCH: 17 of 38, ref 27 instructions against ours 28,
+ * 10 against 10 thirty-two-bit entries, 96 bytes both, relocations DIRTY.
+ * Unchanged from the claim above, to the digit.
+ *
+ * THE +1 IS FOUR SITES, NOT ONE, and they cancel.  Aligned listing:
+ *     prologue    ref  push {lr}                            ours push {r5, lr}
+ *                                                           ours movs r5, #0xb0
+ *                                                           ours lsls r5, r5, #15
+ *     site 1      ref  movs r2,#0xb0 / lsls r2,#15          ours adds r2, r5, #0
+ *     site 2      ref  movs r2,#0xb0 / lsls r2,#15          ours adds r2, r5, #0
+ *     epilogue    ref  --                                   ours pop {r5}
+ * So: PROLOGUE +2, SITE 1 -1, SITE 2 -1, EPILOGUE +1.  Net +1.  Anyone reading
+ * the net as "one wrong decision" will look in the wrong place; the single
+ * decision is the COMMONING, and it costs three and saves two.
+ *
+ * THE MECHANISM OF THE WHOLE CUTSCENE-SCRIPT CLASS, read on disk.  `cse_insn`
+ * calls `invalidate_for_call ()` at cse.c:5710-5715, and `invalidate_for_call`
+ * (cse.c:2018-2029) walks the HARD REGISTERS clobbered by the call and removes
+ * them from the quantity chains and the hash table.  IT NEVER TOUCHES A PSEUDO.
+ * So:
+ *   - an argument held in a PINNED hard register (r0/r1/r2) loses its
+ *     equivalence at every `bl`, and the constant is rebuilt at each site;
+ *   - an argument held in a PSEUDO keeps it across any number of calls.
+ * `precompute_register_parameters` (calls.c:845-855, quoted in full below the
+ * park's own reading) puts every argument whose `rtx_cost (value, SET) > 2`
+ * into a pseudo, unconditionally in Thumb -- so `0xb0 << 15` is ALWAYS a
+ * pseudo unless the source pins it.  THAT is why the old header's nine
+ * `register ... __asm__` declarations reach zero and why nothing pin-free does.
+ *
+ * REACHABILITY, MEASURED OVER THE LABELLED CORPUS -- and it is the strongest
+ * evidence in this park.  Across all 4,562 byte-matching generated `.s` files
+ * in asm/, searching for the same shiftable constant built twice (`mov rX,#K`
+ * followed by `lsl rX,#S`) inside ONE function:
+ *     482 functions do it SOMEWHERE
+ *       0 do it with no basic-block boundary and no call between the two builds
+ *      56 do it with only `bl` calls between the two builds
+ * Reading the `.c` beside one of the 56 -- asm/overlays/rom_7892c8/
+ * ovl_30_c_c_a_a_a_c_c_a_c_a_b.s, `0xd0 << 8` built fresh at five
+ * `__Func_8092adc` sites separated only by `__CutsceneWait` calls -- gives the
+ * recipe, and it is PINS:
+ *     #define PIN1 register int q0 __asm__("r0")
+ *     #define PIN2 PIN1; register int q1 __asm__("r1")
+ *     #define PIN3 PIN2; register int q2 __asm__("r2")
+ *     { PIN3; q0 = 0x1; q1 = 0xd0 << 8; q2 = 0x0; __Func_8092adc(q0, q1, q2); }
+ * That is a LANDED, byte-matching file.  So the shape is reachable, the recipe
+ * is known, and it is the pinned one.
+ *
+ * NINE PIN-FREE SPELLINGS OF THE SAME IDEA, MEASURED, ALL INERT OR WORSE.  The
+ * idea was to kill the equivalence by REUSE instead of by pinning -- overwrite
+ * the pseudo that holds 0xb0<<15 before site 2 reads it, which is what the
+ * landed analogue gets for free because its two sites alternate values:
+ *     one reused local for the z argument at all three sites      36  (29 insns)
+ *     three reused locals q0/q1/q2, the analogue's shape pin-free 36  (29 insns)
+ *     one reused local, z only, all three sites                   36  (29 insns)
+ *     two locals whose ROLES SWAP between sites 1 and 2           39  (32 insns)
+ *     the same with q0/q1/q2                                      39  (32 insns)
+ *     the same with `unsigned` carriers                           39  (32 insns)
+ *     one local reused for site 2's x only (the minimal kill)     37  (29 insns)
+ *     per-site locals in braced blocks                            17  (inert)
+ *     the site-1 z carrier reused for a later SetAnim slot        17  (inert)
+ * EVERY one that actually changes the register's history makes the stream
+ * LONGER, not shorter: a pin-free local becomes an allocno and costs more than
+ * the two instructions it saves.  A pin does not, because it is a hard register
+ * the call clobbers anyway.
+ *
+ * >> SO THE BOUND, WITH ITS EVIDENCE ATTACHED: on this shape, the only thing
+ * >> that stops cse commoning a repeated shiftable constant across a call is a
+ * >> CALL-CLOBBERED HARD REGISTER CARRIER (cse.c:5710-5715 + 2018-2029), and
+ * >> the only C construct that produces one is `register ... __asm__`.  Nine
+ * >> pin-free spellings measured; 0 of 4,562 generated files show the shape
+ * >> without a call or block boundary between the builds.
+ *
+ * NOTHING ELSE TRIED.  Both cheap axes were already closed by batch 340 (all
+ * eight flag groups, and the anchor axis whose floor is the recorded 15) and
+ * were not re-run.  The device route to 2 and the pin route to 0 both stand as
+ * recorded; this body still ships device-free and pin-free at its honest 17.
+ *
+ * NEXT: this is a PASS-3 DECISION, not a search.  Two statements of
+ * `__asm__ volatile ("" :: "i"(0))` reach 2 and nine pins reach 0; the pin
+ * route now has a LANDED PRECEDENT in this tree for exactly this shape
+ * (ovl_7892c8/ovl_30_c_c_a_a_a_c_c_a_c_a_b.c, PIN3).  Nobody should spend
+ * another round on pin-free spellings of the carrier.
  */
 extern void __CutsceneStart(void);
 extern void __CutsceneEnd(void);

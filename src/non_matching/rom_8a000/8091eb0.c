@@ -313,6 +313,96 @@
  * destination = the dying base).  Attack whether the base DIES at the add --
  * it does not in ours, because the value load was given r3 -- rather than how
  * the store is written.
+
+ * ========================================================================
+ * BATCH 344 BRIEF D -- FIGURE RE-DERIVED, THE GAP LOCALISED TO ONE REGION,
+ * THE ANCHOR AXIS CLOSED AT ALL BRACE DEPTHS, AND *** ONE HALF OF THIS
+ * PARK'S OWN ARITHMETIC IS NOT SUPPORTED BY THE COMPILER'S DUMP ***
+ * ========================================================================
+ *
+ * RE-DERIVED FROM SCRATCH: 20 of 43, ref 35 instructions against ours 36,
+ * 7 against 7 thirty-two-bit entries, 100 bytes against 104, relocations the
+ * same symbols shifted.  Unchanged from every previous re-derivation.
+ *
+ * THE PER-REGION SPLIT, which no previous round recorded.  Laid side by side:
+ *     indices  0-13   IDENTICAL          (one pool-load displacement aside)
+ *     the FIRST GUARDED ARM, 14-18       5 instructions against 5 -- EVEN.
+ *         ref   ldr r3,=gState / ldr r2,=0x21 / add r1,#0x5a / add r3,r1 / strh r2,[r3]
+ *         ours  ldr r3,=gState / add r1,#0x5a / add r2,r3,r1 / ldr r3,=0x21 / strh r3,[r2]
+ *     the SECOND GUARDED ARM, 19-32      IDENTICAL
+ *     the POOL/EPILOGUE region           ours +1 instruction (`b.n`) and +2
+ *                                        bytes of alignment pad
+ * >> THE ENTIRE LENGTH GAP IS IN THE POOL REGION.  The two guarded arms are
+ * >> the same length; the four encodings there are ORDER, exactly as recorded.
+ * >> Nobody should look for a missing or extra statement in the body.
+ *
+ * THE COMPILER'S DUMP, IN FULL, so nobody has to re-run it (`-da`, .26.mach):
+ *     ;; SImode fixup for i14; addr  0, range (0,1020): `iwram_3001ebc'
+ *     ;; SImode fixup for i41; addr 36, range (0,1020): `gState'
+ *     ;; HImode fixup for i50; addr 42, range (0,64):   0x21
+ *     ;; SImode fixup for i70; addr 66, range (0,1020): `gState'
+ *     ;; Emitting minipool after insn 153; address 84
+ *     ;;  Offset 0, min -65536, max  106 0x21
+ *     ;;  Offset 4, min -65536, max 1020 `iwram_3001ebc'
+ *     ;;  Offset 8, min -65536, max 1056 `gState'
+ *
+ * THE ORDER HALF OF THIS PARK'S ARGUMENT IS CONFIRMED VERBATIM.  gcc prints
+ * the 0x21 entry at **Offset 0** with max 106 against 1020 and 1056 -- the
+ * HImode fix sorted to the HEAD of the pool, where the ROM has it LAST, exactly
+ * as add_minipool_forward_ref (arm.c:4817-4860) is read above.  That half is
+ * exhaustive and it stands.
+ *
+ * *** THE RANGE HALF IS NOT SUPPORTED BY THESE NUMBERS. ***  This park says
+ * "A HImode pool fix has pool_range 64 ..., so a reach of 64 bytes from address
+ * 42 cannot put the pool after the epilogue.  gcc dumps it at 84 and emits
+ * `b .L` around it ... THAT is the extra instruction."  Three measurements say
+ * the premise is wrong:
+ *   1. gcc's own limit for this pool is **max 106** (printed above), and gcc
+ *      dumped at **84** -- twenty-two bytes INSIDE its own limit, so the limit
+ *      is not what forced the position.
+ *   2. Our code WITHOUT the early pool is 90 bytes (104 total, minus 12 bytes
+ *      of pool and 2 of pad).  An end-of-function pool would start at 90, which
+ *      is BELOW 106.
+ *   3. THE REFERENCE'S OWN 0x21 LOAD IS `ldr r2, [pc, #60]` -- a sixty-byte
+ *      displacement, INSIDE the HImode pool_range of 64, with its pool word at
+ *      0x60 and the load at offset 32.  So a HImode fix demonstrably CAN reach
+ *      a pool sitting past the epilogue in this function's layout.
+ *
+ * WHY THAT MATTERS, and it is a live lead that is NOT the owner ruling.  If the
+ * early dump has a cause other than the range -- and the three numbers above
+ * say it must -- then the LENGTH GAP MAY BE CLOSEABLE WITH THE HImode FIX LEFT
+ * IN PLACE.  Close it and the residue becomes the pool ORDER (three words
+ * permuted) plus the four local-alloc encodings: a real distance of roughly
+ * seven or eight, instead of a phase reading of twenty, and MEASURABLE for the
+ * first time.  That is worth a round whatever happens to `_CONST_21`.
+ * The thing to read is `arm_reorg`'s barrier bookkeeping in
+ * config/arm/arm.c -- which barrier it selected and why it did not use the
+ * function's final one -- NOT another spelling of the store.
+ *
+ * tools/autosweep.py's ANCHOR AXIS, EXTENDED.  Batch 341 recorded "all 8
+ * TOP-LEVEL statement boundaries inert at 20".  Swept again at EVERY BRACE
+ * DEPTH, including inside both guarded arms -- eleven placements -- and all
+ * eleven are inert at 20 except one at 23.  So the anchor axis is now closed
+ * at all depths, not just the top level.
+ *
+ * SEVEN MORE SPELLINGS OF THE GUARDED STORE, MEASURED, none of which moves the
+ * figure (twenty-five across five batches now -- a hard plateau):
+ *     a `const int` value local in a braced block           20  (reproduced)
+ *     a `short *` address local inside the arm              20
+ *     an anchor between `g = gState;` and the store         20
+ *     an anchor before `g = gState;`                        20
+ *     the short-circuit written as nested ifs               20  (reproduced)
+ *     `*(short *)(gState + 0x1d6) = 0x21;` with no `g`      38  WORSE, and it
+ *         folds the offset into a pooled `gState+470` -- confirms the park's
+ *         "the `g = gState;` named base is required"
+ *     a plain `int w; w = 0x21;` value-first local          21  at 36 insns and
+ *         42 encodings -- it LOSES a pool word (the SImode `movs r3,#0x21`
+ *         shape the park already rejected as scratch_elev/b323/E/p3_rejected_vtop.c)
+ *
+ * NEXT, in priority order: (1) why `arm_reorg` dumped at 84 when its own limit
+ * was 106 and the epilogue sat at 90 -- that is the length gap and it is NOT
+ * the ruling; (2) the `_CONST_21` ruling, which decides the fifteen; (3) the
+ * four local-alloc encodings, already located.
  */
 extern int iwram_3001ebc;
 extern unsigned char gState[];

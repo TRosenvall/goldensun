@@ -1,3 +1,56 @@
+/* ================ BATCH 344 (brief A) ADDENDUM -- READ FIRST ================
+ *
+ * OvlFunc_888_200b1b8 -- STILL NON-MATCHING.  BODY UNCHANGED.  The park's
+ * diagnosis was RE-DERIVED FROM THE OBJECT STREAM AND IT SURVIVES INTACT --
+ * this is one of the few parks in this tree whose verdict holds on audit.
+ *
+ * 20 of 79 stream encodings, ref 65 / ours 64 16-BIT INSTRUCTIONS,
+ *   ref 184 bytes against ours 176.  PINS 0.  Device-free.  No split.
+ *
+ * GAP ARITHMETIC, PER REGION (the number the next batch wants).  There is no
+ * loop in this function, so the regions are the straight-line thirds:
+ *   prologue + the two Random/offset blocks   idx 0-40    ref 41 / ours 41  EXACT
+ *   the pooled-zero site                      idx 41-42   ref 2  / ours 2   EXACT
+ *                                                         but DIFFERENT INSNS
+ *   the stores and the tail mask              idx 43-67   ref 25 / ours 25  EXACT
+ *   the barrier `b` over the pool             idx 68      ref 1  / ours 0   -1
+ *   pool                                      ref 4 words / ours 3          -1
+ *   trailing pad                              ref 1 / ours 0                -1
+ * SO THE WHOLE LENGTH GAP IS THE POOL DUMP: +2 bytes of `b`, +4 bytes of pool
+ * word, +2 bytes of pad = the 8 bytes the park already attributes, and the one
+ * missing INSTRUCTION is the `b` and nothing else.
+ *
+ * THE SUBSTITUTION AT idx 41-42 IS THE WHOLE PARK, and it is visible in two
+ * encodings:
+ *     ref   41  4a0e  ldr  r2, [pc, #56]  ; the extra pool word at 0x9c = 0
+ *           42  3005  adds r0, #5
+ *     ours  41  3005  adds r0, #5
+ *           42  2200  movs r2, #0
+ * Both then do `mov r8, r2` at idx 44.  So the ROM materialises the SImode zero
+ * that ends up in r8 with a FULL `ldr` FROM THE POOL where we use `movs`.  The
+ * park's reading of why that cannot be an ordinary literal
+ * (`*thumb_movsi_insn`, arm.md:3838, constraint `I` as alternative 1 against the
+ * `mi` pool path as alternative 6, and `constrain_operands` taking the first
+ * alternative needing no reload) is CONFIRMED and the arithmetic checks out.
+ *
+ * ONE CANDIDATE THE PARK DOES NOT LIST, AND IT IS REFUTED BY THE WIDTH.  A
+ * HImode zero IS always pooled -- the park's own `*thumb_movhi_insn`
+ * (arm.md:4318) alternative order -- so declaring `z` as `short` would put the
+ * zero in the pool and would bring `create_fix_barrier` with it, pool_range 64
+ * against 1020 being exactly the park's own reason for the barrier.  IT CANNOT
+ * BE THIS: a HImode pool load is `ldrh`, and gas lowers a Thumb PC-relative
+ * `ldrh` to `ldr` ONLY for the PC-relative form -- here the ROM's load is a
+ * plain `ldr rX, [pc, #N]` into a register that is then `mov`ed to r8, i.e. the
+ * SImode path.  Recorded so the next agent does not spend a round on it.
+ *
+ * SO THE GATE IS STILL THE OWNER DECISION ON THE POOLED WORD'S IDENTITY, which
+ * is docs/owner-decisions.md territory and is NOT re-litigated here.  Nothing
+ * measured in batch 344 moves it; the body is shipped unchanged.
+ *
+ * BOTH CHEAP AXES REMAIN CLOSED (flag axis and all 20 anchor boundaries, batch
+ * 342) and were deliberately NOT re-run.
+ * ===========================================================================
+ */
 /* ===================== BATCH 342 (brief E, the DEPIN brief) ADDENDUM -- READ FIRST
  *
  * OvlFunc_888_200b1b8 -- STILL NON-MATCHING, AND NOW PIN-FREE AT NO COST.
