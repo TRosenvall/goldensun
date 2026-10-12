@@ -1,3 +1,141 @@
+/* ======== BATCH 341 (brief A) -- 20 -> 16 OF 381, AND PIN-FREE.  READ FIRST ===
+ * Anim_Venus -- NON-MATCHING, **16 differing encodings of 381** (was 20).
+ * STREAM length 381; the 16-BIT INSTRUCTION COUNTS ARE 331 / 331, size 860
+ * bytes both sides, objcmp prints NO SIZE and NO RELOCATIONS line -- so the 16
+ * IS a true distance.  First differing index 38.
+ * *** PINS: 0.  WAS 1.  tools/shimcount.py reports NO ROWS for this body. ***
+ * DEVICE-FREE, no flag group, no fakematch row (and the park's missing
+ * fakematch.txt row is no longer owed).
+ *   objcmp verbatim:
+ *     XX ENCODINGS differ in 16 place(s) (ref 381, ours 381)
+ *        [STREAM length, pool+pad INCLUDED; instructions are 331/331]
+ *        first at index 38: ref 6a2d  ours 9306
+ *
+ * Verify with:
+ *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
+ *     goldensun-build python3 tools/objcmp.py \
+ *     src/non_matching/rom_c9000/Anim_Venus.c \
+ *     asm/rom_c9000/rom_e0564_a_a.s --func Anim_Venus
+ *
+ * ===========================================================================
+ * TWO EDITS.  ONE BUYS 4 ENCODINGS; THE OTHER BUYS THE PIN BACK FOR NOTHING.
+ * ===========================================================================
+ * 1.  ONE `do { } while (0);` ANCHOR inside the particle-spawn loop,
+ *     immediately after `g->y = (p->y + 0x10) << 16;`:
+ *
+ *         mag = (rv & 0x1ff) + (0x80 << 1);
+ *         g->y = (p->y + 0x10) << 16;
+ *         do { } while (0);                 <- NEW
+ *         g->vx = (sin(a2) * mag) >> 7;
+ *
+ *     20 -> 16.  It closes idx 193/194 and 201/202 outright and re-seats the
+ *     gBuffer pool load (cluster B's SLOT, though not its register).
+ *
+ * 2.  THE `register void *tf __asm__("r0")` PIN BECOMES A PLAIN LOCAL:
+ *
+ *         { void *tf;  tf = (void *)Task_BlitAnim;  arg <<= 3;
+ *           StartTask(tf, arg); }
+ *
+ *     EXACTLY INERT -- 16 with the pin, 16 without it.
+ *
+ * *** THE PARK'S PIN CLAIM IS WRONG AS STATED, AND I RE-MEASURED IT ON THE
+ * PARK'S OWN 20-BODY. ***  It reads *"PINS: 1 (the Anim_Vine StartTask pin,
+ * tools/shimcount.py = 1), unchanged and still load-bearing -- 22 without it,
+ * 20 with."*  On the installed 20-body:
+ *     the pin, as parked                                     20
+ *     `{ void *tf; tf = (void *)Task_BlitAnim; ... }`         20   <- PIN-FREE
+ *     the block removed, `StartTask(Task_BlitAnim, arg)`      22
+ * **What is load-bearing is the LOCAL CARRIER IN ITS OWN BLOCK, not the
+ * register pin.** The park tested "without it" by deleting the whole
+ * construct, so it measured the carrier and attributed the result to the pin.
+ * That retires one pass-3 depin entry (reports/pass3-depin.md) at zero cost,
+ * and it is the batch-340 Func_80c0130 lesson again: TEST A DEVICE-FREE
+ * CONSTRUCT BEFORE RECORDING A DEVICE AS NECESSARY.
+ *
+ * ===========================================================================
+ * WHY THE ANCHOR AXIS WAS RECORDED CLOSED WHEN IT WAS WORTH 4 -- A TOOL GAP
+ * ===========================================================================
+ * `python3 tools/autosweep.py src/non_matching/rom_c9000/Anim_Venus.c` prints
+ * `ANCHOR AXIS -- 40 statement boundaries` and `all 37 inert or worse`, then
+ * `Both cheap axes are CLOSED on this park.`  **THIS BODY HAS 97 BOUNDARIES.**
+ * `--max` defaults to 40 (autosweep.py's argparse) and the header line says how
+ * many it RAN, never how many it SKIPPED -- and the two improving placements
+ * are boundaries 56 and 58.  Run it as `--anchor --max 250` on any park whose
+ * body is longer than ~40 statements.  Fifth false-clean-negative in that file,
+ * and the fix is a one-line warning, not a bug.
+ *
+ * ===========================================================================
+ * THE REMAINING 16, AND THE PARK'S FOUR-CLUSTER READING SURVIVES INTACT
+ * ===========================================================================
+ *   differ 16 at: 38 39 | 177 178 180 | 184 185 187 | 195..200 | 225 226
+ * (A) 38/39, 2 enc, UNCHANGED.  ref `6a2d ldr r5,[r5,#0x20]` then
+ *     `9306 str r3,[sp,#0x18]`; ours swapped.  THE ROM DEFERS blitA'S RELOAD
+ *     STORE BY ONE SLOT AND WE DO NOT -- note this is the OPPOSITE SIGN from
+ *     Anim_CriticalHit's run 1, where the ROM stores immediately and we defer.
+ *     So the deferred-store class has both directions in this bank, and an
+ *     anchor only helps the direction where the region can be ENDED after the
+ *     store.  Measured here: anchor between the two assignments 18, anchor
+ *     after both 19, `blitB` first 18, `pp = tbl + 7; *pp++` 16 (exactly
+ *     inert), the pair moved below the three LoadVFXFile calls 49 RELOCDIFF.
+ * (B) 177/178/180, 3 enc.  The gBuffer pool load is r3 in ours and r2 in the
+ *     ROM.  ITS SLOT IS NOW RIGHT (193/194 match) AND ONLY THE REGISTER IS
+ *     LEFT, which is the park's local-alloc `find_free_reg` bound
+ *     (local-alloc.c:1963-2050, REG_ALLOC_ORDER {3,2,1,0,...}, block 12 three
+ *     insns long) and that bound is UNREFUTED.  The park's note that pinning it
+ *     to r2 then inverts the `add` operand order still stands.
+ * (C) 184/185/187 and 195-200, 9 enc.  The two reload scratch registers for
+ *     `+ (0x80 << 7)` (ROM r3, ours r2) and `+ (0x80 << 1)` (ROM r0, ours r2).
+ *     Still `allocate_reload_reg`'s cursor (reload1.c:4996-5065,
+ *     `last_spill_reg` at :4937, `spill_regs[]` built in ASCENDING hard-register
+ *     order at :3527-3532).  The anchor moved the cursor enough to fix 195-200's
+ *     ORDER but not the registers.
+ * (D) 225/226, 2 enc.  `mov r2,sl` (ROM) against `mov r4,sl` (ours), same
+ *     cursor.
+ *
+ * ===========================================================================
+ * BOTH CHEAP AXES CLOSED ON THE 16-BODY, AND THE PARK'S INERT LIST RE-CROSSED
+ * ===========================================================================
+ * ANCHOR AXIS: all 97 boundaries swept as a SECOND anchor -- 39 inert at 16,
+ *   nothing below (3 did not compile; they are declaration-prologue offsets).
+ *   Also swept as single anchors on the 20-body: only 56 (18) and 58 (16) move.
+ *   Pairs and triples around them: 55+58, 56+57, 56+58, 58+59, 58+60, 58+62 all
+ *   16; 58+61 and 56+58+61 are 21, 56+58+63 and 58+63 are 20.  **TWO ANCHORS
+ *   ARE NEVER BETTER THAN ONE HERE**, the same shape batch 340 brief E found on
+ *   AnimEnd.
+ * FLAG AXIS (autosweep, on the 20-body): -fno-gcse 20 (inert); worse
+ *   -fno-strict-aliasing 25, -fno-rerun-cse-after-loop 108, -fno-schedule-insns2
+ *   167, -ffixed-r7 256, -fno-rerun-loop-opt 298, -fno-strength-reduce 310,
+ *   -O1 351.
+ * THE PARK'S RECORDED-INERT SPELLINGS, RE-CROSSED WITH THE ANCHOR and STILL
+ *   INERT at exactly 16 (the crossing-partner check, because a spelling that is
+ *   inert on the parked body need not stay inert once the body changes):
+ *     operand order on `(Random() & 0x7fff) + (0x80 << 7)`          16
+ *     operand order on `(rv & 0x1ff) + (0x80 << 1)`                 16
+ *     both operand orders together                                  16
+ *     `0x4000` / `0x100` as plain literals instead of shifts         16
+ *     `pp = tbl + 7; blitA = *pp++; blitB = *pp;`                    16
+ *   AND TWO THAT ARE MUCH WORSE, which is new information about this park's
+ *   OWN batch-326 lever ("the bias must be its own statement") -- INSIDE THE
+ *   k LOOP IT RUNS THE OTHER WAY:
+ *     `a2 = Random() & 0x7fff; a2 += 0x80 << 7;`                    191 RELOCDIFF
+ *     `mag = rv & 0x1ff; mag += 0x80 << 1;`                         188 RELOCDIFF
+ *     `mag` computed before `g->x`                                   56
+ *
+ * ===========================================================================
+ * SPLIT SHAPE -- THE PARK'S IS STALE
+ * ===========================================================================
+ * The park says *"first of the four functions in asm/rom_c9000/rom_e0564_a_a.s
+ * (Anim_Venus, Anim_Mars, Anim_Hail, Anim_Ground)"*.  `tools/piece.py` reads
+ * **TWO**: Anim_Venus (this park) and Anim_Mars (37 of 426,
+ * src/non_matching/rom_c9000/Anim_Mars.c).  Anim_Hail and Anim_Ground have
+ * since landed and the file was already cut.  `tools/datacheck.py` on it is
+ * SILENT (rc 0), so a text-only split with no new `.global`.
+ * `tools/split_s.py asm/rom_c9000/rom_e0564_a_a.s Anim_Venus --dry-run`:
+ *     -> asm/rom_c9000/rom_e0564_a_a_b.s  and  asm/rom_c9000/rom_e0564_a_a_c.s
+ * installed path on landing: src/rom_c9000/rom_e0564_a_a_b.c.
+ * -- scratch_elev/b341/A
+ * =============================================================================
+ */
 /* Anim_Venus  --  0x080e0564, first of the four functions in
  * asm/rom_c9000/rom_e0564_a_a.s (Anim_Venus, Anim_Mars, Anim_Hail, Anim_Ground).
  *
@@ -231,7 +369,7 @@ void Anim_Venus(void *context)
     *(int *)(base + 0x7784) = 0x4b;
     arg = 0x90;
     {
-        register void *tf __asm__("r0");
+        void *tf;
         tf = (void *)Task_BlitAnim;
         arg <<= 3;
         StartTask(tf, arg);
@@ -290,6 +428,7 @@ void Anim_Venus(void *context)
                         g->x = p->x << 16;
                         mag = (rv & 0x1ff) + (0x80 << 1);
                         g->y = (p->y + 0x10) << 16;
+    do { } while (0);
                         g->vx = (sin(a2) * mag) >> 7;
                         g->vy = (cos(a2) * mag) >> 6;
                         g->t = (Random() & 0xf) + 0x20;

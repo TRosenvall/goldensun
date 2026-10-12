@@ -1,3 +1,93 @@
+/* ===== BATCH 341, BRIEF C: 18 -> 16 ENCODINGS OF 411.  READ THIS FIRST. =====
+ *
+ * Func_80a112c -- NON-MATCHING, **16 ENCODINGS OF 411 DIFFER**.
+ * Size exact, RELOCATIONS IDENTICAL, instruction counts AGREE at 339 each
+ * (the old header's "411 = 411" is the ENCODING count, which includes pool
+ * words and pads; objcmp's instruction metric reads 339/339).  So 16 is a
+ * TRUE DISTANCE.  tools/shimcount.py prints NO ROWS: zero pins.
+ * aligncmp: 396 of 411 aligned-equal (96.4%), 16 in 12 hunks.
+ *
+ * Verify with (the INSTALLED path):
+ *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
+ *     goldensun-build python3 tools/objcmp.py src/non_matching/rom_a1000/80a112c.c \
+ *     asm/rom_a1000/rom_a1050_c_c_a.s --func Func_80a112c
+ *   -> 16 of 411, instructions 339/339, first at index 182
+ * SINGLE-FUNCTION FILE, tools/datacheck.py prints nothing -- converting it
+ * deletes asm/rom_a1000/rom_a1050_c_c_a.s outright, NO SPLIT.
+ *
+ * WHAT MOVED IT: ONE DEVICE-FREE ANCHOR.  `do { } while (0);` immediately
+ * after the second `copy(u, old, n);` in the `case 2: case 3:` arm, i.e.
+ * between it and `free(old);`.  It closes the park's
+ * CLUSTER C entirely -- the `ldr r3,=Func_8001af8` / `mov r0,r8` transposition
+ * at ref[271..273], which the park called "2 by objcmp's double count" and
+ * had no handle for ("the elevation.md lever ... does not reach this one").
+ * An ANCHOR reaches it.  Note the placement is in the arm BEFORE the
+ * divergence, which is the predictable half: an anchor hangs its loop notes on
+ * the FOLLOWING insn (haifa-sched.c:3735-3736), so it fences `free(old);` --
+ * one statement AFTER the contested `copy = Func_8001af8;` pair, which is the
+ * "an anchor DOWNSTREAM of the residue can fix the residue" case: INSN_PRIORITY
+ * is computed over the whole basic block, so a fence at its tail re-ranks
+ * everything in it.
+ *
+ * *** AND THE REASON NOBODY FOUND IT: tools/autosweep.py CAPS THE ANCHOR
+ * SWEEP AT 40 PLACEMENTS (`--max`, default 40, autosweep.py:263-264).  THIS
+ * FUNCTION HAS 88 BOUNDARIES.  The winning one is NUMBER 58.  An autosweep
+ * "ANCHOR AXIS -- 40 statement boundaries" line followed by "Both cheap axes
+ * are CLOSED on this park" is a TRUNCATED axis, not a closed one. ***
+ *
+ * THE RESIDUE IS THE PARK'S CLUSTERS A AND B, UNCHANGED AND STILL 16:
+ *   A  ref[182..185] and ref[212..215], 5 encodings.  The ROM's
+ *      `ldrb r2,[r3] / ldr r3,=0x741 / adds r6,r2,r3` against our
+ *      `ldrb r6,[r3] / ldr r5,=0x741 / adds r6,r6,r5`.  Four structurally
+ *      different spellings all read 19/20 on the old base -- a wall with a
+ *      mechanism (the park's own: gcc coalesces the load into the add's
+ *      destination unless the loaded pseudo outlives the add, and the ROM
+ *      gives it no later use).
+ *   B  ref[282..314], 11 encodings.  Case 4's r0/r4 swap: the ROM puts `item`
+ *      in r4 and `found` in r0, we do the reverse, and the pool-load register
+ *      and the two-operand `adds` follow from it.
+ *
+ * *** THE PARK'S allocno_compare FORMULA IS WRONG, AND THE CORRECTION MATTERS. ***
+ * The park computes priority as `floor_log2(n_refs) * freq / live_length` and
+ * concludes `item` has floor_log2 = 2 against `found`'s 1.  The actual source,
+ * global.c:606-613, is
+ *
+ *     pri = ((double)(floor_log2 (allocno[v].n_refs) * allocno[v].n_refs)
+ *            / allocno[v].live_length) * 10000 * allocno[v].size;
+ *
+ * -- `n_refs` appears TWICE and there is NO `freq` term at all.  Loop
+ * frequency is already folded into n_refs: flow.c:4948 does
+ * `REG_N_REFS (regno) += (optimize_size ? 1 : pbi->bb->loop_depth + 1)`, so a
+ * reference at loop depth 1 counts 2.  Recomputing with that:
+ *     item   1 (assign) + 2 (loop compare) + 1 + 1 (the two `item + 0x333`) = 5
+ *     found  1 (`found = 0`) + 2 (`found = 1`, in the loop) + 1 (`found != 0`) = 4
+ * floor_log2(5) = floor_log2(4) = 2, so pri_item = 10/L_item and
+ * pri_found = 8/L_found.  **BOTH TERMS ARE THE SAME CLASS; the park's
+ * "found NEEDS FOUR REFERENCES OR item THREE" is not the bound.**  The real
+ * bound is a RATIO: `found` wins as soon as L_item / L_found > 1.25.  That is
+ * a live-LENGTH question, not a reference-count one, and it is a much smaller
+ * gap than the park's arithmetic suggests.  Whoever takes cluster B next
+ * should read `live_length` for the two allocnos out of `.18.greg` and work on
+ * the 1.25, instead of hunting a fourth reference for `found`.
+ *
+ * MEASURED THIS BATCH AT 16, ALL INERT (339/339, relocations exact):
+ *   a copy `want = item;` so the loop test stops referencing `item`;
+ *   the loop test's operands reversed (`item == (...)`);
+ *   the loop bound on the left (`0x1f >= i`) and `i < 0x20`;
+ *   `int item = 0;` -- the Anim_Djinni declaration-initialised carrier lever,
+ *     which is the one that ought to lengthen `item`'s range and does not;
+ *   `int item = 0;` crossed with the bound on the left.
+ * WORSE: `item = ...` hoisted above the switch (130, relocations dirty);
+ *   `int found = 0;` at the declaration with the arm's `found = 0;` removed
+ *   (401, and the frame grows 4 bytes).
+ * ANCHOR AXIS, ALL 88 BOUNDARIES: one better (58, this one), the rest 18 or
+ *   worse.  CROSSED WITH ITSELF, all 89 second placements on the 16 base:
+ *   NONE better than 16.
+ * FLAG AXIS at 18: -fno-strict-aliasing, -fno-strength-reduce,
+ *   -fno-rerun-cse-after-loop and -fno-rerun-loop-opt all inert; -O1 376,
+ *   -fno-gcse 206, -fno-schedule-insns2 219, -ffixed-r7 386.
+ */
+
 /* Func_80a112c -- 0x080a112c, asm/rom_a1000/rom_a1050_c_c_a.s (1 function, no data).
  *
  * NON-MATCHING, 18 of 411 encodings differ.  SIZE MATCHES (964 bytes) and the
@@ -274,6 +364,8 @@ void Func_80a112c(int arg0, int id, int slot, int mode)
             Func_80a15f0(u, old, box);
             copy = Func_8001af8;
             copy(u, old, n);
+    do { } while (0);
+
             free(old);
         }
         break;

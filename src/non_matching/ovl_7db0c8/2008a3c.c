@@ -1,3 +1,90 @@
+/* ===== BATCH 341, BRIEF C: 14 -> 11 ENCODINGS OF 367.  READ THIS FIRST. =====
+ *
+ * OvlFunc_954_2008a3c -- NON-MATCHING, **11 ENCODINGS OF 367 DIFFER**.
+ * Instruction counts AGREE, 286 each (the old header's "348 instructions" is
+ * wrong -- objcmp excludes pool words and pads, and that line predates the
+ * metric).  Size exact.  tools/shimcount.py prints NO ROWS: zero pins.
+ * RELOCATIONS DIFFER BY EXACTLY ONE ROW and it is the known `_FILE_e4` one --
+ * ours carries `00000374 R_ARM_ABS32 _FILE_e4` where the reference has the
+ * literal.  See the `_FILE_e4` block below; this is NOT a new defect.
+ *
+ * Verify with (the INSTALLED path):
+ *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
+ *     goldensun-build python3 tools/objcmp.py \
+ *     src/non_matching/ovl_7db0c8/2008a3c.c \
+ *     asm/overlays/rom_7db0c8/ovl_30_c_c_c_c_a_a_a.s --func OvlFunc_954_2008a3c
+ *   -> 11 of 367, instructions 286/286, first at index 61
+ * ONE function, tools/datacheck.py prints nothing -- CONVERTS WHOLE when it lands.
+ *
+ * WHAT MOVED IT: ONE DEVICE-FREE ANCHOR.  `do { } while (0);` immediately
+ * after `a[0x23] = two;`.  Found by tools/autosweep.py's anchor axis, which
+ * this park had never been run through.  It removes three of the thirteen
+ * encodings at [68..71] outright and leaves the window a clean permutation.
+ *
+ * THE RESIDUE IS 10 INSTRUCTIONS PLUS THE ONE POOL WORD, AND THE TEN ARE ONE
+ * THING: THREE RELOAD SCRATCH REGISTERS, PICKED ONE SLOT ROUND THE CURSOR.
+ *
+ *       ref                      ours
+ * [61]  movs r1,#0               str  r3,[r5,#8]
+ * [62]  str  r3,[r5,#8]          movs r3,#0
+ * [63]  mov  r8,r1               mov  r8,r3
+ * [66]  mov  r2,r8               mov  r1,r8
+ * [67]  strb r2,[r3,#0]          strb r1,[r3,#0]
+ * [71]  movs r3,#12              movs r2,#12
+ * [72]  str  r3,[sp,#4]          str  r2,[sp,#4]
+ * [73]  movs r2,#1               movs r3,#1
+ * [76]  mov  sl,r3               mov  sl,r2
+ * [77]  movs r3,#1               movs r2,#1
+ *
+ * All three are LO scratch registers a Thumb HI-register access needs
+ * (a const cannot be moved into a HI reg, and a HI reg cannot be the source of
+ * a `strb`).  THE ROM TAKES r1, r2, r3 IN THAT ORDER; WE TAKE r3, r1, r2.
+ * That is the SAME SEQUENCE ONE POSITION FURTHER ROUND
+ * `allocate_reload_reg`'s cursor (reload1.c:4962, `i = last_spill_reg` at
+ * :5003, advanced only on success in `set_reload_reg` at :4937, reset to -1
+ * once per function at :821).  Derivation, checkable: with r0 unavailable at
+ * the second site, a cursor sitting on r2's slot yields r3 then r1 then r2
+ * (ours) and one sitting on r0's yields r1 then r2 then r3 (the ROM).
+ *
+ * THE DUMP EVIDENCE, and it is the decisive part -- `-da`, `.19.flow2` and
+ * `.18.greg` of this body:
+ *
+ *   .19.flow2  (insn 845 ... (set (reg:SI 3 r3) (const_int 0)))      <- ours
+ *              (insn 129 ... (set (reg/v:SI 8 r8) (reg:SI 3 r3)))
+ *              (insn 851 ... (set (reg:QI 1 r1) (reg:QI 8 r8)))      <- ours
+ *              (insn 137 ... (set (mem:QI (reg:SI 3 r3) 0) (reg:QI 1 r1)))
+ *   .18.greg   Spilling for insn 129. / Using reg 3 for reload 0
+ *              Spilling for insn 137. / Using reg 2 for reload 2
+ *
+ * > **FOR INSN 137 `find_reg` PRINTED r2 -- WHICH IS THE ROM'S REGISTER -- AND
+ * > THE EMITTED REGISTER IS r1.**  So at that site layer 1 already agrees with
+ * > the ROM and the round-robin overrides it.  This is docs/elevation.md's
+ * > brief-E observable reproduced on a second function
+ * > (`find_reg` reserves at reload1.c:1588, prints at :1664, tie-breaks on
+ * > `inv_reg_alloc_order` at :1645-1662; the cursor then picks inside the set
+ * > `finish_spills` grew at :3609-3627).  **Never read the register off
+ * > `.18.greg`.**
+ *
+ * SO THE PARK'S CLASSIFICATION ("a reload-stage register choice, which the
+ * brief's alias-set dependent-count lever provably cannot reach") IS RIGHT,
+ * and it is now pinned to one quantity: the cursor's position on entry to
+ * insn 129.  The next door is the SAME DOOR as
+ * src/non_matching/ovl_7aa430/2009a3c.c's: make an earlier reload that
+ * currently emits nothing into an ALLOCATED one, so the cursor advances once
+ * more before insn 129.  `find_dummy_reload` (reload.c:1404, reached only when
+ * `in != 0 && out != 0`) and its `REG_DEAD` requirement are the handle that
+ * park names.  TWO PARKS, ONE MECHANISM -- work them together.
+ *
+ * MEASURED THIS BATCH, DO NOT RE-RUN:
+ *   ANCHOR AXIS, ALL 94 BOUNDARIES (not the 40 autosweep's default reaches):
+ *     best 11 (after `a[0x23] = two;`), second 13 (after `a[0x55] = z;`),
+ *     everything else 14 or worse.
+ *   ANCHOR AXIS CROSSED WITH ITSELF: all 95 second-anchor placements on top of
+ *     the 11 base -- NONE better than 11.  Closest 12.
+ *   FLAG AXIS: every per-file group inert at 14 except -O1 (91),
+ *     -fno-schedule-insns2 (91) and -ffixed-r7 (355).
+ */
+
 /* OvlFunc_954_2008a3c -- NON-MATCHING, **14 ENCODINGS OF 367**, DOWN FROM 17.
  * SIZE AND RELOCATION COUNT EXACT, 348 instructions, instruction count exact.
  * Production flags, no per-file Makefile adjustment (checked).
@@ -155,6 +242,7 @@ int OvlFunc_954_2008a3c(void)
     a[0x55] = z;
     two = 2;
     a[0x23] = two;
+    do { } while (0);
     twelve = 0xc;
     __Func_8010704(0xe, 0xd, 1, 1, n, twelve);
     __StartTask(OvlFunc_954_200804c, 0xc8 << 4);

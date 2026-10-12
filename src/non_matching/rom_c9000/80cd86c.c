@@ -1,3 +1,95 @@
+/* ===== BATCH 341 (brief A) -- 83 -> 75 OF 303.  BODY CHANGED.  READ FIRST =====
+ * AnimStart2 -- NON-MATCHING, **75 differing encodings of 303** (was 83).
+ * **75 IS NOT A DISTANCE** and the park is right about why: size 692 against
+ * the ROM's 696 (-4) and the body is TWO INSTRUCTIONS SHORT in the tile loop,
+ * so the positional figure is measuring misalignment as well as difference.
+ * RELOCATIONS also differ (both `_call_via_r6` for the ROM's `_call_via_r5`,
+ * and WaitFrames / Func_80008d4 at -4, the two-instruction deficit showing
+ * through).  PINS: 0.  DEVICE-FREE, no flag group, no fakematch row.
+ *   objcmp verbatim:
+ *     XX SIZE  ref 696 bytes, ours 692
+ *     XX INSTRUCTION COUNT  ref 254, ours 252
+ *     XX ENCODINGS differ in 75 place(s) (ref 303, ours 301)
+ *        [STREAM length, pool+pad INCLUDED; instructions are 254/252]
+ *     XX RELOCATIONS differ
+ *
+ * *** CORRECTION TO THIS PARK'S FIGURE LINE. ***  It reads *"Size 692 against
+ * the ROM's 696 (-4); 301 instructions against 303 (-2)"*.  **301 and 303 are
+ * the STREAM counts; the instruction counts are 252 and 254** (45 32-bit
+ * entries each side).  The -2 and the -4 bytes are both right, so the verdict
+ * survives, but the numbers quoted were the stream's.
+ *
+ * Verify with:
+ *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
+ *     goldensun-build python3 tools/objcmp.py \
+ *     src/non_matching/rom_c9000/80cd86c.c \
+ *     asm/rom_c9000/rom_cd508_a_c_a.s --func AnimStart2
+ *
+ * ===========================================================================
+ * TWO ANCHORS, THE SAME PAIR AS ITS PIECE-MATE AnimStart
+ * ===========================================================================
+ * 1.  `do { } while (0);` immediately after `queue = &gDMATaskCount;`
+ *     INSIDE `QueuePush1` ONLY -- 83 -> 78.  Batch 340 brief E's AnimEnd lever,
+ *     transferring: the loop notes hang on the FOLLOWING insn
+ *     (haifa-sched.c:3735-3736), the region ends after the pool load and the
+ *     load issues alone.  NOT a priority change -- the ready list is emptied.
+ * 2.  After `view = *(unsigned char **)((char *)iwram_3001eec - 0x78);`
+ *     in AnimStart2 itself -- 78 -> 75.
+ *
+ * ALL 15 SUBSETS OF THE FOUR INLINES MEASURED: every subset containing
+ * QueuePush1 is 78, every subset without it is 83.  **FOUR ANCHORS ARE WORTH
+ * WHAT ONE IS**, because the ROM-shaped four-separate-bodies form still builds
+ * the gDMATaskCount ADDRESS once and copies the register; only the single pool
+ * load has to be re-seated.  A park with N inlined copies of a queue has ONE
+ * anchor site, not N.
+ *
+ * ON THIS PARK THE ANCHOR DOES NOT CLEAN THE POOL WORD, AND THE DIFFERENCE
+ * FROM AnimStart IS INFORMATIVE: AnimStart's gDMATaskCount relocation moves
+ * from +0x80 to the ROM's +0x7c, AnimStart2's does not, because here the whole
+ * tail is shifted by the tile loop's -2 instructions.  Fix the length first.
+ *
+ * ===========================================================================
+ * autosweep GAPS THAT HID BOTH ANCHORS
+ * ===========================================================================
+ *  * `--max` defaults to 40 and this body has 65 boundaries;
+ *  * the anchor axis is built from `body_span(text, fn)`, so it NEVER REACHES
+ *    the `static inline`s -- and lever 1 lives inside one.  A park whose
+ *    subject calls a `static inline` has a structurally incomplete anchor axis,
+ *    which is a DIFFERENT gap from the resolve() bug batch 340 brief E fixed.
+ *
+ * ===========================================================================
+ * THE BLOCKER IS UNCHANGED AND IT IS A LENGTH PROBLEM
+ * ===========================================================================
+ * `loop.c` `move_movables` hoists all three shifted constants out of the tile
+ * loop where the ROM hoists two (`0x80<<1` r10, `0x80<<2` r14) and REBUILDS
+ * `0x80<<5` every outer iteration.  The third hoist takes r8 -- the ROM's VRAM
+ * base -- and the cascade is the whole residue (the park's own four-line
+ * accounting: -1 on the store address, -5 on the outer-loop bottom, +2 on the
+ * loop prologue, -1 on the two `clear()` calls).  **Per batch 339 brief C, that
+ * accounting is the right method: count each region separately rather than
+ * reading the net -2.**
+ * NOT TRIED THIS BATCH, and the next thing to try: the batch-341 run-2 lever
+ * from Anim_CriticalHit, which is the complement of the 327 one -- THE
+ * PREHEADER TIE HAS TWO HANDLES, and making the COMPETING statement an
+ * induction variable can move it out of the preheader without naming any
+ * constant.  Here the question is the mirror (keep `0x80<<5` OUT of the
+ * preheader) and the giv attempts the park records were all aimed at `row` and
+ * `col`, never at the constant's own lifetime.
+ *
+ * ANCHOR AXIS, all 65 boundaries on the 78-body: a3 75; a2/a4/a7/a8/a61/a62 77;
+ * the rest 78 or worse; one (the declaration prologue) does not compile.
+ * FLAG AXIS (autosweep, parked body): -fno-gcse 83, -fno-strength-reduce 83,
+ * -fno-rerun-loop-opt 83 (inert); -fno-strict-aliasing 91, -fno-schedule-insns2
+ * 156, -ffixed-r7 190, -fno-rerun-cse-after-loop 285, -O1 274 (worse).
+ *
+ * SPLIT SHAPE, re-verified: asm/rom_c9000/rom_cd508_a_c_a.s holds THREE
+ * functions -- Func_80cd52c (no park, no sibling .c), AnimStart
+ * (src/non_matching/rom_c9000/80cd594.c, 63 of 316 after this batch) and
+ * AnimStart2, which is the LAST, so a two-way cut.  `split_s.py` cuts
+ * before/target/after; neither sibling is a hostage to the other.
+ * -- scratch_elev/b341/A
+ * =============================================================================
+ */
 /* AnimStart2  [rom_c9000]  --  asm/rom_c9000/rom_cd508_a_c_a.s  @ 0x080cd86c
  *
  * NON-MATCHING: 83 encodings of 303 differ (objcmp).
@@ -249,6 +341,7 @@ static inline void QueuePush1(void)
     u32 *task;
 
     queue = &gDMATaskCount;
+    do { } while (0);
     savedIme = REG_IME;
     SET_IO(REG_IME, REG_ADDR_IME);
     count = queue->count;
@@ -345,6 +438,7 @@ void AnimStart2(int mode)
 
     base = (unsigned char *)iwram_3001eec[0];
     view = *(unsigned char **)((char *)iwram_3001eec - 0x78);
+    do { } while (0);
     arg = (void *)iwram_3001eec[1];
     st = (int *)iwram_3001eec[5];
     Func_80cd508();

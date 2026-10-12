@@ -5002,7 +5002,7 @@ was exact on the first screen.
 
 The mechanism is worth knowing because it makes the lever predictable: the
 lengthened live range lowers the allocno's priority
-(`floor_log2(n_refs) * n_refs / live_length`) and pushes it one slot down
+(`floor_log2(n_refs) * n_refs / live_length * 10000 * size`) and pushes it one slot down
 `REG_ALLOC_ORDER`, whose call-saved sequence for Thumb is
 **r5, r6, r7, r8, r10, r9, r11** (`arm.h:989`). r10 comes before r9 — so
 "the ROM used r10 and we used r9" is a one-slot priority difference, not noise.
@@ -5958,7 +5958,7 @@ reordering, copying the parameter into a local, deleting a named pointer,
 `-fno-rerun-cse-after-loop`.
 
 It is **not** the priority formula — `global.c`'s `allocno_compare` is
-`floor_log2(n_refs) * n_refs / live_length`, and by that the parameter always
+`floor_log2(n_refs) * n_refs / live_length * 10000 * size`, and by that the parameter always
 outranks the short-lived value that beats it in the ROM. The cause is in
 `find_reg`'s conflict/preference pass. Recognise it in one screen rather than
 ten: **same instruction stream, one register rotation, parameter one slot low.**
@@ -6002,7 +6002,11 @@ an actor pointer used ~20 times (twice inside loops) and an `anim` parameter
 used once. The ROM gives **r5 — the first callee-saved register — to the
 short-lived parameter.**
 
-`allocno_compare` weights priority by basic-block *frequency*, so merging the
+`allocno_compare` does **NOT** weight priority by basic-block frequency -- that
+claim is wrong and contradicts this document's own section below, "`allocno_compare`
+has NO frequency term". Frequency is already folded into `n_refs` by
+`flow.c:4948`, so the sort sees it only through that count. (Corrected batch 341
+brief C, read from `global.c:600-618`.) What is true is that merging the
 parameter with a loop counter multiplies its priority past a whole-function
 pointer's. Reusing `anim` as the counter for both loops, changing nothing else,
 matched exactly.
@@ -21330,7 +21334,7 @@ attempt already reproduced the ROM's shared exit exactly, 24 lines against 24, w
 every block boundary in place; its "8 differing" was ONE defect counted eight
 times, r4 and r5 exchanged.
 
-`global.c:allocno_compare` sorts by `floor_log2(n_refs) * n_refs / live_length`
+`global.c:allocno_compare` sorts by `floor_log2(n_refs) * n_refs / live_length * 10000 * size`
 descending and hands out `REG_ALLOC_ORDER` in that order. Read off `.17.lreg` /
 `.18.greg`:
 
@@ -25141,7 +25145,7 @@ a commutative `|`; introduce a carrier instead.
 
 ## To move a giv out of a high register, raise a rival's n_refs by SHARING
 
-`global.c:607`'s `floor_log2(n_refs) * n_refs / live_length` decides which of two
+`global.c:607`'s `floor_log2(n_refs) * n_refs / live_length * 10000 * size` decides which of two
 givs gets a low register when only some can. `Func_80f0678`'s 16×6 nest needs
 three outer accumulators and only two fit, because `add r3, r7, r6` is a
 three-operand Thumb add; the loser goes to r14 and costs `mov r2, r14` before
@@ -26209,7 +26213,7 @@ and dies in one block.
 
 ## `allocno_compare` has NO frequency term — and that can disprove a source reading
 
-`global.c`'s `allocno_compare` is `floor_log2(n_refs) * n_refs / live_length * size`. **There is
+`global.c`'s `allocno_compare` is `floor_log2(n_refs) * n_refs / live_length * 10000 * size * size`. **There is
 no basic-block frequency factor**, unlike the local-alloc formula quoted elsewhere in these
 notes. And `find_reg` reaches a call-clobbered register only on a retry, gated by
 `CALLER_SAVE_PROFITABLE(REFS, CALLS)` = `(4 * CALLS < REFS)` (`regs.h:184`).
@@ -30726,7 +30730,7 @@ ROM: `t` r5, `c` r6, `&scratch` r7, fp **r8**, `&count` r9. Ours: fp r7,
 only hi-penalising reference is the single `(plus fp -4)`, and `*thumb_addsi3`'s hi
 alternatives are `*`-marked so `regclass` ignores them. fp reaches r8 only through
 `reg_alternate_class`, i.e. only if r5/r6/r7 all conflict, i.e. only if `&scratch`
-is allocated **before** fp. On `floor_log2(n_refs) * n_refs / live_length`, fp (5
+is allocated **before** fp. On `floor_log2(n_refs) * n_refs / live_length * 10000 * size`, fp (5
 refs, ~60 insns) outranks `&scratch` (3 refs, ~55) **threefold** — so closing it
 needs **five references to `scratch` where the ROM shows two reads.**
 
@@ -34042,7 +34046,7 @@ file: *"grep it before writing anything up as a new finding."*
 ## `allocno_compare` HAS NO LOOP-DEPTH TERM, BUT ITS INPUT IS ALREADY LOOP-WEIGHTED
 
 Batch 324 established that `allocno_compare` (`global.c:597-620`) is exactly
-`(floor_log2(n_refs) * n_refs / live_length) * 10000 * size`, **with no frequency
+`(floor_log2(n_refs) * n_refs / live_length * 10000 * size) * 10000 * size`, **with no frequency
 and no loop-depth term**, and used that to refute a park. That reading of the
 formula is correct and I repeated it in the batch-325 brief.
 

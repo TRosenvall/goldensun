@@ -1,3 +1,96 @@
+/* ===== BATCH 341 (brief A) -- 71 -> 63 OF 316.  BODY CHANGED.  READ FIRST =====
+ * AnimStart -- NON-MATCHING, **63 differing encodings of 316** (was 71).
+ * 316 is the STREAM length; the 16-BIT INSTRUCTION COUNTS ARE 265 / 265 and
+ * size is 728 bytes both sides, so the body is IN PHASE.  BUT **RELOCATIONS
+ * STILL DIFFER** -- both indirect calls are `_call_via_r6` where the ROM has
+ * `_call_via_r5`, and the first of them is at +2 -- SO THE 63 IS NOT A CLEAN
+ * DISTANCE.  PINS: 0.  DEVICE-FREE, no flag group, no fakematch row.
+ *   objcmp verbatim:
+ *     XX ENCODINGS differ in 63 place(s) (ref 316, ours 316)
+ *        [STREAM length, pool+pad INCLUDED; instructions are 265/265]
+ *        first at index 13
+ *     XX RELOCATIONS differ   (2 of 17: the two `_call_via_rN`)
+ *
+ * *** CORRECTION TO THIS PARK'S OWN FIGURE LINE. ***  It reads *"SIZE IS NOW
+ * EXACT (728 bytes) AND THE INSTRUCTION COUNT IS EXACT (316 against 316)"*.
+ * **316 is the STREAM count; the instruction count is 265** (51 32-bit entries:
+ * pool words and `bl` halves).  The conclusion survives -- 265 = 265 -- but the
+ * number quoted was the wrong one.  Fifth and sixth parks found in that state
+ * in three batches (337 two, 340 brief E three, this brief two).
+ *
+ * Verify with:
+ *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
+ *     goldensun-build python3 tools/objcmp.py \
+ *     src/non_matching/rom_c9000/80cd594.c \
+ *     asm/rom_c9000/rom_cd508_a_c_a.s --func AnimStart
+ *
+ * ===========================================================================
+ * TWO ANCHORS, AND THE FIRST ONE FIXES THE gDMATaskCount POOL WORD
+ * ===========================================================================
+ * 1.  INSIDE `QueuePush1` ONLY, immediately after `queue = &gDMATaskCount;`:
+ *         queue = &gDMATaskCount;
+ *         do { } while (0);        <- NEW
+ *         savedIme = REG_IME;
+ *     **71 -> 66, AND THE gDMATaskCount POOL WORD MOVES FROM +0x80 TO THE ROM'S
+ *     +0x7c.**  That is batch 340 brief E's AnimEnd lever transferring exactly
+ *     as predicted: the anchor's loop notes hang on the FOLLOWING insn
+ *     (haifa-sched.c:3735-3736), so the region ends right after the pool load
+ *     and leaves it alone -- the load is not raised in priority, the ready list
+ *     is emptied.  The park's cause-1 symptom was *"gDMATaskCount's pool word by
+ *     +4"* and it is now gone.
+ * 2.  After `view = *(unsigned char **)((char *)iwram_3001eec - 0x78);`
+ *     in AnimStart itself: 66 -> 63.
+ *
+ * *** ONLY THE FIRST OF THE FOUR INLINES MATTERS, AND THAT IS THE RESULT WORTH
+ * CARRYING. ***  All 15 non-empty subsets of the four `QueuePushN` bodies:
+ *     any subset CONTAINING QueuePush1                            66
+ *     every subset NOT containing QueuePush1 (2, 3, 4, 23, 24, 34, 234)  71
+ * So four anchors are worth exactly what one is.  The pool load is built ONCE
+ * and the three later sites copy the register, so there is only one load to
+ * re-seat -- which also means **a park with N inlined copies of a queue has ONE
+ * anchor site, not N**, and a sweep over the copies is wasted.
+ *
+ * ===========================================================================
+ * autosweep's DEFAULT `--max 40` HID THE SECOND ANCHOR
+ * ===========================================================================
+ * `tools/autosweep.py` on this park prints `ANCHOR AXIS -- 40 statement
+ * boundaries`; **the body has 67**, and `--max` defaults to 40.  Worse, the
+ * anchor axis NEVER REACHES THE `static inline`s AT ALL, because
+ * `body_span(text, fn)` confines the boundaries to AnimStart's own body -- and
+ * the whole lever above is inside an inline.  So on a park whose subject calls
+ * a `static inline`, autosweep's anchor axis is structurally incomplete, which
+ * is a DIFFERENT gap from the resolve() bug batch 340 brief E found and fixed.
+ *
+ * ===========================================================================
+ * WHAT IS LEFT -- the park's three components, re-read
+ * ===========================================================================
+ * Component 2 of the park ("the five mid-function literal pools ... the WORD
+ * ORDER inside each pool differs") IS NOW PARTLY CLOSED: the first pool is in
+ * the ROM's order.  Components 1 and 3 are untouched and their diagnosis stands:
+ *   1. `loop.c` `move_movables` hoists `0x80<<5` out of the tile loop where the
+ *      ROM REBUILDS it every outer iteration, taking r8 (the ROM's VRAM base)
+ *      and spilling the shared zero -- which is what still forces the blit
+ *      pointer to r6 and both calls to `_call_via_r6`.  THAT IS THE WHOLE
+ *      REMAINING RELOCATION DIFFERENCE and it is this park's real blocker.
+ *   3. three prologue schedule swaps.
+ *
+ * ANCHOR AXIS NOW CLOSED ON THE 63-BODY'S OWN TERMS: all 67 boundaries swept on
+ * the 66-body -- a3 63, a2/a4/a7/a8 65, everything else 66 or worse, one
+ * (the declaration prologue) does not compile.  The inline's own boundary is
+ * the lever above and is already in.
+ * FLAG AXIS (autosweep, parked body): -fno-gcse 71, -fno-strength-reduce 71,
+ * -fno-rerun-loop-opt 71 (inert); -fno-strict-aliasing 80, -fno-schedule-insns2
+ * 171, -ffixed-r7 251, -fno-rerun-cse-after-loop 296, -O1 299 (worse).
+ *
+ * SPLIT SHAPE, re-verified: `tools/piece.py` reads THREE functions in
+ * asm/rom_c9000/rom_cd508_a_c_a.s -- Func_80cd52c (no park, no sibling .c),
+ * AnimStart (this park) and AnimStart2 (src/non_matching/rom_c9000/80cd86c.c,
+ * 75 of 303 after this batch).  AnimStart is the MIDDLE function, so landing it
+ * is a middle cut; `tools/split_s.py` cuts before/target/after and NEITHER
+ * sibling is a hostage.
+ * -- scratch_elev/b341/A
+ * =============================================================================
+ */
 /* AnimStart  [rom_c9000]  --  asm/rom_c9000/rom_cd508_a_c_a.s  @ 0x080cd594
  *
  * PARK UPDATE (batch 292, brief E).  BONUS -- this function was not a target;
@@ -140,6 +233,7 @@ static inline void QueuePush1(void)
     u32 *task;
 
     queue = &gDMATaskCount;
+    do { } while (0);
     savedIme = REG_IME;
     SET_IO(REG_IME, REG_ADDR_IME);
     count = queue->count;
@@ -236,6 +330,7 @@ void AnimStart(int mode)
 
     base = (unsigned char *)iwram_3001eec[0];
     view = *(unsigned char **)((char *)iwram_3001eec - 0x78);
+    do { } while (0);
     arg = (void *)iwram_3001eec[1];
     st = (int *)iwram_3001eec[5];
     Func_80cd508();

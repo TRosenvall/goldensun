@@ -313,14 +313,50 @@ def main():
     if (a.anchor or a.barrier) and span:
         i, j = span
         pts = boundaries(text, i, j)
+        # ALSO SWEEP THE static inline HELPERS THE SUBJECT CALLS.  boundaries()
+        # used to see the subject's body ONLY, so a lever living inside a helper
+        # was unreachable -- and that is exactly where batch 340 brief E's
+        # AnimEnd answer was (an anchor after a queue-pointer assignment INSIDE
+        # the inline, 14 -> 2), and where both AnimStart parks' whole lever lives
+        # (worth 5 each, batch 341 brief A).  Fifth false-clean-negative class in
+        # this file: the tool could report an axis closed while never looking at
+        # the code that mattered.
+        #
+        # Only helpers the subject actually CALLS, so the sweep does not wander
+        # into unrelated statics.
+        called = set(re.findall(r"\b(\w+)\s*\(", text[i:j]))
+        for hm in re.finditer(r"^\s*static\s+(?:__inline__\s+|inline\s+)?[\w \t\*]*?"
+                              r"\b(\w+)\s*\([^;{]*?\)\s*\{", text, re.M | re.S):
+            if hm.group(1) not in called:
+                continue
+            hs = body_span(text, hm.group(1))
+            if hs and not (hs[0] >= i and hs[1] <= j):
+                extra = boundaries(text, *hs)
+                if extra:
+                    print(f"  (+{len(extra)} boundaries inside static inline "
+                          f"{hm.group(1)}, which the subject calls)")
+                    pts = sorted(pts + extra)
         for label, snippet, dev in (("ANCHOR", "\n    do { } while (0);", False),
                                     ("BARRIER", '\n    __asm__ volatile ("");', True)):
             if label == "ANCHOR" and not a.anchor:
                 continue
             if label == "BARRIER" and not a.barrier:
                 continue
-            print(f"{label} AXIS -- {min(len(pts), a.max)} statement "
+            capped = len(pts) > a.max
+            print(f"{label} AXIS -- {min(len(pts), a.max)} of {len(pts)} statement "
                   f"boundaries{'  (DEVICE: fakematch-class, pass-3 debt)' if dev else '  (device-free)'}")
+            if capped:
+                globals()["_CAPPED"] = True
+                # THE CAP IS A FALSE-CLEAN-NEGATIVE GENERATOR, and the fourth in
+                # this file.  --max defaults to 40, and batch 341 brief C had FOUR
+                # targets exceeding it (88, 94, 124 and 179 boundaries) -- two of
+                # which improved on a placement PAST boundary 40 (Func_80a112c at
+                # 58, Anim_Djinni at 44).  The old line printed no denominator and
+                # the verdict still said "CLOSED", so every default run on a long
+                # park recorded a TRUNCATED sweep as a closed axis.
+                print(f"     !! CAPPED at --max {a.max}: boundaries "
+                      f"{a.max}..{len(pts) - 1} are UNTESTED, not inert.  Re-run with "
+                      f"--max {len(pts)} before recording this axis as closed.")
             d = tempfile.mkdtemp(prefix="autosweep_", dir=os.path.join(ROOT, "scratch_elev"))
             try:
                 names = []
@@ -400,8 +436,13 @@ def main():
     elif best[0][0] < base[0]:
         print(f"\nImproved {base[0]} -> {best[0][0]} with no judgment applied.")
     else:
-        print("\nBoth cheap axes are CLOSED on this park.  That is a recorded")
-        print("negative worth putting in its header before an agent starts.")
+        if globals().get("_CAPPED"):
+            print("\nNo improvement found -- but the anchor axis was CAPPED, so it is")
+            print("NOT closed.  Re-run with --max set to the full boundary count before")
+            print("recording anything about that axis.")
+        else:
+            print("\nBoth cheap axes are CLOSED on this park.  That is a recorded")
+            print("negative worth putting in its header before an agent starts.")
     return 0
 
 

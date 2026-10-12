@@ -1,3 +1,202 @@
+/* ========= BATCH 341 (brief A) -- 10 -> 2 OF 707.  BODY CHANGED.  READ FIRST ====
+ * Anim_CriticalHit -- NON-MATCHING, **2 differing encodings of 707** (was 10).
+ * THE FIGURE IS A TRUE DISTANCE: 707 is the STREAM length (pool words and the
+ * `bl` halves included); the 16-BIT INSTRUCTION COUNTS ARE 607 / 607, size is
+ * 1612 bytes both sides, and objcmp prints NO SIZE and NO RELOCATIONS line.
+ * First differing index 364.  PINS: 0 -- tools/shimcount.py now reports NO ROWS
+ * AT ALL (the park's own `empty asm : 1` row is gone, see below).  DEVICE-FREE,
+ * NO FLAG GROUP, NO fakematch ROW.
+ *   objcmp verbatim:
+ *     XX ENCODINGS differ in 2 place(s) (ref 707, ours 707)
+ *        [STREAM length, pool+pad INCLUDED; instructions are 607/607]
+ *        first at index 364: ref 4d24  ours 980d
+ *
+ * Verify with:
+ *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
+ *     goldensun-build python3 tools/objcmp.py \
+ *     src/non_matching/rom_c9000/Anim_CriticalHit.c \
+ *     asm/rom_c9000/rom_e3958_c_c_c_c_a.s --func Anim_CriticalHit
+ * (`--whole` reports Anim_Attack and BaseAnim_Attack "missing from candidate"
+ * plus SIZE and RELOCATIONS lines.  THAT IS THE UNDONE SPLIT, NOT A DEFECT.
+ * Read the per-function row.)
+ *
+ * ===========================================================================
+ * THE EDIT IS THREE LINES AND IT RETIRES THIS PARK'S `__asm__` BARRIER
+ * ===========================================================================
+ *   1.  d[0] = (DrawFn)gPtrs[0x2e];
+ *       do { } while (0);        <- NEW (autosweep anchor boundary 30)
+ *       f1 = (DrawFn)gPtrs[0x2f];
+ *       __asm__ volatile ("");   <- DELETED
+ *       fp = d;
+ *   2.      _PlaySound(0xd4);
+ *       do { } while (0);        <- NEW (autosweep anchor boundary 83)
+ *   3.  p = (Part *)(base + (0xe1 << 7));     <- MOVED INTO THE LOOP as
+ *       do { p = (Part *)(base + (0xe1 << 7)) + i; ... i++; }  (no `p++`)
+ *
+ * MEASURED DECOMPOSITION (every row 607/607, relocations clean):
+ *     no barrier, no anchor (the pre-336 body)                  13
+ *     barrier only  -- THE PARK'S SHIPPED BODY                  10
+ *     anchor83 only, no barrier                                 11
+ *     anchor30 only, no barrier                                  6
+ *     anchor30 + barrier                                         8
+ *     anchor30 + anchor83 + barrier                              6
+ *     anchor30 + anchor83, no barrier                            4
+ *     + `p` as an index of `i`                                   2
+ *
+ * *** THE BARRIER WAS STRICTLY WORSE THAN AN ANCHOR AT THE SAME SITE AND IT
+ * WAS COSTING 2. ***  This park's 336 round found the right site with the
+ * wrong instrument and then spent a 39-row crossed sweep (five block shapes x
+ * eight BARRIER placements) concluding *"10 is a hard floor for this
+ * dimension"*.  It is not: the same dimension reads 6 with one anchor and no
+ * barrier.  Everything that sweep measured was correct; what it never varied
+ * was the instrument.
+ *
+ * WHY.  The park's barrier mechanism is right -- haifa-sched.c:3568
+ * `case ASM_INPUT:` -> :3583-3593 walk EVERY register adding dependences, and
+ * :3595 `reg_pending_sets_all = 1` -- so the deferred `str r2,[sp,#0x38]`
+ * (insn 1771, priority 18) really does acquire a forward dependent, and run 1
+ * really does go 13 -> 10.  An anchor does none of that.  Its loop notes hang
+ * on the FOLLOWING insn (haifa-sched.c:3735-3736), so the region simply ENDS;
+ * nothing has to win a rung because there is nobody left in the ready list.
+ * >>> RAISING A PRIORITY COMPETES.  ENDING A REGION DOES NOT.  Where a park's
+ * >>> residue is "insn X issues N slots late", try an anchor at the statement
+ * >>> boundary first and reach for a barrier only to confirm a mechanism. <<<
+ * This park's standing ask was *AIM AT prio(1771)*; the answer was not to aim
+ * at it at all.
+ *
+ * ===========================================================================
+ * RUN 3 (idx 245/246) IS CLOSED, AND THIS PARK SAID NOT TO TRY
+ * ===========================================================================
+ * The park: *"a pc-relative pool load ... can never acquire a new forward
+ * dependent ... DO NOT SPEND ANOTHER ROUND TRYING TO RE-RANK THESE TWO THROUGH
+ * THE SCHEDULER."*  Run 3 is `StartTask(Func_80cd4b4, 0xc8 << 4)`'s
+ * `lsl r1,r1,#4` against the `ldr r0,[pc,#392]` that fetches Func_80cd4b4.
+ * **The anchor after `_PlaySound(0xd4);` closes it** -- a statement AFTER the
+ * StartTask call.  Same shape as batch 339 brief C's OvlFunc_960_2008d24: an
+ * anchor DOWNSTREAM of the residue fixes the residue, because the region it
+ * ends contains both insns.  The pool-load rule is sound as a statement about
+ * PRIORITY and says nothing about ORDER.
+ *
+ * ===========================================================================
+ * RUN 2 (idx 169/170) IS CLOSED BY THE OTHER HALF OF ITS OWN EQUATION
+ * ===========================================================================
+ *     ref   2700 mov r7,#0   |  445d add r5,r11
+ *     ours  445d add r5,r11  |  2700 mov r7,#0
+ * The park's mechanism is EXACTLY right and the .23.sched2 dump reproduces it.
+ * Basic block 8's region table:
+ *     ;;  insn  code  bb  dep  prio  cost  units
+ *     ;;   395     5   0    1     1     1  core :         <- add r5,r5,fp  (p = base + K)
+ *     ;;  1865   173   0    0     1     1  core :         <- mov r7,#0     (the hoist)
+ * BOTH FORWARD-DEPENDENCE LISTS ARE EMPTY (region leaves -- their consumers are
+ * inside the loop, a different region), both priority 1, so the class rung
+ * (haifa-sched.c:4069-4094) ties, the dependent-count rung (:4097-4110) ties at
+ * 0, and INSN_LUID (:4113-4116) alone decides, LOWEST FIRST.  The RTL confirms
+ * the placement: insn 1865 carries `(expr_list:REG_EQUIV (const_int 0))` and
+ * sits immediately before `(note 397 ... NOTE_INSN_LOOP_BEG)`, i.e. exactly
+ * where move_movables' `emit_insn_before (..., loop_start)` puts it, so
+ * LUID(hoist) > LUID(395) BY CONSTRUCTION.
+ *
+ * The park concluded *"The lever does NOT transfer"* after measuring four
+ * `zero`-carrier spellings as different programs.  **IT WAS AIMING AT THE
+ * WRONG INSN.**  327's rule is a handle on the HOIST; the second handle is on
+ * the OTHER insn -- MAKE THE COMPETING PREHEADER STATEMENT AN INDUCTION
+ * VARIABLE SO IT LEAVES THE PREHEADER.  `p` written as `base + K + i` inside
+ * the loop body with the `p++` deleted has strength_reduce rebuild the ROM's
+ * `add r5,r5,fp` inside the loop's own region, and the hoisted zero is then
+ * alone in the preheader.  4 -> 2, no new local, no flag, no device.
+ *
+ * AND IT EXPLAINS THIS PARK'S "REAL AND UNEXPLAINED" ASYMMETRY between `msk`
+ * (named, worked, 15 -> 13) and `zero` (named, different program).  It is NOT
+ * the operand-versus-stored-value distinction the park proposed.  `0xff` has
+ * three uses and all three are in that one loop, so a named `msk` is a private
+ * invariant.  `0` is stored, compared and passed all over Anim_CriticalHit, so
+ * a named `zero` hands gcse a FUNCTION-WIDE common subexpression and comes
+ * back with a different allocation.  Re-measured on the 4-body:
+ *     `int zero; ... zero = 0;` before `p = ...`      42 of 707, RELOCDIFF
+ *     the same assigned first in the block            44 of 707, RELOCDIFF
+ *     the two zero stores moved ahead of `p->x`       11 of 707, RELOCDIFF
+ * >>> A NAMED CONSTANT CARRIER IS SAFE ONLY WHEN THE CONSTANT'S USES ARE
+ * >>> CONFINED TO THE LOOP.  The 327 lever's stated precondition ("no use
+ * >>> outside the loop") is about the QUANTITY; this is about the VALUE, and
+ * >>> for 0 it essentially never holds. <<<
+ *
+ * ===========================================================================
+ * WHAT THE REMAINING 2 IS -- AND IT IS A DEPENDENT-COUNT FACT, WITH NUMBERS
+ * ===========================================================================
+ *     364/365  ref 4d24 ldr r5,[pc,#0x90]  |  980d ldr r0,[sp,#0x34]
+ *              ours                 swapped
+ * The `cl(ctx, clen)` call.  From .23.sched2, basic block 25:
+ *     ;;   920  173  0  0  42  2  core : 992 2096 934 926          (4 dependents)
+ *     ;;   923  173  0  0  42  2  core : 992  980 934 929 926      (5 dependents)
+ *     ;;  2272  173  0  0  43  1  core : 992 2273
+ *   920 = `(set (reg 5 r5) (mem/u/f (symbol_ref "*.LC12") 4))`, REG_EQUIV
+ *         Func_80008d4 -- the pool load, UNCHANGING and in alias set 4.
+ *   923 = `(set (reg 0 r0) (mem (plus (reg 13 sp) (const_int 52)) 0))` -- ctx
+ *         reloaded, ALIAS SET 0.
+ * Trace: `Ready list (t = 1): 2273 920 923` -> `scheduling insn <<<923>>>`.
+ * EVERY RUNG ABOVE DEPENDENT COUNT TIES.  Priorities are equal at 42.  The
+ * class rung needs the last-scheduled insn (2272, `mov r1,#0x80`) to be one of
+ * them with cost != 1, and arm.md:254 gives a `core_cycles single` mov latency
+ * 1, so both are class 3.  So haifa-sched.c:4097-4110 decides and MORE
+ * DEPENDENTS WINS -- 5 beats 4.  *** AND LUID WOULD GIVE US THE ROM'S ORDER:
+ * 920 is the earlier insn, so A TIE IS A WIN HERE. ***
+ *
+ * WHERE 923'S FIFTH DEPENDENT COMES FROM, and it is structural.  923 reads
+ * memory, so haifa-sched.c:3553-3556 adds it to `pending_read_insns`
+ * UNCONDITIONALLY, and every call flushes that list -- :3955
+ * `flush_pending_lists (deps, insn, CONST_CALL_P (insn))` -> :3217-3223
+ * `add_dependence (insn, <pending read>, REG_DEP_ANTI)`.  Verified in the RTL:
+ * `(call_insn 980 ... GetBattleActorPos2 ... (insn_list:REG_DEP_ANTI 923 ...))`.
+ * THERE ARE THREE CALLS AFTER 923 IN BLOCK 25 (the two `cl` calls and
+ * GetBattleActorPos2) AND 923 CARRIES AN ANTI-DEPENDENCE ON EACH.  The pool
+ * load 920 carries none of them -- RTX_UNCHANGING_P plus a private alias set,
+ * which is this bank's own pool-load rule.  So the SAME property that makes a
+ * pool load unable to gain a dependent is what makes it LOSE this rung.
+ * >>> THE ONLY SOURCE HANDLE WOULD BE TO REDUCE THE NUMBER OF CALLS BETWEEN
+ * >>> `cl(ctx, clen)` AND THE END OF THE BASIC BLOCK, i.e. to get
+ * >>> GetBattleActorPos2 out of block 25.  Its result `vb` is read in both
+ * >>> arms of the `if` that ends the block, so it cannot move down, and
+ * >>> duplicating it into the arms is a different program.  THAT IS THE BOUND,
+ * >>> with its precondition attached.  An extra pending-read flush would also
+ * >>> do it (:3382, at MAX_PENDING_LIST_LENGTH), but that needs memory traffic
+ * >>> the program does not have. <<<
+ *
+ * ===========================================================================
+ * BOTH CHEAP AXES ARE CLOSED ON THE 2-BODY -- DO NOT RE-SCREEN THEM
+ * ===========================================================================
+ * ANCHOR AXIS: all 185 statement boundaries swept as a THIRD anchor -- 90 inert
+ *   at 2, two at 3, nothing below 2.  (Also swept on the 4-body: 186
+ *   boundaries, 91 inert at 4, nothing below.)
+ * FLAG AXIS, re-crossed on the 2-body: -fno-rerun-loop-opt 2 (inert); everything
+ *   else WORSE and mostly a different program -- -fno-strict-aliasing 41,
+ *   -fno-schedule-insns2 285, -fno-strength-reduce 536, -fno-gcse 543,
+ *   -fno-rerun-cse-after-loop 607, -O1 692, -ffixed-r7 701.  (The two
+ *   catastrophic new ones are a positive control on the run-2 edit: `p` as an
+ *   index is now built by strength_reduce and commoned by gcse.)
+ * ALSO MEASURED INERT AT EXACTLY 2 / WORSE, on the 4-body:
+ *   `cc = ctx;` named before the call 6 (inert-ish, 6 = the 4 plus 2);
+ *   anchor after `cl = Func_80008d4;` 7; `clen` as a literal at both calls 8
+ *   RELOCDIFF; `clen` re-assigned before each call 8 RELOCDIFF; `clen` without
+ *   its declaration initialiser 8 RELOCDIFF; `cl = Func_80008d4` hoisted above
+ *   the `if (crit == 1)` block 4 (EXACTLY INERT); `p = &((Part *)(...))[0]` 4
+ *   (exactly inert); `p = base + K` before `i = 0` 5; `actor = ...` after
+ *   `i = 0` 12 RELOCDIFF; `p->y = i & 0` 5.
+ * AND THE SPLIT-STATEMENT AXIS ON RUN 1 IS CLOSED (it is no longer needed, but
+ * recorded because the park named it): `g = &gPtrs[0x2f]; fp = d;
+ * f1 = (DrawFn)*g;` is 59-61 and RELOCDIFF in all five arrangements, because
+ * reusing `g` keeps iwram_3001eec live; through a NEW `void **g2` it is 619.
+ *
+ * SPLIT SHAPE (re-verified this batch).  tools/piece.py: three functions,
+ * Anim_Attack (5 of 39), BaseAnim_Attack (653 of 688), Anim_CriticalHit.
+ * tools/datacheck.py prints NOTHING for this .s -- a TEXT-ONLY split, no new
+ * `.global`.  tools/split_s.py --dry-run:
+ *     asm/rom_c9000/rom_e3958_c_c_c_c_a_a.s  (2 functions, 757 lines)
+ *     asm/rom_c9000/rom_e3958_c_c_c_c_a_b.s  (Anim_CriticalHit ALONE, 723 lines)
+ * so this function ships on ONE cut the moment it reaches 0.  Installed path
+ * after the split would be src/rom_c9000/rom_e3958_c_c_c_c_a_b.c.
+ * -- scratch_elev/b341/A
+ * =============================================================================
+ */
 /* ========== BATCH 336 (brief E) -- 10 OF 707.  BODY CHANGED.  READ FIRST ======
  * Anim_CriticalHit -- NON-MATCHING, **10 differing encodings of 707** (STREAM
  * length; previously thirteen).  ref 707 / ours 707 and 1612 bytes both sides,
@@ -799,8 +998,8 @@ void Anim_CriticalHit(void *context)
         BuildDraw2DFuncEx(0x2f, 7, 7, 7, 2);
     }
     d[0] = (DrawFn)gPtrs[0x2e];
+    do { } while (0);
     f1 = (DrawFn)gPtrs[0x2f];
-    __asm__ volatile ("");
     fp = d;
     fp[1] = f1;
     slot = (State **)(base + 0x7828);
@@ -826,8 +1025,8 @@ void Anim_CriticalHit(void *context)
     if (crit == 1) {
         actor = (int *)*_GetBattleActor((*slot)->f8);
         i = 0;
-        p = (Part *)(base + (0xe1 << 7));
         do {
+            p = (Part *)(base + (0xe1 << 7)) + i;
             p->x = (Random() & 0x3f) + 0x10;
             p->y = 0;
             p->z = 0;
@@ -835,7 +1034,6 @@ void Anim_CriticalHit(void *context)
             p->vy = Random() & 0xffff;
             p->vz = Random() & 0xffff;
             i++;
-            p++;
         } while (i != 0x40);
         _Actor_SetAnimSpeed(actor, 0);
         s24 = actor[9];
@@ -856,6 +1054,7 @@ void Anim_CriticalHit(void *context)
         *(int *)(base + 0x77b8) = 0;
         StartTask(Func_80cd4b4, 0xc8 << 4);
         _PlaySound(0xd4);
+    do { } while (0);
         frame = 0;
         do {
             _Func_80c0df4((*(State **)(base + 0x7828))->f8,

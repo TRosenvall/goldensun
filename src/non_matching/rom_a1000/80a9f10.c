@@ -1,3 +1,113 @@
+/* ===== BATCH 341, BRIEF C: 19 OF 569 HOLDS.  NO IMPROVEMENT; READ THIS FIRST. =====
+ *
+ * Func_80a9f10 -- ApplyItemEffect -- NON-MATCHING, **19 ENCODINGS OF 569
+ * DIFFER**, unchanged from batch 335.  Size exact, RELOCATIONS IDENTICAL,
+ * instruction counts AGREE at 469 each.  TRUE DISTANCE.
+ * tools/shimcount.py prints NO ROWS: zero pins.
+ * aligncmp: 551 of 569 aligned-equal (96.8%), 20 in 8 hunks.
+ * First differing index 30.
+ *
+ * Verify with (the INSTALLED path):
+ *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
+ *     goldensun-build python3 tools/objcmp.py src/non_matching/rom_a1000/80a9f10.c \
+ *     asm/rom_a1000/rom_a8604_c_c_c_c_a_a.s --func Func_80a9f10
+ *
+ * BODY UNCHANGED.  This block records what batch 341 closed, because all of it
+ * is negative and a recorded negative is the whole value of the round here.
+ *
+ * ANCHOR AXIS NOW GENUINELY CLOSED: ALL 124 BOUNDARIES, EVERY ONE INERT OR
+ * WORSE at 19.  This matters because the axis had previously been swept only to
+ * autosweep.py's default `--max 40` (autosweep.py:263-264), and that run
+ * printed "Both cheap axes are CLOSED on this park" while covering 32% of them.
+ * On this park the full sweep finds nothing -- but on the other three targets of
+ * this brief it found a better placement beyond boundary 40 twice out of three,
+ * so the truncation is not a theoretical concern.  5 of the 124 do not compile.
+ *
+ * THE RESIDUE, INDEX-ALIGNED.  Eight hunks.  Hunks 1-2 are the entry/party-loop
+ * shape the batch-335 block describes and are worth about 8; the other six are
+ * two-register allocation swaps and one operand order:
+ *
+ *   ref[167..168]  lsrs r0,r3,#31 / subs r0,r1,r0
+ *   ours           lsrs r3,r3,#31 / subs r0,r1,r3
+ *       the `d = (d == 1)` one-valued idiom at case 9.  The ROM shifts into a
+ *       FRESH register; we shift in place.  Two encodings.
+ *   ref[240] ldrsh r3,[r5,r4]   ours ldrsh r1,[r5,r4]
+ *   ref[243] ldrh  r1,[r5,#58]  ours ldrh  r3,[r5,#58]
+ *   ref[245] cmp   r3,r2        ours cmp   r1,r2
+ *   ref[252] adds  r3,r1,r6     ours adds  r3,r3,r6
+ *       case 11.  `cur = (short)unit->f3a;` and the unsigned re-read of the
+ *       same halfword for `unit->f3a = unit->f3a + amount;` take the two low
+ *       registers the other way round.  A straight two-pseudo swap; [252]
+ *       follows from it.  Four encodings.
+ *   ref[513..514]  cmp r1,r3 / bcs   ours  cmp r3,r1 / bls
+ *       *** THE PARK CALLS THIS "the trailing stat loop's back-edge compare".
+ *       IT IS NOT.  It is the PARTY LOOP's back edge *** -- the loop at
+ *       `for (i = 0; st->count > i; i++)`, whose test reaches the stream twice.
+ *       Read the window: [511] `ldrb r3,[r3]` is `st->count`, [512]
+ *       `ldr r1,[sp,#0]` is the spilled `i`, and [513..514] is
+ *       `if (i >= count) exit`.  `bcs` and `bls` are the SAME condition with
+ *       the operands exchanged, so **the ROM's BACK EDGE HAS THE INDEX ON THE
+ *       LEFT while batch 335's fix put the bound on the left**, and the bound
+ *       on the left is what makes the two instruction counts agree at the
+ *       ENTRY test.  So this park now has the two halves of one loop test
+ *       wanting opposite operand orders, which is EXACTLY the open question the
+ *       batch-335 block names ("a candidate for the original having had the
+ *       index on the LEFT and the reference's reuse coming from reload").
+ *       THREE MEASUREMENTS THIS BATCH SETTLE WHAT IS REACHABLE:
+ *         (a) bound on the left in the TRAILING loop too (line 670) -- 23, and
+ *             it leaves [513..514] UNCHANGED while breaking two hunks that were
+ *             exact: ref[532..533] (`cmp r1,r3 / bcs` -> `cmp r3,#0 / bls`) and
+ *             ref[550..551] (`cmp r4,r3 / bcc` -> `cmp r3,r4 / bhi`).  So the
+ *             trailing loop at line 670 IS ALREADY RIGHT and the park's +4 row
+ *             was never about [513] at all.
+ *         (b) the party loop rewritten as an explicit `if (st->count > 0)`
+ *             guard plus a `do { } while (i < st->count);` -- the only way to
+ *             give the entry test and the back edge DIFFERENT operand orders --
+ *             reads **32**.
+ *         (c) and the control that explains (b): the same rewrite with the
+ *             SAME operand order on both halves (`while (st->count > i)`), which
+ *             should be the base's control flow exactly, reads **34**.
+ *       *** SO THE PARK'S GENERAL RULE IS WRONG FOR THIS LOOP.  It states "a
+ *       guard rewritten as an explicit source guard plus a do-while is
+ *       byte-identical to the for, because gcc builds the same control flow
+ *       from both".  Here it costs FIFTEEN. ***  gcc's `for` lowering and the
+ *       hand-written guard+do-while are NOT interchangeable on this loop, so
+ *       the operand-order split cannot be tested through that rewrite, and
+ *       [513..514] is not reachable by any spelling of the loop test.
+ *
+ * MEASURED THIS BATCH AT 19, ALL INERT (469/469, relocations exact):
+ *   `if (max == cur)` instead of `if (cur == max)` in case 11;
+ *   `d = (d == 1) ? 1 : 0;`, `d = !(d - 1);` and `d = (1 == d);` for the
+ *     one-valued idiom -- all three identical to the base, so the idiom's
+ *     SPELLING is not the handle for ref[167..168].
+ * WORSE, and recorded because each is a closed route rather than a bad guess:
+ *   bound on the left in the trailing loop too, 23 (see (a) above);
+ *   the party loop as guard + do-while with split operand orders, 32 (b);
+ *   the same with matched operand orders, 34 (c) -- the control that refutes
+ *     the park's "byte-identical to the for" rule;
+ *   the trailing loop as `st->count >= i + 1`, 42 with dirty relocations.
+ * WORSE: `max = ...` read before `cur = ...` in case 11, 30 (so the eager read
+ *   pair's ORDER is load-bearing and the ROM's is ours); an anchor between
+ *   the two reads, 23; `d = ((d ^ 1) == 0);` 439 with a 4-byte frame growth.
+ * FLAG AXIS: -fno-strict-aliasing, -fno-strength-reduce,
+ *   -fno-rerun-cse-after-loop, -fno-rerun-loop-opt all inert at 19; -O1 546,
+ *   -fno-gcse 549, -fno-schedule-insns2 451, -ffixed-r7 604.
+ *
+ * TWO THINGS THE BRIEF TOLD ME ABOUT THIS PARK, BOTH CONFIRMED STILL TRUE:
+ *   - batch 335's bound-on-the-left is in this body and is what makes the
+ *     instruction counts agree; do not undo it.
+ *   - batch 339 brief A's result that renumbering allocnos does not move the
+ *     role order (allocno_compare decides on priority, global.c:606-613, and
+ *     only ties fall through to the allocno number at :616-619) retires the
+ *     renumbering route for the two register-swap hunks above.  CORRECTION TO
+ *     THE SHAPE OF THAT PRIORITY, derived for this batch's 80a112c and it
+ *     applies here too: it is
+ *     `floor_log2 (n_refs) * n_refs / live_length * 10000 * size` --
+ *     n_refs TWICE and NO `freq` term; loop frequency is already inside n_refs
+ *     via flow.c:4948's `+= loop_depth + 1`.  Several parks state it with a
+ *     `freq` factor and that arithmetic is wrong.
+ */
+
 /* Func_80a9f10 -- ApplyItemEffect -- NON-MATCHING, 19 encodings of 569 differ.
  * Stream lengths AGREE at 569 and so does the instruction count, 469 each.
  * aligncmp: 551 of 569 aligned-equal, 96.8 percent, 20 differing in 8 hunks.

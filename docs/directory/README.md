@@ -46,7 +46,7 @@ structure**, and a file can need both.
 | fakematch-class barriers | **89** |
 | unbooked fakematch-class | **0** |
 | per-file flag groups | **10** |
-| parks carrying register pins | **91** |
+| parks carrying register pins | **90** |
 | functions still Func_<addr> | **4,332** |
 | functions with a real name | **770** |
 | split-named files | **4,509** |

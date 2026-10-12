@@ -1,3 +1,114 @@
+/* ===== BATCH 341, BRIEF C: 16 -> 14 ENCODINGS OF 738.  READ THIS FIRST. =====
+ *
+ * Anim_Djinni -- NON-MATCHING, **14 ENCODINGS OF 738 DIFFER**.
+ * Size exact, RELOCATIONS IDENTICAL (objcmp prints no RELOCATIONS line),
+ * instruction counts AGREE at 643 each.  TRUE DISTANCE.
+ * tools/shimcount.py prints NO ROWS: zero pins.
+ * aligncmp: 731 of 738 aligned-equal (99.1%), 14 in 11 hunks.
+ *
+ * Verify with (the INSTALLED path):
+ *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
+ *     goldensun-build python3 tools/objcmp.py src/non_matching/rom_c9000/Anim_Djinni.c \
+ *     asm/rom_c9000/rom_dd2ac_c_c_c.s --func Anim_Djinni
+ *   -> 14 of 738, instructions 643/643, first at index 107
+ *
+ * WHAT MOVED IT: ONE DEVICE-FREE ANCHOR.  `do { } while (0);` immediately
+ * after `d0 = (DrawFn)gPtrs[0x2e];`.
+ *
+ * *** THAT PLACEMENT IS BOUNDARY 44 OF 179, AND tools/autosweep.py CAPS THE
+ * ANCHOR SWEEP AT 40 (`--max`, default 40, autosweep.py:263-264).  So the
+ * recorded "both cheap axes are CLOSED on this park" covered 22% of the axis
+ * and stopped five boundaries short of the win.  An autosweep anchor line
+ * reading exactly 40 boundaries is a TRUNCATED axis.  Re-run with
+ * `--max 500` on anything longer than forty statements. ***
+ *
+ * HUNK 1 IS NOW 10 OF THE 14, AND IT IS PURE sched2 ORDER -- NO ALLOCATION
+ * QUESTION LEFT IN IT.  The anchor fixed `ldr r7,=0x7828`, `adds r5,r4,r7` and
+ * the two pool loads' positions.  What is left is only WHICH gPtrs CHAIN RUNS
+ * FIRST: the ROM runs the 0xbc / d1 / sp+32 chain first, we run the
+ * 0xb8 / d0 / sp+28 chain first.
+ *
+ *       ref                     ours
+ * [107] ldr  r4,[sp,#40]        adds r2,r3,#0
+ * [108] adds r2,r3,#0           ldr  r4,[sp,#40]
+ * [110] adds r3,#188            adds r2,#184
+ * [111] ldr  r3,[r3]            ldr  r2,[r2]
+ * [113] str  r3,[sp,#32]        str  r2,[sp,#28]
+ * [114] adds r2,#184            adds r3,#188
+ * [115] ldr  r3,[r5]            ldr  r3,[r3]
+ * [116] ldr  r2,[r2]            str  r3,[sp,#32]
+ * [117] ldr  r0,[r3,#8]         ldr  r3,[r5]
+ * [118] str  r2,[sp,#28]        ldr  r0,[r3,#8]
+ *
+ * *** AND THE PARK'S "WHAT WOULD MOVE IT" IS REFUTED: THE SPILL MAP ALREADY
+ * MATCHES THE ROM'S. ***  That paragraph reasons that the chain order is
+ * "decided ... by the SPILL MAP (d1 at 0x20, d0 at 0x1c)" and therefore by
+ * declaration order.  Measured: the declaration swap costs exactly 3 and the
+ * three encodings it costs are THREE SPILL-SLOT READS, nothing else --
+ *     ref[470] ldr r4,[sp,#32]   swapped: ldr r4,[sp,#28]
+ *     ref[584] ldr r4,[sp,#28]   swapped: ldr r4,[sp,#32]
+ *     ref[666] ldr r4,[sp,#28]   swapped: ldr r4,[sp,#32]
+ * -- all three EXACT in this body.  So the ROM's map IS `d1 -> sp+32`,
+ * `d0 -> sp+28`, which is already ours; the swap breaks a matching map and
+ * does not touch the order.  The park's own earlier correction ("SAME THIRTEEN
+ * INSTRUCTIONS, SAME REGISTERS, SAME ROLES") is the true statement and the two
+ * paragraphs contradict each other.  **Hunk 1 is 10 encodings of
+ * `rank_for_schedule` and nothing else.**
+ *
+ * THAT MAKES THE CLASS RUNG THE THING TO READ, not the usual dependent-count
+ * argument: haifa-sched.c:4068-4095 takes the highest class BEFORE dependent
+ * count, and it ties across most of this tree only because `arm_adjust_cost`
+ * returns 0 for anti/output and `arm.md:254` gives every `core_cycles single`
+ * insn latency 1.  **This window is nothing but loads and stores**
+ * (`load`/`store1` latency 2, arm.md:260-294), so the rung is LIVE here.
+ * Read `.23.sched2` for this block with `-fsched-verbose=6` (it goes to the
+ * DUMP FILE, not stderr) and compare the two rankings directly.
+ *
+ * HUNKS 2 AND 3 ARE UNCHANGED AT 2 EACH:
+ *   ref[381..383]  `str r4,[sp,#8]` (the `-t` spill) and `ldr r6,=gBuffer`
+ *                  transposed in the draw loop's preheader.
+ *   ref[704..706]  the first `cl` call: ROM `lsls r1,#7` then
+ *                  `ldr r0,=0x6004000`; we emit the pool load first.
+ *
+ * MEASURED THIS BATCH, DO NOT RE-RUN.
+ * ANCHOR AXIS, ALL 179 BOUNDARIES (13 of which do not compile, and all 13 are
+ *   the same C89 error -- an anchor placed BEFORE a declaration: the 12 of the
+ *   function's own declaration list, plus boundary 93, which sits in front of
+ *   `void *cam = iwram_3001e80;` inside the `while (t != frames)` body): ONE better (44, this one), the rest 16
+ *   or worse, worst 472.  CROSSED WITH ITSELF, all 179 second placements on
+ *   the 14 base: NONE better than 14.
+ * INERT AT 14: assignment order of `d0`/`d1` (either way, at every anchor
+ *   position) -- so the park's "fixed by declaration and NOT assignment order"
+ *   is reproduced on the new base; a second anchor after `d1 = ...` as well;
+ *   `b = gBuffer;` before `j = 0;`; a `void *vram = (void *)0x6004000;` carrier
+ *   for the first clear's destination, declared either side of `clen`, with
+ *   the call rewritten to use it; four `clen` spellings (0x4000, `1 << 14`,
+ *   `0x100 << 6`, `0x40 << 8`); the first `cl` call written as a direct
+ *   `Func_80008d4(...)`.
+ * WORSE AT 14: declaration order swapped, 17 (was 19 against the old 16 base,
+ *   so the +3 is a stable offset, not an artefact); `slot = ...` moved after
+ *   both gPtrs reads 16, between them 16; the `slot` variable dropped and
+ *   `(*(State **)(base + 0x7828))` written inline at both `_GetBattleActor`
+ *   calls, with and without keeping the assignment, 16 both -- note line 741
+ *   already re-derives it inline, so this was the plausible shape and it is
+ *   not it; `a2` read before `a1` 21 with dirty relocations; an anchor between
+ *   `j = 0;` and `b = gBuffer;` 20.
+ * NOT AVAILABLE HERE: batch 340 brief E's winning placement was an anchor
+ *   inside a `static inline`.  **This file defines no static inline and no
+ *   helper at all** -- one function, nothing else -- so that shape does not
+ *   transfer.  Boundary 44 is its statement-level equivalent.
+ * FLAG AXIS at 16: -fno-strict-aliasing and -fno-rerun-loop-opt inert; -O1
+ *   695, -fno-gcse 716, -fno-schedule-insns2 274, -ffixed-r7 657,
+ *   -fno-strength-reduce 463, -fno-rerun-cse-after-loop 563.
+ *
+ * SPLIT SHAPE UNCHANGED, and re-verified this batch:
+ *   tools/datacheck.py prints nothing.
+ *   tools/split_s.py asm/rom_c9000/rom_dd2ac_c_c_c.s Anim_Djinni --dry-run
+ *   still REFUSES until nine `.global` lines exist, exactly the nine the park
+ *   lists: .Leeba6 .Leebae .Leebb6 .Leebb9 .Leebc0 .Leebc8 (Anim_Thorn) and
+ *   .Leebd6 .Leebe2 .Leebe6 (Anim_Bolt).
+ */
+
 /* Anim_Djinni -- 0x080de2f8, 696 ROM instructions (738 encodings).
  *
  * NON-MATCHING, 16 of 738 encodings differ.   [batch 310c: was 26]
@@ -660,6 +771,8 @@ void Anim_Djinni(void *context, int kind, int mode, int sel, int *outx, int *out
     }
     slot = (State **)(base + 0x7828);
     d0 = (DrawFn)gPtrs[0x2e];
+    do { } while (0);
+
     d1 = (DrawFn)gPtrs[0x2f];
     a1 = (int *)*_GetBattleActor((*slot)->f8);
     a2 = (int *)*_GetBattleActor((*slot)->ids[0]);
