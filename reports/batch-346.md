@@ -53,12 +53,25 @@ its own note that a pad is absorbing the difference. **Four of this batch's
 twenty targets asserted the opposite anyway**, in prose, with the contradicting
 line in the same output.
 
-Swept tree-wide:
+Swept tree-wide — **and this count was later corrected downward; see below**:
 
 ```
-256 parks assert a distance in prose
-100 OF THEM ARE OUT OF PHASE
+256 files match the bare phrase
+180 are a claim about THIS park's own figure
+ 53 OF THOSE ARE OUT OF PHASE     <- the honest number (first reported as 100)
 ```
+
+**The original 100 was wrong because the sweep counted the negation as an
+assertion** — `grep -i 'true distance'` matches `NOT A TRUE DISTANCE`, a header
+that is correct and says so. Batch 347 brief A found this by being handed such a
+park as a target. 44 more matches were prose about *other* parks. And **35 of the
+real 53 share one provenance**, the sentence *"Re-classified in batch 322; the
+figure IS a distance"* — so batch 322's sweep was wrong on 35 of the 59 parks it
+touched. `parkcheck`'s cross-check carried the same negation bug and is fixed.
+
+The substance holds — 53 parks assert a trustworthiness they do not have — but
+the magnitude was overstated by an instrument I did not check, which is the exact
+failure this section documents.
 
 `parkcheck.py` now cross-checks the header's prose against the measured counts.
 The claim is **load-bearing** — it is the sentence telling the next agent the

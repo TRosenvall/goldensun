@@ -1,3 +1,89 @@
+/* Func_80b5f0c (RunBattleOutroText) -- 0x080b5f0c.
+ *
+ * STILL PARKED, 49 of 155 stream entries.
+ * NOT A TRUE DISTANCE, and this file ALREADY SAID SO -- see the next block.
+ * Re-measured in batch 347: ref 153 instructions against our 151, 352 bytes
+ * against 348.  WE ARE TWO SHORT, both in the last loop's pre-header.
+ * Aligned residue (tools/aligncmp.py): 141 of 155 equal, 15 differing in 9
+ * hunks -- re-measured unchanged.
+ *
+ * ===== BATCH 347 BRIEF A: THE SELECTION CRITERION MIS-FIRED ON THIS PARK ==
+ *
+ * This park was handed to brief A of batch 347 inside a pool of four selected
+ * because "every one of your four park headers is wrong about its own figure --
+ * each asserts in prose that its figure IS a true distance."  THAT IS TRUE OF
+ * THE OTHER THREE AND FALSE OF THIS ONE.  Line 6 of the header below reads
+ * `NOT A TRUE DISTANCE: 348 bytes against 352 and 153 encodings against 155 --
+ * TWO INSTRUCTIONS SHORT`, which is exactly right and has been right since
+ * batch 335.  The tree-wide sweep that built the pool matched the phrase
+ * "TRUE DISTANCE" and counted the NEGATED form as an assertion.
+ *
+ * That matters beyond this file: the headline figure is "256 parks assert a
+ * distance in prose and 94 are out of phase."  Whatever that number is, it is
+ * an overcount by however many parks say "NOT a true distance", and those are
+ * the parks whose analysis is SOUND -- so the sweep is biased towards handing
+ * agents the parks that least need re-deriving.  The grep needs a negation
+ * guard before the remaining 94 are allocated.  (Verified on the other three
+ * targets of this brief: all three carry the real defect, the sentence
+ * "Re-classified in batch 322; the figure IS a distance", two lines after
+ * correctly saying the counts differ.  All three were batch-319 recipe
+ * backfills; this one was not.)
+ *
+ * THE VERDICT BELOW ALSO SURVIVES RE-MEASUREMENT, which is worth saying because
+ * the brief instructed that these four be treated as untrusted.  The aligned
+ * residue is 141/155 to the encoding, the nine hunks are the nine the header
+ * describes, and the two missing instructions are the two it names:
+ *   ref  ... adds r4, r6, #0 / movs r3, #132 / lsls r3, #1 / adds r2, r6, r3 /
+ *        ldr r3, [r2] / ... / bge / adds r0, r2, #0 / adds r2, r4, #0
+ *   ours ... movs r4, #132 / lsls r4, #1 / adds r0, r6, r4 / ldr r3, [r0] /
+ *        adds r2, r6, #0 / ... / bge          <- the last two copies absent
+ * Of the nine hunks, two are pool-relative `ldr` offsets (a consequence of the
+ * four-byte shortfall, not a defect), one is a one-instruction reorder of
+ * `strb r3, [r4]` in the first clear loop, two are the scheduling swap of the
+ * pool load against the size copy before the last call, and four are the
+ * pre-header the header already analyses.
+ *
+ * ===== NEW RECORDED NEGATIVE: BOTH AUTOMATIC AXES ARE CLOSED =============
+ *
+ * `python3 tools/autosweep.py src/non_matching/rom_b5000/80b5f0c.c` (run on the
+ * HOST -- it invokes docker itself and exits 2 inside the container):
+ *
+ *   FLAG AXIS, unchanged body, eight per-file groups, NOTHING BETTER:
+ *     -O1                        147 of 155   aligned 15 -> 141, count -9
+ *     -fno-gcse                  145 of 155   aligned 15 ->  79, count -8
+ *     -fno-schedule-insns2        88 of 155
+ *     -ffixed-r7                 142 of 155   aligned 15 ->  75, count +5
+ *     -fno-strict-aliasing        49 of 155   TIES THE BASE
+ *     -fno-strength-reduce       108 of 155
+ *     -fno-rerun-cse-after-loop   78 of 155
+ *     -fno-rerun-loop-opt        121 of 155   aligned 15 ->  49, count -4
+ *   ANCHOR AXIS, 35 of 35 statement boundaries, device-free, NOTHING BETTER.
+ *     Five anchors tie the base at 49 (anchor00, 04, 05, 13, 17); anchor30 --
+ *     after the last loop's body -- reads ndiff 48 with dsize -4, which is
+ *     MISALIGNMENT and not an improvement.
+ *   autosweep's verdict: "The flag and anchor axes are CLOSED on this park."
+ *
+ * TWO OF THOSE ROWS ARE CANDIDATE PREREQUISITES RATHER THAN DEAD ENDS, per the
+ * standing rule that a tie is not a negative: `-fno-strict-aliasing` and the
+ * five tying anchors change nothing ALONE.  They have not been crossed with any
+ * source variant, and this park's own history is that its levers compose (112 ->
+ * 82 -> 69 -> 52 -> 49 was four levers, none of which worked alone).  Note the
+ * anchor axis result is a claim about SINGLE anchors only -- all 31 subsets of
+ * five in-loop boundaries were needed to settle one park in batch 346.
+ *
+ * ===== AND ONE CROSS-PARK NOTE FROM THE SAME BRIEF =======================
+ *
+ * This park's blocker is "the guard and the loop body must hold the address in
+ * two DIFFERENT pseudos, and gcse's cprop at pass 07 commons every spelling
+ * before loop.c runs."  Brief A's p2 (Func_8003e58, src/non_matching/rom_c0/
+ * 8003e58.c) has the SAME blocker in the same words, and batch 347 spent a
+ * sweep refuting the obvious lever for it: `cse.c:5992-5994` gates its copy
+ * rewrite on `prev_nonnote_insn (insn)` being the insn that set the source, so
+ * a copy placed at a DISTANCE from its source's definition should survive.
+ * On that park the distance is BIT-INERT across all 27 partitions x 3 positions.
+ * Do not spend this park's round on it either.
+ *
+ */
 /* Func_80b5f0c (RunBattleOutroText) -- 0x080b5f0c, the ONLY function in
  * asm/rom_b5000/rom_b5a0c_c_c_a_a_a_a_a_c.s (datacheck: no data;
  * `grep -ci func_start` = 1).  Whole-file conversion when it closes.

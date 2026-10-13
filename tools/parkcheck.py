@@ -372,9 +372,33 @@ def check(path):
         # slips, and it matters because the claim is load-bearing -- it is the
         # sentence that tells the next agent the figure can be trusted, and every
         # targeting instrument here ranks on that figure.
-        if re.search(r"(?:true|real|plain|genuine)\s+distance|"
-                     r"IS\s+a\s+distance|a\s+distance\s+(?:now|at\s+last)",
-                     hdr.replace("*", " "), re.I):
+        # MATCH THE ASSERTION, NOT ITS NEGATION.  The first version of this check
+        # fired on `NOT A TRUE DISTANCE` -- a header that is CORRECT and says so.
+        # Batch 347 brief A was handed such a park as a target and found its line
+        # 6 had read "NOT A TRUE DISTANCE", correctly, since batch 335.  The
+        # same bug inflated the coordinator's tree-wide count: 256 files matched
+        # the bare phrase, 224 survived a naive negation filter, and only 180 are
+        # claims about THIS park's figure at all -- the rest were prose about
+        # other parks ("312 brief C spent its budget reaching a real distance on
+        # its other two").  The honest out-of-phase count is 53, not the 100
+        # first reported.
+        #
+        # So: require the claim to be affirmative AND to be about this park's own
+        # figure, and look back far enough to span a comment asterisk.
+        flat_hdr = re.sub(r"[\s*]+", " ", hdr)
+        claimed_distance = False
+        for dm in re.finditer(r"(?:true|real|plain|genuine)\s+distance|"
+                              r"IS\s+a\s+distance|a\s+distance\s+(?:now|at\s+last)",
+                              flat_hdr, re.I):
+            before = flat_hdr[max(0, dm.start() - 70):dm.start()]
+            if re.search(r"(?:\bnot\b|\bnever\b|\bno longer\b|\bisn\b|\bwas\b|"
+                         r"\bstops?\b|\bcannot\b|\bfails?\b|\buntil\b|"
+                         r"\breach(?:ing)?\b|\bspent\b)[^.;!]{0,60}$",
+                         before, re.I):
+                continue
+            claimed_distance = True
+            break
+        if claimed_distance:
             extra_note += ("  !!! HEADER ASSERTS THIS IS A TRUE DISTANCE AND IT IS"
                            " NOT -- the instruction counts above disagree with the"
                            " park's own prose.  Fix the header before anyone"

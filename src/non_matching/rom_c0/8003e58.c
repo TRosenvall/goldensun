@@ -1,128 +1,153 @@
-/*
+/* Func_8003e58 (FindObjTileRun) -- asm/rom_c0/rom_3e58_a.s
  *
- * NON-MATCHING, 49 of 60 encodings  (MEASURED, batch 319 recipe backfill).
- *   COUNT DIFFERS (ref 60, ours 58) -- so this positional figure measures
- *   MISALIGNMENT, not distance.  Read the count before the figure.
- *   RELOCATIONS differ, but THE SAME SYMBOLS AT A SHIFTED OFFSET -- which
- *   this project treats as a CONSEQUENCE of the length difference, not a
- *   separate blocker.  Re-classified in batch 322; the figure IS a distance.
- *   SIZE ref 124 bytes, ours 120.
+ * STILL PARKED, 49 of 60 stream entries.
+ * NOT A TRUE DISTANCE.  ref 57 instructions against our 55 and 124 bytes
+ * against 120 -- WE ARE TWO INSTRUCTIONS SHORT.  The stream figure is 2 apart
+ * and the byte figure 4 apart rather than 3 and 6 because this function has an
+ * ODD 16-bit instruction count ahead of its aligned two-word pool, so the
+ * assembler's 2-byte pad absorbs exactly one instruction (57 instructions ->
+ * 57 + 1 pad + 2 words = 60 entries, 114 + 2 + 8 = 124 bytes).
+ *
+ * ===== BATCH 347 BRIEF A: THE SENTENCE BELOW WAS FALSE AND IS NOW GONE ====
+ * The header used to read, two lines after correctly saying the counts differ,
+ * "Re-classified in batch 322; the figure IS a distance."  It is not, it never
+ * was, and it is what told three successive agents that 49-of-60 described the
+ * residue.  objcmp prints the instruction counts on the same line as the figure.
  *
  * Verify with:
  *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
  *     goldensun-build python3 tools/objcmp.py \
  *     src/non_matching/rom_c0/8003e58.c \
  *     asm/rom_c0/rom_3e58_a.s --whole
+ * Piece: ONE function, datacheck no data, no exported non-function symbols --
+ * it converts whole when it closes.  Pin-free and device-free.
+ * Aligned residue (tools/aligncmp.py): 37 of 60 equal, 25 differing in 14 hunks.
  *
- * This recipe was ADDED by the batch-319 backfill: the park had none, so
- * parkcheck.py could not report its figure and nothing had ever checked it.
- * Func_8003e58 (FindObjTileRun) -- asm/rom_c0/rom_3e58_a.s
+ * ===== THE GAP IS FOUR SITES, NOT ONE, AND TWO OF THEM CANCEL =============
  *
- * BLOCKER: the ROM carries one address in TWO registers and we carry it in one.
- * 63 lines against 65.
+ *   region (ref label)                    ref  ours  delta
+ *   prologue + the slot > 0x5f return       8     8     0
+ *   .L3e68  table setup                     6     5    -1   <- `mov r7, r12`
+ *   .L3e74  loop head                       9    10    +1   <- our add+ldrb
+ *   the `== 0xff` body / inner guard        5     4    -1   <- `add r2, r0, r7`
+ *   .L3e90  inner scan                      7     7     0
+ *   .L3e9e  fill guard                      3     3     0
+ *   .L3ea4  fill loop                       6     6     0
+ *   the `lsl r0, #6` + its branch           2     2     0
+ *   .L3eb2  skip block                      8     7    -1   <- `mov r2, r12`
+ *   epilogue                                3     3     0
+ *                                         ---   ---   ---
+ *                                          57    55    -2
  *
- * The alloc-table address lives in r12 (skip and fill) with a low copy in r7
- * (loop head and scan). We keep a single register, so `mov r7, r12` is absent
- * and three addressing forms differ downstream:
+ * The +1 and one of the -1s are ONE EFFECT and are already settled: the ROM
+ * spends a register-offset `ldrb r3,[r7,r4]` at the loop head plus a separate
+ * `add r2,r0,r7` for the inner pointer; we spend an address add plus a plain
+ * load and then REUSE that address as the inner pointer.  Two against two.  Do
+ * not try to "fix" the loop head -- it pays for the inner init.
  *
- *      rom   ldrb r3,[r7,r4]           ours  add r2,r4,r6 / ldrb r3,[r2]
- *      rom   add r2,r0,r7              ours  (absent -- gcc reuses)
- *      rom   mov r2,r12 / ldrb r3,[r2,r4]   ours  ldrb r3,[r6,r4]
+ * So the real gap is the two remaining -1s, and both are COPIES OF THE TABLE
+ * ADDRESS OUT OF ip.  The batch-335 analysis of this holds and is confirmed:
+ *   ROM   P1 = pool-loaded, home ip, serving {the fill store, the skip load};
+ *         P2 = `(set P2 P1)`, home r7, serving {the loop head, the inner
+ *         pointer init}.  Creating P1 costs a low staging load plus `mov r12,
+ *         r1`; creating P2 costs `mov r7, r12`; each P1 use costs a move out.
+ *         FOUR moves.
+ *   ours  P1 = pool-loaded, home r6, serving {the loop head, the inner init,
+ *         the skip load}, free to create and free at every use; P2 = copy, home
+ *         ip, serving {the fill store} alone, one move to create and one at its
+ *         single use.  TWO moves.
  *
- * TRIED AND REJECTED for the second register, all measured: two locals `t` and
- * `u = t` (CSE merges them, 61 lines); a second local assigned from the global
- * (61); that assignment before and after the first (61 both); and ALL SIXTEEN
- * combinations of local-versus-bare-global at the four use sites (59-63 lines,
- * 47-59 differing). The local/global mix is the only thing that yields two
- * pseudos at all, and gcc then splits them across the wrong sites.
+ * ===== WHAT BATCH 347 ADDED ==============================================
  *
- * A BOUNDARY WORTH RECORDING: four spellings of the fill store through the bare
- * global -- `G[r+j]`, a named offset, `*(G + (r+j))`, `*(G + o)` -- are
- * byte-identical to each other. THE BASE-FIRST/INDEX-FIRST LEVER DOES NOT REACH
- * A BARE GLOBAL ARRAY; it only works through a pointer local. The existing
- * entry for that lever does not state this.
+ * 1. A CLEAN NEGATIVE ON THE `cse.c` ADJACENCY LEVER, which was the obvious
+ *    reading of the ROM's `mov r12, r1 / mov r4, #0 / mov r14, r2 / mov r7,
+ *    r12`: TWO insns separate P1's definition from the copy, and
+ *    `cse.c:5992-5994` gates its copy rewrite on `prev_nonnote_insn (insn)`
+ *    being the insn that set the source.  So a NON-ADJACENT copy should
+ *    survive.  Swept all 81 cells of {four use sites} x {`u`, `t`, the bare
+ *    global} with the copy `t = u;` placed at THREE distances from `u`'s
+ *    definition (immediately after, after `i = 0;`, after the slot-table
+ *    pointer -- the ROM's own distance).  **The copy distance is BIT-INERT:
+ *    all three positions produce identical output in every one of the 27
+ *    partitions.**  The merge is not this transform.  gcse's cprop at pass 07
+ *    remains the only candidate, as the park said.
  *
- * wram.sym has no second symbol at 0x03001810, so the two-distinct-symbols
- * trick is unavailable.
+ * 2. THE FILL STORE MUST BE THE BARE GLOBAL, now on 81 cells rather than 16.
+ *    Every one of the 81 partitions that reaches 55 instructions has the fill
+ *    store on the bare global; routing it through either named pointer costs
+ *    two (53 instructions).  That is 3^3 x 3 = 81 cells agreeing.
+ *
+ * 3. AND A CONTRADICTION INSIDE THIS FILE THAT SOMEBODY SHOULD RESOLVE.
+ *    The ROM's fill store is `strb r6, [r1, r3]` -- encoding 54ce, Rn = r1 =
+ *    the ip copy = THE BASE.  Ours is `strb r7, [r3, r1]` -- 545f, Rn = r3 =
+ *    `r + j` = THE INDEX.  This header already records "THE BASE-FIRST/
+ *    INDEX-FIRST LEVER DOES NOT REACH A BARE GLOBAL ARRAY; it only works
+ *    through a pointer local."  Both cannot be true of the original: either
+ *    that note is wrong, or the ROM's fill store is NOT a bare global and the
+ *    81-cell result above is a local optimum that the two missing moves are
+ *    paying for.  THAT is the next thing to settle, and it is checkable in one
+ *    encoding rather than in a count.
+ *
+ * MEASURED FIGURES FOR THE 27 PARTITIONS (fill on the bare global, objcmp
+ * differing / aligned-equal / differing / hunks):
+ *    head=g, inner=g, skip=t  (THE BODY BELOW)   49   37 / 25 / 14   <- best
+ *    head=g, inner or skip named, 7 other cells  49   37 / 25 / 14   (identical)
+ *    head=g, inner=g, skip=g  (no name at all)   52   31 / 32 / 13
+ *    head=t or u, all 18 cells                   55   33 / 28 / 15
+ * So naming the skip load is worth 3 differing and 6 aligned-equal, and naming
+ * the loop head is worth -6; the park's chosen body is the optimum of the axis.
+ *
+ * ===== CARRIED FORWARD FROM EARLIER BATCHES ==============================
  *
  * SETTLED, and each was worth several instructions:
- *   * A `goto` loop for the outer scan. The ROM rebuilds both 0x200 and -1
+ *   * A `goto` loop for the outer scan.  The ROM rebuilds both 0x200 and -1
  *     every iteration, which is the documented selection signature; a
  *     `while (1)` leaves the -1 outside.
  *   * A `goto` loop for the fill loop too -- a `for` gets strength-reduced into
  *     a pointer induction, and the ROM recomputes `start + j` each iteration.
  *   * ONE variable serving as both the not-found return value and the run
- *     start, assigned `r = -1` INSIDE the loop body. gcc-2.96 always merges two
+ *     start, assigned `r = -1` INSIDE the loop body.  gcc-2.96 always merges two
  *     textually separate `return -1;` statements into one shared block (probed
  *     three ways, including with distinct constants), so a ROM that
  *     materialises the same constant at two exits is telling you the source
  *     used one variable, not two returns.
  *   * Guard-then-do/while for the inner scan, which places `add r2,r0,r7` after
  *     the guard.
+ *   * THE ORDER OF THE THREE INITIALISERS MATTERS.  The body below writes the
+ *     pointer, then the index, then the slot-table pointer, and that is ONE
+ *     BETTER than writing both pointers before the index.  Do not tidy it.
+ *     (Batch 347 confirms it is also the ROM's own order.)
  *
- * ========== BATCH 335 BRIEF D: THE GAP IS LOCATED, AND THE BLOCKER SENTENCE
- * ========== ABOVE IS WRONG =================================================
+ * MEASURED AND REJECTED, all of it:
+ *   two locals `t` and `u = t`                       CSE merges them
+ *   a second local assigned from the global, before
+ *     and after the first                            inert
+ *   all sixteen local-versus-bare-global combinations
+ *     at the four use sites                          50-56 differing, 56/58 stream
+ *   the same sixteen re-swept with objcmp            same
+ *   a SECOND pointer assigned INSIDE the loop from
+ *     the bare global, four partitions x three
+ *     spellings of the slot-table access             54-58 stream, 55-59 differing
+ *   the second pointer assigned from the first
+ *     inside the loop                                same collapse
+ *   the slot table as a struct subscript             inert
+ *   the slot table as a bare array subscript         two shorter
+ *   a local copy of the slot argument, before and
+ *     after the early return, x two site combos      all inert
+ *   four spellings of the fill store through the
+ *     bare global (`G[r+j]`, a named offset,
+ *     `*(G + (r+j))`, `*(G + o)`)                    BIT-IDENTICAL
+ *   the copy's distance from its source's definition
+ *     (three positions x 27 partitions)              BIT-INERT  [batch 347]
  *
- * Re-measured whole: 49 of 60 encodings, ours 58, so the reference is TWO
- * instructions longer and the figure above is unchanged.  Pin-free confirmed
- * by tools/shimcount.py -- no register declarations, no .equ, no barriers.
- * Its piece holds exactly ONE function, so it converts alone.
+ * wram.sym has no second symbol at 0x03001810, so the two-distinct-symbols
+ * trick is unavailable.
  *
- * BOTH MISSING INSTRUCTIONS ARE COPIES OF THE SAME BASE ADDRESS OUT OF ip, and
- * the blocker sentence above ("the ROM carries one address in TWO registers and
- * we carry it in one") is false: WE CARRY IT IN TWO AS WELL.  What differs is
- * which of the four use sites each pseudo serves, and that decides the count.
- *
- *   ROM   P1 = {fill store, skip load} -> ip.  A pc-relative pool load cannot
- *         target a high register, so creating it costs a low-register staging
- *         load plus a move into ip, and EACH of its two uses costs a move back
- *         out.  P2 = {loop-head load, inner pointer init} -> r7, created by one
- *         move from ip and costing nothing at either use.  FOUR moves.
- *   ours  P1 = {loop-head load, skip load} -> r6, created by the pool load
- *         itself and costing nothing.  P2 = {fill store} -> ip, one move to
- *         create and one at its single use.  TWO moves.
- *
- * Four minus two is the gap exactly.  Note also that the loop-head and inner
- * pair is ALREADY count-neutral: we spend an address add plus a plain load and
- * then reuse that address as the inner pointer, where the ROM spends a
- * register-offset load and a separate pointer add.  Two against two.
- *
- * So the question is not "which instruction is missing" but WHY THE PARTITION
- * DIFFERS, and the answer is that gcse's copy propagation is GLOBAL (pass 07,
- * and no basic-block boundary stops it): every spelling that tries to give the
- * base two source-level names collapses them before the allocator sees two
- * pseudos.
- *
- * MEASURED IN BATCH 335, ADDING TO THE SIXTEEN ABOVE -- all worse or inert:
- *   the four sites re-swept with objcmp rather than line counts, all sixteen
- *     combinations                          50 to 56 differing, 56 or 58 long
- *   -- and the fill store through a pointer local always costs TWO MORE, so the
- *      fill must stay on the bare global; that is the one thing the sixteen
- *      agree on.
- *   a SECOND pointer assigned INSIDE the loop from the bare global, four
- *     partitions by three spellings of the slot-table access
- *                                           54 to 58 long, 55 to 59 differing
- *   -- this refutes the obvious route.  `loop.c` is pass 08 and would hoist an
- *      in-loop invariant into its own pseudo, which is the documented source of
- *      a surviving copy; but gcse's cprop has already collapsed the in-loop
- *      symbol_ref into the pre-loop pointer by then, so loop.c never sees two.
- *   the second pointer assigned from the first inside the loop   same collapse
- *   the slot table reached as a struct subscript rather than a
- *     cast through a byte pointer                                inert
- *   the slot table reached as a bare array subscript             two shorter
- *   a local copy of the slot argument, before and after the
- *     early return, crossed with two site combinations           all inert
- * AND ONE POSITIVE FINDING ABOUT THE EXISTING BODY: the ORDER of the three
- * initialisers matters.  The body below writes the pointer, then the index,
- * then the slot-table pointer, and that is ONE BETTER than writing both
- * pointers before the index.  Do not tidy it.
- *
- * NEXT: the dimension nobody has varied is not another name for the base -- all
- * of those are now measured.  It is whether the two pseudos can be made to
- * CONFLICT differently, since what the allocator needs is a live-range overlap
- * it does not have, not a second spelling.  The ROM's master pseudo is the HIGH
- * one, so the question is what makes the pool-loaded pseudo the one with FEWER
- * references and the copy the one with more.
+ * NEXT, in order: (1) settle item 3 above -- is the ROM's fill store really a
+ * bare global, given its base-first operand order?  (2) the allocator question
+ * the park left: what makes the POOL-LOADED pseudo the one with FEWER
+ * references and the copy the one with more.  Do NOT re-sweep the four use
+ * sites, the copy position, the fill-store spelling or the slot-table access.
  */
 struct SpriteSlot { unsigned short size; unsigned short vramOffset; };
 extern struct SpriteSlot gSpriteSlots[];

@@ -1,12 +1,13 @@
 /* Func_801a66c (0x0801a66c) -- NON-MATCHING.
  *
- * NON-MATCHING, 112 of 128 encodings  (MEASURED, batch 319 recipe backfill).
- *   COUNT DIFFERS (ref 128, ours 134) -- so this positional figure measures
- *   MISALIGNMENT, not distance.  Read the count before the figure.
- *   RELOCATIONS differ, but THE SAME SYMBOLS AT A SHIFTED OFFSET -- which
- *   this project treats as a CONSEQUENCE of the length difference, not a
- *   separate blocker.  Re-classified in batch 322; the figure IS a distance.
- *   SIZE ref 268 bytes, ours 288.
+ * NON-MATCHING, 76 of 128 encodings  (batch 347 brief C; was 112 of 128).
+ *   121 instructions against the ROM's 121, 268 bytes against 268, stream 128
+ *   against 128 -- so for THIS body the figure IS a true distance.  It was NOT
+ *   one for the body this park carried until batch 347, and the old header was
+ *   wrong twice over: it asserted "the figure IS a distance" directly below its
+ *   own "COUNT DIFFERS (ref 128, ours 134)" and "SIZE ref 268 bytes, ours 288",
+ *   and the 20-byte gap was FOUR EXTRA POOL WORDS (32-bit stream entries 6
+ *   against 10), which no header mentioned at all.
  *
  * Verify with:
  *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
@@ -14,60 +15,94 @@
  *     src/non_matching/rom_15000/801a66c.c \
  *     asm/rom_15000/rom_1a66c_a_a_a.s --func Func_801a66c
  *
- * This recipe was ADDED by the batch-319 backfill: the park had none, so
- * parkcheck.py could not report its figure and nothing had ever checked it.
- * Blocker class: allocation ORDER -- gcc assigns callee-saved registers upward
- * from r4, the original build downward from r7.
+ * ALIGNED RESIDUE (tools/aligncmp.py): 91 in 25 hunks -> 50 in 22 hunks.
+ * One function in the piece, no data section, no exported non-function
+ * symbols -- a landing needs NO split.  0 devices (tools/shimcount.py).
  *
- * 128 lines against the ROM's 125, and 105 of the 128 differ, but almost all of
- * the 105 are one rotation repeated. Both push {r5, r6, r7, lr} and both use
- * exactly three long-lived values; they are assigned to opposite ends:
+ * WHAT CLOSED THE GAP.  Three levers, all of them "let gcc REUSE a value":
  *
- *              the object pointer   the shared zero   the gfx pointer
- *     rom      r7                   r5                r6
- *     ours     r6                   r7                r5
+ *   1. A HImode STORE OF A LITERAL ALWAYS POOLS THE LITERAL.  `movhi`'s Thumb
+ *      branch does `force_reg (HImode, operands[1])` when the destination is a
+ *      MEM (arm.md:4269-4271), and `*thumb_movhi_insn`'s alternative 1 is
+ *      "l"/"mn" -- `n` matches ANY const_int and is tested BEFORE the "l"/"I"
+ *      alternative 5 that would emit `mov` (arm.md:4319-4320).  So
+ *      `*(short *)(p + 0x39e) = 0x80;` pools 0x80 even though `mov r3,#0x80`
+ *      exists, and the same for 0x20, 0x3e7 AND the literal 0 in the loop --
+ *      the four extra pool words.  Alternative 1 carries `pool_range` 64
+ *      against SImode's 1020 (arm.md:4353 vs :3856), so the pool must land
+ *      inside the body and `create_fix_barrier` emits a `b` over it, which the
+ *      ROM has nowhere.  The cure is to store an INT: name 0x80 and 0x20, and
+ *      use the existing `z` for the loop's zeros.
+ *      (This is the general form of the shared brief's lever 4.)
  *
- * The ROM materialises them in the order p, z and gives r7 then r5; gcc gives
- * r6 then r7. Nothing in the source selects this, and declaration order does
- * not reach it -- the pseudos are created in use order either way.
+ *   2. `w = p + 0x174; *(short *)(w + 2) = z;` for the 0x176 and 0x1aa stores.
+ *      The ROM holds 0xba<<1 = 0x174 and stores at `[r3,#2]` and `[r3,#2]`
+ *      again off a +0x34 step; written as absolute 0x176/0x1aa gcc builds
+ *      0xbb<<1 and stores at `[r3,#0]`, which costs two.  The old header had
+ *      this exact spelling recorded as INERT ("128, 105").  It is not inert:
+ *      alone it is worth nothing, crossed with lever 1 it is worth two
+ *      instructions and four bytes.  A negative measured on another body is a
+ *      measurement of that body.
  *
- * This is the REG_ALLOC_ORDER hypothesis in HANDOFF.md, and it is now the third
- * clean specimen alongside rom_f6000/80f6148.c (no calls at all, three values,
- * r0/r4/r5 against r5/r6/r7) and rom_9000/800bbc0.c.
+ *   3. THE BITFIELD ASSIGNMENT ORDER: `s->f5e = 0;` AFTER `s->f7c = 1;`.
+ *      The ROM derives the ~0x3e mask from the ~0x03 mask already in r3 --
+ *      `mov r3,#4 / neg r3,r3 / and r2,r3 / sub r3,#0x3b` -- one instruction
+ *      where gcc otherwise spends `movs r3,#63 / negs r3,r3`.  Moving the f5e
+ *      write past the two byte-7 writes puts the two masks adjacent and gcc
+ *      makes the derivation itself.  f5e is in byte 5 and f7b/f7c are in byte
+ *      7, so the final memory state is identical either way.
+ *      Alone this lever is worth 0 instructions and takes the ALIGNED residue
+ *      91 -> 74; crossed with levers 1 and 2 it is worth the last two.
  *
- * MEASURED (rom 125 lines):
- *   baseline                                              128, 105  <- best
- *   `n = 0x3e7;` named so the halfword store uses a
- *     derived `add r3, #0x2f` rather than a pooled load   127, 118 (one line
- *                         nearer, eleven lines further -- the register rotation
- *                         swallows the gain)
- *   a separate named zero for the loop's stores           128, 105 (inert)
- *   `b = p + 0x174; *(short *)(b + 2) = z;` to keep the
- *     +2 in the store rather than folded into the base    128, 105 (inert)
+ * COMPOSITIONALITY, measured, because no single lever reaches it:
+ *      lever        instructions (ref 121)   bytes (ref 268)   ndiff of 128
+ *      none                      123              288              112
+ *      1 only                    123              272              114
+ *      3 only                    123              272              114
+ *      1 + 2                     121              268              103
+ *      1 + 3                     123              272               98
+ *      1 + 2 + 3                 121              268               76   <- this
  *
- * THE INERT RESULTS ARE THE INFORMATIVE ONES. Both of those levers are recorded
- * and both fire elsewhere; here gcc ALREADY produces the ROM's form without
- * them. Applying a lever that is not needed costs nothing but proves the
- * residue is not where it looked.
+ * MEASURED AND WORSE / INERT:
+ *   naming 0x3e7 as well as 0x80 and 0x20     126 instructions, 276 bytes
+ *   naming 0x3e7 only                         121 instructions, 280 bytes
+ *   ONE reused `int n` for 0x80 and 0x20      118 instructions (-3), 264 bytes
+ *   reused `n` for all three                  118 instructions, 260 bytes
+ *   `z` itself used as the constant carrier   118 instructions, 260 bytes
+ *   reusing n20's pseudo for 0x3e7            124 instructions, 272 bytes
+ *   late definition of n80/n20 at their use   120 instructions
+ *   declaration order of n80/n20              identical, 76
+ *   a second zero variable after the loop     identical, 76
+ *   f7b moved before f5a only                 123 instructions, 272 bytes
+ *   f7c moved after f9b                       123 instructions, 272 bytes
+ *   The reused-carrier rows are the informative ones: ONE pseudo for both
+ *   constants lets gcc chain the whole offset walk and it goes THREE SHORT.
  *
- * WHAT IS RIGHT, and is a lot of this function:
+ * FLAG AXIS CLOSED on the old body (tools/autosweep.py, batch 347): eight
+ * groups, all inert or worse; -O1's 110/128 RAISES the aligned residue
+ * 91 -> 102.  ANCHOR AXIS NOT CLOSED -- autosweep CAPPED at 40 of 43
+ * boundaries, so boundaries 40..42 are UNTESTED, not inert.  Both axes need
+ * re-running against THIS body, which has a different statement list.
  *
- *   THE OFFSET CHAIN COMES FREE. The ROM walks a running offset register --
- *   `mov r2, #0xd2 / lsl r2, #2` for 0x348, then `add r2, #4`, `add r2, #4`,
- *   `add r2, #0x4a`, `add r2, #2` -- and gcc reproduces every step from plainly
- *   written absolute offsets. Do NOT try to spell the chain.
+ * STILL TRUE FROM THE OLD HEADER: the offset chain comes free from plainly
+ * written absolute offsets -- do not try to spell it; the five-iteration
+ * do/while over two 0x34-stride pointers; UploadSpriteGFX reading its slot
+ * argument back out of the halfword it was just stored to.
  *
- *   SO DOES THE DERIVED CONSTANT: `*(short *)(p + 0x3b8) = 0x3e7;` gives the
- *   ROM's `add r3, #0x2f` off the 0x3b8 already in r3 when it is written as a
- *   literal, and naming it is what BREAKS that.
+ * REFUTED FROM THE OLD HEADER, which is why the park was mis-ranked:
+ *   * "`*(short *)(p + 0x3b8) = 0x3e7;` gives the ROM's `add r3, #0x2f` ...
+ *     when it is written as a literal."  It does not.  As a literal it is a
+ *     POOLED LOAD, by lever 1 above; it is the derived form that the ROM has.
+ *   * "NEXT: nothing source-level."  Three source levers were worth 2
+ *     instructions, 20 bytes and 41 aligned encodings.
+ *   * The register rotation the old header blamed (r7/r5/r6 against r6/r7/r5)
+ *     is still there and is most of the remaining 76 -- but it was never the
+ *     length gap, and the length gap was what made the figure unreadable.
  *
- *   The five-iteration do/while over two parallel 0x34-stride pointers, the
- *   bitfield block at +0x300 (a byte with fields at bits 0-1, 2-3, 4, 5, 6-7
- *   assigned in the ROM's mask order), and `UploadSpriteGFX` reading its slot
- *   argument back out of the halfword it was just stored to.
- *
- * NEXT: nothing source-level. Re-screen if gcc is ever rebuilt with
- * REG_ALLOC_ORDER starting high.
+ * NEXT: the rotation.  This body holds p in r7 like the ROM, and spends a
+ * 4-byte stack slot on the shared zero because the two named constants take
+ * r5 and r6 and `-fcall-used-r4` makes r4 unable to hold it across the two
+ * calls.  Get the zero into r5 and the stack slot goes.
  */
 struct Obj {
     unsigned char pad0[5];
@@ -92,6 +127,9 @@ void Func_801a66c(void)
     void *gfx;
     int i;
     int z;
+    unsigned char *w;
+    int n80 = 0x80;
+    int n20 = 0x20;
 
     p = galloc_ewram(0x12, 0xf9 << 2);
     z = 0;
@@ -100,8 +138,8 @@ void Func_801a66c(void)
     *(int *)(p + 0x350) = z;
     *(short *)(p + 0x39a) = z;
     *(short *)(p + 0x39c) = z;
-    *(short *)(p + 0x39e) = 0x80;
-    *(short *)(p + 0x3a0) = 0x20;
+    *(short *)(p + 0x39e) = n80;
+    *(short *)(p + 0x3a0) = n20;
     *(short *)(p + 0x394) = z;
     *(short *)(p + 0x3b8) = 0x3e7;
     q = p + 0x1de;
@@ -109,14 +147,15 @@ void Func_801a66c(void)
     i = 0;
     do {
         i++;
-        *(short *)r = 0;
-        *(short *)q = 0;
+        *(short *)r = z;
+        *(short *)q = z;
         r += 0x34;
         q += 0x34;
     } while (i != 5);
     z = 0;
-    *(short *)(p + 0x176) = z;
-    *(short *)(p + 0x1aa) = z;
+    w = p + 0x174;
+    *(short *)(w + 2) = z;
+    *(short *)(w + 0x36) = z;
     *(short *)(p + 0xa) = z;
     *(short *)(p + 0x3e) = z;
     *(short *)(p + 0x12) = z;
@@ -132,8 +171,8 @@ void Func_801a66c(void)
     s->f5c = 0;
     s->f5d = 1;
     s->f5a = 0;
-    s->f5e = 0;
     s->f7b = 0;
     s->f7c = 1;
+    s->f5e = 0;
     s->f9b = 0;
 }

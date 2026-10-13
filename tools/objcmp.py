@@ -573,6 +573,23 @@ def main():
         print("  XX INSTRUCTION COUNT  ref %d, ours %d  (16-BIT encodings only; the"
               " %d/%d 32-bit entries -- pool words AND `bl` calls -- and pads excluded)"
               % (a_in, b_in, a_pool, b_pool))
+        # SAY IT TWICE WHEN BOTH DIMENSIONS MOVED.  The pool counts were already
+        # in the parenthetical above, and that was not enough: batch 347 brief C's
+        # p3 was +2 instructions AND +4 POOL WORDS (6 against 10), the pool half
+        # being 16 of its 20 extra bytes and the whole mechanism -- and no header
+        # had mentioned it, because a figure buried in an aside is a figure nobody
+        # reads.  Brief E's p4 was one instruction LONG and six pool words SHORT,
+        # and its header inverted the direction off the instruction count alone.
+        if a_pool != b_pool:
+            print("     AND THE POOL COUNT MOVED TOO: %+d instructions but %+d 32-bit"
+                  " entries." % (b_in - a_in, b_pool - a_pool))
+            print("     These are INDEPENDENT dimensions -- do not read one from the")
+            print("     other, and do not call the gap closed until both agree.  A pool")
+            print("     surplus is most often a HImode store of a literal, which ALWAYS")
+            print("     pools (arm.md:4269-4271, with alternative 1's `n` tested before")
+            print("     alternative 5's `I` at :4319-4320; pool_range 64 against SImode's")
+            print("     1020).  An `int` carrier for the stored value is the usual cure")
+            print("     and can also remove a mid-function pool and the `b` over it.")
         if a_sz == b_sz and len(a_enc) == len(b_enc):
             print("     NOTE: size and encoding count MATCH -- a pad is absorbing the")
             print("     difference, so the positional figure below measures MISALIGNMENT,")

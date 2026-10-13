@@ -35946,12 +35946,35 @@ and prints its own note saying a pad is absorbing the difference. Four of batch
 346's twenty targets asserted the opposite anyway, in prose, with the
 contradicting line visible in the same output.
 
-## The incidence, measured
+## The incidence, measured — AND CORRECTED, batch 347 brief A
 
-    256 parks assert a distance in prose
-    100 OF THEM ARE OUT OF PHASE
+The first count reported here was **wrong, by nearly half**, and the way it was
+wrong is the same defect it was describing: **the sweep counted the NEGATION as
+an assertion.** `grep -i 'true distance'` matches `NOT A TRUE DISTANCE` — a
+header that is correct and says so. Brief A was handed such a park as a target
+and found its line 6 had read `NOT A TRUE DISTANCE`, correctly, since batch 335.
 
-That is not a few slips. And the claim is **load-bearing**: it is the sentence
+Three successive filters, each narrowing to the real question:
+
+    256 files match the bare phrase
+    224 survive a naive negation filter
+    180 are a claim about THIS park's own figure in its own header
+     53 OF THOSE ARE OUT OF PHASE          <- the honest number
+
+The 44 dropped at the third step were prose about *other* parks — e.g. *"312
+brief C spent its budget reaching a real distance on its other two"*.
+
+**And 35 of the 53 share one provenance**: the sentence *"Re-classified in batch
+322; the figure IS a distance."* 59 parks carry that sentence, so **batch 322's
+re-classification sweep was wrong on 35 of 59** — a single bad sweep, not a
+diffuse corpus-wide habit. That is a far more useful finding than the inflated
+number, because it is fixable in one pass and it names where to look.
+
+The original claim stands in substance: 53 parks still assert a trustworthiness
+their figures do not have, and that sentence is load-bearing. But the magnitude
+was overstated, and **the overstatement came from exactly the kind of unchecked
+instrument this section is about.** `parkcheck`'s cross-check carried the same
+negation bug for one batch and is fixed. And the claim is **load-bearing**: it is the sentence
 that tells the next agent the figure can be trusted, and every targeting
 instrument in this tree ranks on that figure.
 
