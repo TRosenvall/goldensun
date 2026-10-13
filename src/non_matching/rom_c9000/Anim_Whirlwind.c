@@ -305,6 +305,66 @@
  * not on loop.c's ordering.  The flip is available on demand and costs the frame
  * a sixth slot.  Anything that frees one register across those three calls
  * without changing the program is the whole remaining question.
+ *
+ * ================================================================
+ * BATCH 348 BRIEF C -- FIGURE RE-DERIVED; THE BRIEF'S "NO RECORDED BATCH WORK"
+ * PREMISE IS FALSE FOR THIS PARK; FOUR MORE MEASUREMENTS
+ * ================================================================
+ * RE-DERIVED, ALL THREE LENGTH DIMENSIONS, production flags:
+ *     stream encodings  472 / 472
+ *     16-bit insns      408 / 408      (objcmp.insn_pool_counts, pads excluded)
+ *     32-bit entries    62 / 62        (pool words + every `bl`)
+ *     byte size         1068 / 1068
+ *     objcmp            26 differing, FIRST AT INDEX 205, no RELOCATIONS line
+ *     aligncmp          449 aligned-equal (95.1%), 26 in 11 hunks
+ * So 26 is still a true distance and the 205/206/208/212/226/285/349-354 +
+ * 368-384 index list above still holds.
+ *
+ * PREMISE CORRECTION.  Batch 348 selected this park as one of "196 measurable
+ * parks with NO RECORDED BATCH WORK AT ALL".  That is wrong: this header
+ * already carries BATCH 305 BRIEF C (nine measurements) and BATCH 327B (the
+ * .08.loop dump that refuted the recorded closure reason).  Whoever regenerates
+ * the selection should match on the strings "BATCH <n>" anywhere in a park, not
+ * only in a dedicated section heading.
+ *
+ * FLAG AXIS, three groups, DIAGNOSTIC ONLY (none is in this stem's production
+ * flag set, so no figure here may be quoted as this park's):
+ *   -fno-schedule-insns2                      26 -> 238, and the ALIGNED residue
+ *       falls 449 -> 356 with RELOCATIONS dirty.  sched2 is doing almost all of
+ *       the work correctly here; it is not the enemy.
+ *   -fno-schedule-insns                       BIT-IDENTICAL (same object
+ *       encodings + relocations).  Measures nothing.
+ *   -fno-cse-follow-jumps -fno-cse-skip-blocks (TOGETHER, per the shared brief's
+ *       warning that each alone is bit-identical)   BIT-IDENTICAL.  Measures
+ *       nothing.
+ *
+ * FOUR SOURCE MEASUREMENTS on the installed body (`scratch_elev/b348/C/v_whirl`):
+ *   ROUTE 4, `clear = Func_80008d8;` moved ABOVE the `yb = sin(...)` statement:
+ *       318 of 472 at 406 instructions -- TWO SHORT.  Hoisting the function
+ *       pointer out of the first block loses two insns, so the header's "clear
+ *       assigned OUTSIDE the 7-step loop" is load-bearing in BOTH directions.
+ *   ROUTE 4, the m-loop's `k = 0;` moved above the two REG_BLDALPHA blocks:
+ *       301 of 474 (+2 instructions, +4 bytes).
+ *   ROUTE 2b, `r5` inlined in the THIRD fns[0] call only (`rem * 5 << 9`):
+ *       BIT-IDENTICAL to the installed body.  Measures nothing.
+ *   ROUTE 5, `i = yb & 0;` to lengthen yb's range past the three calls:
+ *       BIT-IDENTICAL.  fold() kills `x & 0` in the front end, so the
+ *       lengthening never reached the allocator -- this is the shared brief's
+ *       bit-identical trap and it is why the two rows above are not negatives.
+ *
+ * *** A HARNESS LESSON WORTH MORE THAN THE FOUR ROWS. ***  My first sweep
+ * hashed the candidate's `.s` TEXT to detect bit-identical variants.  That
+ * cannot work: gcc writes `.file "<name>.c"` at the top, so EVERY variant in a
+ * separate file hashes differently and five "inert" rows looked like five real
+ * negatives.  Hash the OBJECT (encoding list + relocation list), which is what
+ * `scratch_elev/b348/C/csweep.py` does now.  Of the ten source variants I ran
+ * across this park, Anim_Mars and Anim_Jupiter, FOUR were bit-identical and
+ * would have been recorded as measurements.
+ *
+ * SO RESIDUE A'S OPEN QUESTION IS UNCHANGED and is exactly as batch 327B left
+ * it: the giv flip is available on demand, costs the frame a sixth slot, and
+ * what is wanted is one register freed across the three fns[0] calls.  Neither
+ * of the two statement-motion routes above touches that.
 */
 #include "gba/types.h"
 #include "gba/io.h"

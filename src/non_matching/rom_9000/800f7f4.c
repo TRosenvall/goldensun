@@ -1,85 +1,131 @@
-/* ActorCmd_Player_Climb (0x0800f7f4) -- NON-MATCHING: 168 encodings of 222 differ (objcmp).
+/* ActorCmd_Player_Climb (0x0800f7f4) -- NON-MATCHING, 168 encodings of 222 differ.
+ *
+ * ours 220 encodings / 206 16-bit instructions against ref 222 / 207, pool
+ * 14/14, 468 bytes against 472 -- ONE INSTRUCTION SHORT (it was two), so the
+ * 168 is NOT a distance.  Honest figures: tryc --align 85 of 229 (was 89);
+ * aligncmp raw 123 (was 127).  0 pins, 0 devices (shimcount).
  *
  * Verify with:
  *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
- *       goldensun-build python3 tools/objcmp.py \
- *       src/non_matching/rom_9000/800f7f4.c asm/rom_9000/rom_ebec_c.s --func ActorCmd_Player_Climb
+ *     goldensun-build python3 tools/objcmp.py src/non_matching/rom_9000/800f7f4.c \
+ *     asm/rom_9000/rom_ebec_c.s --func ActorCmd_Player_Climb
+ * Rank variants on:
+ *   ... tools/aligncmp.py src/non_matching/rom_9000/800f7f4.c \
+ *       asm/rom_9000/rom_ebec_c.s ActorCmd_Player_Climb
+ * AND on tryc --align.  THEY DISAGREE HERE AND aligncmp IS THE ONE TO TRUST --
+ * see the gBuffer entry below: tryc's DESTRUCTIVE normaliser folds
+ * `add r0, r0, r3` into `add r0, r3`, so it is STRUCTURALLY BLIND to exactly the
+ * destructive-vs-three-operand difference this function turns on.
  *
- * SIZE 468 vs the ROM's 472 and 220 instructions vs 222, so 168 is NOT a
- * distance -- TWO INSTRUCTIONS ARE STILL MISSING.  tryc --full --align reports
- * 94 instructions in disagreeing regions of 229 lines, which is the honest
- * figure; the headline 168 is difflib mis-alignment.
+ * SPLIT SHAPE (datacheck.py + split_s.py --dry-run, both run this round):
+ *   asm/rom_9000/rom_ebec_c.s
+ *       data sections : .rodata
+ *       functions     : ActorCmd_Player_Climb
+ *       EXPORTS       : .L13254, .L13274, .L13280, .L1328c  (ALREADY global)
+ *       ActorCmd_Player_Climb reads .L13254 -> NO NEW EXPORT
+ *   split_s.py asm/rom_9000/rom_ebec_c.s ActorCmd_Player_Climb --dry-run:
+ *       would write rom_ebec_c_b.s  (the function, 243 lines)
+ *       would write rom_ebec_c_c.s  (the .rodata + 4 labels, 15 lines)
+ *       would REMOVE rom_ebec_c.s, rewrite stage1.ld
+ *   The four labels are referenced from asm/rom_9000/rom_ebec_a.s and from the
+ *   parks src/non_matching/rom_9000/800ebec.c, 800f2f8.c and this file, so the
+ *   data MUST keep its own object.  `exports` in the manifest is [] because they
+ *   are already `.global`; this is the CODE/DATA split, and a gate went red on
+ *   exactly this class in batch 345.
  *
- * THE SPLIT this needs: rom_ebec_c.s holds ONE function plus a .rodata tail of
- * four `.incrom` blobs.  The function reads ONLY .L13254, which the file ALREADY
- * exports (`.global .L13254`), so the split needs NO NEW EXPORTS.  Two files:
- * the function alone, and the `.include` + `.section .rodata` + four labels.
+ * ============ BATCH 348 (brief D): THE GAP WAS TWO SITES OF 1 ===============
+ * d_regions.py on the previous body, every other hunk netting zero:
+ *
+ *   A. ref[100:102] 2, ours 1:   `adds r3, r3, r1` + `ldr r1, [pc, #248]`
+ *      the ROM's SECOND load of gBuffer's address.  We load it once and CSE.  -1
+ *   B. ref[194:200] 5, ours 4:   `add r3, sp, #68` before the three
+ *      `ldr r1/r2/r3, [r3, #0/4/8]` that build the Actor_TravelTo arguments.
+ *      We used the live r5, which already holds sp+68.                       -1
+ *
+ * SITE B IS NOW CLOSED, and this body is the closure: the ROM REMATERIALISES
+ * &s.v at its LAST use.  Writing that ONE use through a block-local
+ *     {vec3_t *q = &s.v; Actor_TravelTo(a, q->x, q->y, q->z);}
+ * brings `add r3, sp, #68` back -- 205 -> 206 instructions, aligncmp 127 -> 123,
+ * tryc --align 89 -> 85, pool and size untouched.  The bare member form
+ * `Actor_TravelTo(a, s.v.x, s.v.y, s.v.z)` also reaches 206 but only aligncmp
+ * 127 / tryc 89, so the block-local `q` is strictly better.  (The old header
+ * recorded "addressing `s.v.x` directly costs 2 instructions (224 vs 222)" --
+ * that was measured at EVERY site; ONE site is a different experiment, and it
+ * pays.)
+ *
+ * ---- SITE A: THE OLD HEADER'S RECORDED NEGATIVE WAS SCORED ON THE WRONG
+ *      METRIC, AND IS THE BEST aligncmp STATE MEASURED THIS ROUND ----
+ * The old header says: "`p0 = gBuffer; p0 += off;` to force the destructive form
+ * made it WORSE (214 of 218)".  214 is objcmp's RAW ndiff, which saturates as
+ * soon as the stream shifts.  Measured on the ALIGNED residue instead:
+ *
+ *   body                                   insns  pool  size  aligncmp  tryc
+ *   this body (q, gBuffer as-is)            206    14    468   123       85
+ *   q + `p0 = gBuffer; p0 += (ix+row)<<2;`  205    14    468    91       90
+ *   member + same                           205    14    468    94       93
+ *   p (old travel) + same                   204    14    464   102       93
+ *   q + the same on p1 instead              206    14    468   123       85  (inert)
+ *   q + the same on BOTH p0 and p1          205    14    468    91       90  (= p0 alone)
+ *
+ * So the destructive form is worth 32 aligned encodings and costs ONE
+ * instruction, and tryc cannot see the gain because its DESTRUCTIVE regex folds
+ * the two `add` forms together.  It is NOT shipped only because it reopens the
+ * instruction gap to -2 and scatters the residue from two clean sites into ~10
+ * +/-1 hunks; it is the first thing to re-try once site A's second gBuffer load
+ * is understood, and the two may well be the same question.  Note `p1`-side is
+ * INERT -- the lever is on p0 only.
+ *
+ * Site A still open.  The ROM's two adds are DIFFERENT FORMS (`add r0, r3`
+ * destructive, then `add r7, r3, r1` three-operand), so the ROM holds TWO
+ * separate gBuffer pseudos, the first dying at its add.  Brief lever 1 does NOT
+ * apply: a constant-pool MEM is RTX_UNCHANGING_P, so a `bl` between the uses
+ * cannot drop it (cse.c:2260, :6068-6080).  Reload rematerialising an
+ * unallocated REG_EQUIV symbol per use is the remaining mechanism to aim at.
  *
  * ================== WHAT WAS SOLVED (keep all of it) ==================
- * 1. THE FRAME, which is the thing to read first.  The ROM has `sub sp, #0x50`
- *    with its ONLY stack object at sp+0x44 -- 68 bytes of frame that nothing in
- *    the function touches.  The whole rom_ebec family shares the number:
- *      ActorCmd_Player        0x68 frame, vec3s at 0x44/0x50/0x5c  (3)
- *      ActorCmd_Player_World  0x5c frame, vec3s at 0x44/0x50       (2)
- *      ActorCmd_Player_Climb  0x50 frame, vec3  at 0x44            (1)
- *    68 + 12*N exactly, every time.  So the vec3s are the LAST members of one
- *    local aggregate whose first 68 bytes this handler never reads.  Spelled
+ * 1. THE FRAME.  The ROM has `sub sp, #0x50` with its ONLY stack object at
+ *    sp+0x44 -- 68 bytes nothing in the function touches.  The whole rom_ebec
+ *    family shares the number: ActorCmd_Player 0x68 frame with vec3s at
+ *    0x44/0x50/0x5c, ActorCmd_Player_World 0x5c with 0x44/0x50, Climb 0x50 with
+ *    0x44 -- 68 + 12*N exactly.  So the vec3s are the LAST members of one local
+ *    aggregate whose first 68 bytes this handler never reads.  Spelled
  *      struct { unsigned char pad[68]; vec3_t v; } s;  vec3_t *p;  p = &s.v;
- *    gcc emits `sub sp, #80` and `add r5, sp, #68` -- the ROM's two encodings,
- *    at no instruction cost.  A bare `int pad[17]` is DELETED unless it is
- *    stored to, and storing to it costs 3 instructions; the aggregate is what
- *    makes the slot survive for free.  The named `p` is required: addressing
- *    `s.v.x` directly costs 2 instructions (224 vs 222) and loses `add r5,sp,#68`.
- *    p BORN at the zero stores is 169; born at the top of the function, 188.
- *    A corpus sweep (every function still in asm) found Climb is the ONLY one
- *    whose lowest stack offset is 0x44, so this is not a compile-unit artifact.
+ *    gcc emits `sub sp, #80` and `add r5, sp, #68` -- the ROM's two encodings at
+ *    no instruction cost.  A bare `int pad[17]` is DELETED unless stored to, and
+ *    storing to it costs 3; the aggregate is what makes the slot survive free.
+ *    `p` BORN at the zero stores is right; born at the top of the function, 188.
+ *    A corpus sweep found Climb is the ONLY function whose lowest stack offset
+ *    is 0x44, so this is not a compile-unit artifact.
  * 2. `extern volatile unsigned int gKeyHeld;` -- the ROM reads gKeyHeld THREE
  *    times and keeps only the ADDRESS in r1 across the 0x40/0x80 branch
  *    (`ldr r1,=gKeyHeld ... ldr r3,[r1]` in BOTH arms).  gcse commons the VALUE
- *    without volatile.  Single drop 218 -> 220 instructions (the missing re-read
- *    comes back), 169 -> 168.  `-fno-gcse` reaches the same re-read (228 lines,
- *    156 dirty) and is the per-TU alternative if volatile is judged wrong.
+ *    without volatile.  This is a READING, not a pin: three reads in the ROM,
+ *    three in the source, so no fakematch row is needed.  `-fno-gcse` reaches
+ *    the same re-read and is the per-TU alternative if volatile is judged wrong.
  * 3. `short h; h = L13254[k];` -- the ROM's `ldrsh` says the DESTINATION is a
- *    short (docs "ldrh versus ldrsh: the type of the DESTINATION decides").
- *    With an `int` h, combine folds the load and the zero-extension into one
- *    `ldrh` and the ROM's `lsl #16 / lsr #16` pair vanishes: 216 instructions,
- *    460 bytes.  `(unsigned short)h` at each use site keeps both `lsr`s.
- * 4. Both halfword facing literals need INT CARRIERS in their own blocks
- *    (`{ int f = 0xc0 << 8; *(unsigned short *)(a+6) = f; }`): written as bare
- *    literals through the `unsigned short *` they POOL (`ldr r3,=0xc000`) where
- *    the ROM builds `mov #0xc0 / lsl #8`.  The recorded halfword-literal rule.
+ *    short.  With an `int` h, combine folds the load and the zero-extension into
+ *    one `ldrh` and the ROM's `lsl #16 / lsr #16` pair vanishes (216 insns, 460
+ *    bytes).  `(unsigned short)h` at each use keeps both `lsr`s.
+ * 4. Both halfword-facing literals need INT CARRIERS in their own blocks
+ *    (`{ int f = 0xc0 << 8; *(unsigned short *)(a+6) = f; }`): as bare literals
+ *    through the `unsigned short *` they POOL (`ldr r3,=0xc000`) where the ROM
+ *    builds `mov #0xc0 / lsl #8`.  The recorded halfword-literal rule.
  * 5. `.L13254` is reached with the asm-label extension,
  *    `extern short L13254[] __asm__(".L13254");` -- 5 digits, so the
  *    low-numbered-label caveat does not apply.  `p[i]` on the short array gives
  *    the ROM's register-offset `ldrsh r3, [r1, r3]`.
  * 6. r4 carries 0x8000 from the +0x30 store to the `cmp r2,r4` at 0xf846 by
  *    plain constant CSE (no call between), while 0x4000 is rebuilt after
- *    vec3_translate.  Both are written as plain literals; the dominance rule
- *    does the rest.  The `anim = 0xe / 0xf / 0xa` chain comes out as the ROM's
- *    three separate `mov r9` pairs with ordinary nested ifs -- the apparent
- *    cross-jump in the aligned diff is difflib, not codegen.
+ *    vec3_translate.  Both are plain literals; the dominance rule does the rest.
+ *    The `anim = 0xe / 0xf / 0xa` chain comes out as the ROM's three separate
+ *    `mov r9` pairs with ordinary nested ifs -- the apparent cross-jump in the
+ *    aligned diff is difflib, not codegen.
  *
- * ================== THE RESIDUE ==================
- * Two instructions short, and the identified half of that is:
- *   - gBuffer's address is loaded TWICE in the ROM (`ldr r0,=gBuffer ... add r0,r3`
- *     destructive on the symbol register, then `ldr r1,=gBuffer ... add r7,r3,r1`
- *     three-operand).  We load it once and CSE.  `p0 = gBuffer; p0 += off;` to
- *     force the destructive form made it WORSE (214 of 218) -- the two adds are
- *     different forms in the ROM and that pairing has not been found.
- *   - branch polarity at the 0x40 arm: ROM `cmp r3,r0 / bge tail / b set1`,
- *     ours `blt set1 / b tail`.  Two encodings, same count.
- *   - `sub r3, r0, r3` (three-operand, destination = the pos.y register) against
- *     our destructive `sub r0, r3`, at both Func_8011f54 sites.
- * Everything else is low-register scratch rotation (r0/r1/r2/r3 permuted) in the
- * two `/ 0x100000` divisions and the two Func_8011f54 arms.
- *
- * NEXT: find what makes gBuffer rematerialise at the second index; that is the
- * one clearly-missing instruction, and the r0/r1 rotation in the divisions
- * almost certainly follows it.
- *
- * `volatile` on gKeyHeld is a READING (three reads in the ROM, three in the
- * source), not a pin -- if this lands it needs no fakematch row for it.  There
- * are no register pins, no barriers and no .equ in this draft.
+ * Also still open, and count-neutral: branch polarity at the 0x40 arm (ROM
+ * `cmp r3,r0 / bge tail / b set1`, ours `blt set1 / b tail`) and
+ * `sub r3, r0, r3` three-operand against our destructive `sub r0, r3` at both
+ * Func_8011f54 sites -- which is the SAME destructive/three-operand axis as
+ * site A, and tryc is blind to all of it.
  */
 #include "gba/types.h"
 
@@ -193,7 +239,8 @@ tail:
         *(int *)(a + 0x28) = 0;
         *(int *)(a + 0x2c) = 0;
     } else {
-        Actor_TravelTo(a, p->x, p->y, p->z);
+        {vec3_t *q = &s.v;
+        Actor_TravelTo(a, q->x, q->y, q->z);}
     }
     *(unsigned short *)(a + 4) += 1;
     return 1;

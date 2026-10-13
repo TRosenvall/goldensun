@@ -173,6 +173,68 @@
  * pin on the first staging copy of the inner particle loop ("one
  * scratch-register pin can settle two distant clusters").  It was left alone
  * because this file is pin-free and the brief asked for pin-free.
+ *
+ * ================================================================
+ * BATCH 348 BRIEF C -- FIGURE RE-DERIVED; ROUTES 1, 3, 4 AND 5 ALL MEASURED ON
+ * THE INNER PARTICLE LOOP, AND ADDING A LIVE QUANTITY THERE COSTS INSTRUCTIONS
+ * ================================================================
+ * RE-DERIVED, ALL THREE LENGTH DIMENSIONS, production flags:
+ *     stream encodings  426 / 426
+ *     16-bit insns      370 / 370      (objcmp.insn_pool_counts, pads excluded)
+ *     32-bit entries    56 / 56        (pool words + every `bl`)
+ *     byte size         964 / 964
+ *     objcmp            37 differing, first at index 91: ref 49b2 ours 4cb2
+ *     aligncmp          391 aligned-equal (91.8%), 37 in 13 hunks
+ * 37 is still a true distance.
+ *
+ * THE HEADER'S VERDICT SURVIVES, AND NOW WITH THE ALLOCNO ROUTES CLOSED.  This
+ * park says the residue is "ONE ROTATION" in five blocks -- ours takes the
+ * register ONE EARLIER in REG_ALLOC_ORDER than the ROM, "as if one more low
+ * register were already spoken for" -- and calls it an INPUT question, not an
+ * order question.  The shared brief's five allocno routes are the obvious
+ * attack on exactly that.  All five are now measured on the inner particle
+ * loop (`scratch_elev/b348/C/v_mars`), and the measurement is decisive in an
+ * unexpected way: THE ROM'S EXTRA CONFLICT EDGE CANNOT BE AN EXTRA NAMED VALUE
+ * IN THAT LOOP, because every way of adding one costs instructions.
+ *
+ *   ROUTE 3, `int px = p->x;` as the first statement of the k-loop body:
+ *       428 encodings / 371 instructions / 968 bytes -- ONE LONG, dirty
+ *       relocations, 270 aligned (was 391).
+ *   ROUTE 3 outside, `px = p->x;` in the i-loop body beside `msk`:
+ *       428 / 372 / 968 -- TWO LONG, 341 aligned.
+ *   ROUTE 5, a second `msk = 0xffff;` after the two masked stores to lengthen
+ *       its range past them: 428 / 372 / 968 -- TWO LONG, 378 aligned.
+ *   ROUTE 3 + the 0x7f mask named (the recorded-negative cross -- the header
+ *       lists naming 0x7f as "INERT in three placements", and a negative is a
+ *       measurement of ONE body that expires when the body changes):
+ *       428 / 371 / 968, 269 aligned.  The cross does not rescue it.
+ *   ROUTE 4, `msk = 0xffff;` moved ABOVE `p->t = -(i * 2);` (across the
+ *       if/else block boundary): BIT-IDENTICAL to the installed body.
+ *   ROUTE 1, the inner counter given its own scope (`{ int kk = 0; ... }`) so
+ *       it is unambiguously a single-block pseudo for
+ *       local-alloc.c:1495-1497's QTY_CMP_PRI: BIT-IDENTICAL.  `k` was already
+ *       block-local to local-alloc; the scope braces change nothing.
+ *
+ * WHAT THAT LEAVES.  Four real negatives, every one of them LONG, plus two
+ * bit-identical non-measurements.  The rotation is not reachable by giving the
+ * loop another value to allocate, so if the ROM really does have one more low
+ * register spoken for at those points it is spoken for by something that costs
+ * NO instructions -- the shared brief's "a blocker can cost ZERO instructions"
+ * class.  The next probe should therefore read `.18.greg`'s allocno list and
+ * dispositions for the five blocks rather than try to add a name, and should
+ * first settle WHICH ALLOCATOR owns each staging pseudo: a single-block pseudo
+ * appears in neither `.18.greg`'s allocno list nor its dispositions.
+ *
+ * FLAG AXIS, DIAGNOSTIC ONLY (not this stem's production flags):
+ *   -fno-schedule-insns2   37 -> 139, aligned 391 -> 344, relocations dirty.
+ *   -fno-schedule-insns    BIT-IDENTICAL.
+ *   -fno-cse-follow-jumps -fno-cse-skip-blocks together   BIT-IDENTICAL.
+ *
+ * HARNESS LESSON (see the Anim_Whirlwind park for the long form): detect
+ * bit-identical variants by hashing the OBJECT's encodings and relocations, not
+ * the `.s` text -- gcc's `.file "<name>.c"` line makes every variant in its own
+ * file hash differently, which turned two non-measurements here into what
+ * looked like two clean negatives.
  */
 #include "gba/types.h"
 #include "gba/io.h"

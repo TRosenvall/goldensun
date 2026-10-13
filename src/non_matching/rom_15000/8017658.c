@@ -1,3 +1,104 @@
+/* Func_8017658 (OpenTextBoxAt) -- NON-MATCHING.
+ * 109 of 127 encodings.  THREE DIMENSIONS, RE-DERIVED batch 348 brief E:
+ *   16-bit instructions   116 ref / 118 ours   (+2)
+ *   32-bit entries        11 ref  / 10  ours   (-1)   [5 of these are `bl`s,
+ *                                                      so 6 pool words / 5]
+ *   bytes                 276 / 276            (EXACT -- the +4 from the two
+ *                                               instructions and the -4 from the
+ *                                               missing pool word CANCEL)
+ * The old header's "128 instructions against 127" was the STREAM length, which
+ * counts pool words; it is not the instruction count and it hid the pool
+ * dimension entirely.  SIZE EXACT HERE MEANS NOTHING -- two dimensions moved in
+ * opposite directions.
+ * Aligned residue (tools/aligncmp.py): 60 of 127, in 29 hunks.
+ *
+ * Verify with:
+ *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
+ *     goldensun-build python3 tools/objcmp.py src/non_matching/rom_15000/8017658.c \
+ *     asm/rom_15000/rom_15e8c_c_c_a_a.s --func Func_8017658
+ *
+ * ============================================================
+ * THE +2 IS FOUR REGIONS OF OPPOSITE SIGN, not one site
+ * ============================================================
+ * Measured off the six relocation offsets, which are the only landmarks both
+ * streams share (ref -> ours):
+ *   start .. BufferString      0x30 -> 0x32    ours +1 instruction
+ *   .. Func_801868c            0x5e -> 0x5c    ours -2
+ *   .. CreateUIBox             0xae -> 0xb0    ours +2
+ *   .. Func_80165d8            0xca -> 0xcc    ours  0
+ *   .. CloseUIBox              0xd6 -> 0xd8    ours  0
+ *   .. first pool word         0xfc -> 0x100   ours +1
+ * Net +2.  A brief that treats this as "one site of two" is looking in the
+ * wrong four places.
+ *
+ * ============================================================
+ * THE MISSING POOL WORD IS NAMED, AND IT CONFIRMS THE PARK'S DIAGNOSIS
+ * ============================================================
+ * The ROM's pool is  iwram_3001e8c, 0x12f4, 0x12f6, 0xffff, 0x12fa, 0x12fb.
+ * Ours is the same WITHOUT 0x12fb.  The tail stores read:
+ *     rom   ldr r3,=0x12fa / add r3, r8 / strb r5,[r3] /
+ *           ldr r3,=0x12fb / add r3, r8 / strb r5,[r3]      7 insns, 2 pool words
+ *     ours  ldr r0,=0x12fa / mov r2, sl / adds r3, r7, r0 /
+ *           adds r0, #1    / strb r2,[r3] / adds r3, r7, r0 / strb r2,[r3]
+ *                                                            8 insns, 1 pool word
+ * That `adds r0, #1` is reload_cse_move2add (reload1.c:8840-8990), rewriting the
+ * second constant as an add off the same hard register (:8884-8893).  IT FIRES
+ * FOR US AND NOT FOR THE ROM FOR ONE REASON: the ROM's `p` is in r8, a HIGH
+ * register, so the address add is the two-operand Thumb hi form `add r3, r8`
+ * which CLOBBERS r3 and kills `reg_set_luid` for the constant; ours has `p` in
+ * r7, a LOW register, so the add is the three-operand `adds r3, r7, r0` and r0
+ * survives holding 0x12fa for move2add to find.
+ * So the pool dimension is NOT an independent defect and NOT the HImode-store
+ * class -- it is DOWNSTREAM of the register rotation the park already names.
+ * The same rotation produces the region-B -1: `mov r2,r8 / ldrh r3,[r2,r3]`
+ * (register-offset load off a high base) against our `adds r3,r3,r7 /
+ * ldrh r3,[r3,#0]`.
+ *
+ * REGION C's +2 IS `z2`.  Ours emits `movs r3,#0 / mov sl,r3` at the join --
+ * z2 is materialised into sl, a HIGH register, needing a low-register carrier --
+ * where the ROM has a plain `movs r5,#0` in a low register just before
+ * Func_80165d8.  The park's lever 3 (z2 assigned after the `w==0 && h==0` join)
+ * bought the third pushed high register and is still right about the prologue,
+ * but it put z2 itself in sl.  That is the two instructions of region C.
+ *
+ * ============================================================
+ * THE cse1 MERGE REPRODUCES EXACTLY -- the park's diagnosis SURVIVES
+ * ============================================================
+ * Confirmed in the emitted stream, not just the dump: `movs r6,#0` feeds the
+ * 0x12f6 `strh`, the `str r6,[sp,#8]` seventh argument AND all four
+ * `orrs r6, ...` -- ONE pseudo for z and opts.  The ROM has `movs r6,#0` for z
+ * and a separate `movs r7,#0` for opts.  Register roles:
+ *     rom   r5 flags, r6 z, r7 opts, r8 p,  r9 ep, sl n
+ *     ours  r5 flags/box, r6 z+opts, r7 p,  r8 n,  r9 ep, sl z2
+ * One merged pseudo frees one register, z2 takes it, and every role shifts down
+ * one.  Everything above -- the pool word, region B, region C -- follows from
+ * that single shift.  This is the rare park whose inherited verdict is RIGHT.
+ *
+ * ============================================================
+ * BOTH MECHANICAL AXES ARE NOW CLOSED, measured batch 348 (autosweep)
+ * ============================================================
+ *   FLAG AXIS, 8 groups: -fno-strength-reduce and -fno-rerun-loop-opt
+ *     bit-identical at 109; -fno-gcse 103 (aligned 74, worse, +1 insn);
+ *     -fno-rerun-cse-after-loop 108 (aligned 62, worse, +3 insn);
+ *     -fno-strict-aliasing 115; -O1 119 (-1 insn); -fno-schedule-insns2 120;
+ *     -ffixed-r7 132.
+ *   ANCHOR AXIS, 23 of 23 boundaries (NOT capped): all inert, best 109 = base.
+ *
+ * AND ONE FLAG ROW IS EVIDENCE, NOT NOISE: -ffixed-r7 is the ONLY row whose
+ * ALIGNED residue improves, 60 -> 53, while ndiff rises to 132 and the
+ * instruction count goes +8.  It improves because it takes r7 away from `p`,
+ * which is exactly the mechanism above.  It is unusable alone (+8) and is the
+ * obvious CROSSING PARTNER for any source change that separates z from opts.
+ *
+ * NEXT.  Unchanged in direction, sharpened in target: separate the two const-0
+ * pseudos in cse1.  The batch-284 bound still holds (the shared zero is r6,
+ * callee-saved, so invalidate_for_call cannot reach it) and the `"i"(0)` flush
+ * still costs more than it saves.  What has NOT been tried is a source form in
+ * which `opts`'s first definition is not a bare `const_int 0` at all -- the ROM
+ * sets `movs r7,#0` before the early-return branch, so opts is live there, and
+ * any spelling whose initial value cse cannot equate to z's zero would do.
+ * Cross whatever that is with FIXEDR7_CFLAGS.
+ */
 /* Func_8017658 -- NON-MATCHING, 109 encodings of 127.  SIZE EXACT (276 bytes both), 128
  * instructions against 127, six relocations each off by 2-4 bytes (that one instruction).
  *

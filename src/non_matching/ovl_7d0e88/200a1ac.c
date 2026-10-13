@@ -217,8 +217,9 @@
  *   base 2 of 57, instruction counts EQUAL, byte size and pool
  *   count equal too, so this figure IS a real distance.
  *   FLAG AXIS: all eight per-file groups measured, none improves the aligned
- *   residue.  ANCHOR AXIS: all 19 statement boundaries at every brace depth
- *   measured, all inert or worse.  Nothing capped, nothing failed to compile.
+ *   residue.  ANCHOR AXIS: 19 placements swept, but 10 WERE BIT-IDENTICAL to
+ *   the base, so only 9 DISTINCT PROGRAMS were actually tested.
+ *   Those 9 are inert; the other 10 measured nothing.  Nothing capped, nothing failed to compile.
  *
  *   SO DO NOT RE-SCREEN THESE.  The residue is NOT a placement or flag question;
  *   it is a register choice, a tie, or a pass-level effect, and it needs a

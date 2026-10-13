@@ -543,8 +543,9 @@
  *   count equal too (this park is in phase on all three length dimensions, so
  *   its figure IS a real distance).
  *   FLAG AXIS: all eight per-file groups measured, none improves the aligned
- *   residue.  ANCHOR AXIS: all 25 statement boundaries at every brace depth
- *   measured, all inert or worse.  No variant was capped and none failed to
+ *   residue.  ANCHOR AXIS: 25 placements swept, but 16 WERE BIT-IDENTICAL to
+ *   the base, so only 9 DISTINCT PROGRAMS were actually tested.
+ *   Those 9 are inert; the other 16 measured nothing.  No variant was capped and none failed to
  *   compile.
  *
  *   SO DO NOT RE-SCREEN THESE.  Every brief so far has spent part of a round on

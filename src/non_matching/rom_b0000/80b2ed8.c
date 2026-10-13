@@ -235,8 +235,9 @@
  * BOTH MECHANICAL AXES ARE CLOSED -- measured batch 347 harvest pass, no agent.
  *   base 3 of 48, all three length dimensions EQUAL, so this
  *   figure IS a real distance.  FLAG AXIS: eight groups, none improves the
- *   aligned residue.  ANCHOR AXIS: all 10 boundaries at every depth, all inert
- *   or worse.  Nothing capped, nothing failed to compile.
+ *   aligned residue.  ANCHOR AXIS: 10 placements swept, but 8 WERE BIT-IDENTICAL to
+ *   the base, so only 2 DISTINCT PROGRAMS were actually tested.
+ *   Those 2 are inert; the other 8 measured nothing.  Nothing capped, nothing failed to compile.
  *   DO NOT RE-SCREEN.  The residue is a register choice, a tie or a pass-level
  *   effect, not a placement or flag question.  Read as "inert against THIS body".
   */

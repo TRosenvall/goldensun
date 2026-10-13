@@ -1,3 +1,110 @@
+/* Func_801dd28 -- NON-MATCHING.
+ * 106 of 148 encodings, DOWN FROM 140 -- batch 348 brief E, on the ANCHOR AXIS,
+ * which had never been run on this park.  THREE DIMENSIONS, ALL RE-DERIVED:
+ *   16-bit instructions   142 ref / 143 ours   (+1, was +2)
+ *   32-bit entries        6 ref   / 5 ours     (-1)   [1 is the GetFile `bl`,
+ *                                                      so 5 pool words / 4]
+ *   bytes                 308 / 308            (EXACT -- the +2 from the one
+ *                                               instruction plus a 2-byte align
+ *                                               pad against the -4 pool word)
+ * Aligned residue (tools/aligncmp.py) 97 in 27 hunks, DOWN FROM 108 in 26.
+ * All three dimensions and the aligned residue moved the same way, so this is a
+ * real improvement and not the phase artifact autosweep warned it might be.
+ *
+ * THE CHANGE IS ONE LINE: `do { } while (0);` after `off = v * 32;`.  It costs
+ * nothing (emits no instruction, not a pin, not counted by shimcount) and it
+ * removes one of the two `mov` copies in the entry block -- base emits
+ * `mov r9, r0 / mov r8, ip` where the ROM emits neither and this body emits only
+ * `mov r8, ip`.  FOUR placements in that straight-line run measure IDENTICALLY
+ * at 106 of 148 -- after `off = v * 32;`, after `s = (u8 *)0x6000000 + off;`,
+ * after `w = tmp;`, and the two of them together -- and the four are NOT
+ * bit-identical (four distinct md5s on the generated `.s`), so they are four
+ * different programs at one figure, not one program four times.  Anchors after
+ * `p = iwram_3001e8c;` (139), after `file = GetFile(...)` (140) and after
+ * `v = *(u8 *)a;` (140) do nothing.
+ *
+ * THE OLD +2 SPLIT, measured before the anchor, is kept below because it is the
+ * map of what remains.
+ * The old header's "149 instructions against 148 -- ONE over" was the STREAM
+ * length and is wrong as an instruction count; the real gap is +2, and there is
+ * a pool dimension it could not see.
+ * Aligned residue (tools/aligncmp.py): re-measure with the command below; the
+ * raw 140 saturates because the streams differ in length.
+ *
+ * Verify with:
+ *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
+ *     goldensun-build python3 tools/objcmp.py src/non_matching/rom_15000/801dd28.c \
+ *     asm/rom_15000/rom_1ca1c_c_c_c_c.s --func Func_801dd28
+ *
+ * ============================================================
+ * THE +2 IS ELEVEN SITES OF +-1 AND +-2, NOT ONE SITE OF TWO
+ * ============================================================
+ * Counted hunk by hunk off an LCS alignment of the two encoding streams
+ * (ours - ref, in stream order):
+ *   -1  the ROM's extra `ldr r3,[r3,#0]` in the entry block
+ *   +2  `mov r9, r0 / mov r8, ip`
+ *   -2  the ROM's `mov r4, r9 / lsls r3, r4, #5`
+ *   +2  `lsls r3, r0, #5 / adds r2, r1, r3`
+ *   +1  `mov ip, r0`
+ *   -1  the ROM's `mov r0, ip`
+ *   +2  `movs r3, #1 / add ip, r3`
+ *   -2  the ROM's `strb r2,[r3,#0] / add ip, r4`
+ *   +1  `lsls r3, r0, #24`
+ *   +2  `adds r0, r3, r6 / ldrb r3,[r0,#0]`
+ *   -1  the ROM's `strb r3,[r0,r2]`   (register-offset store)
+ * = +3 real instructions, and then the ROM pays ONE instruction we do not --
+ * the `b.n` around its MID-FUNCTION literal pool -- for a net of +2.
+ * So "close the gap, then rank on aligned residue" DOES NOT APPLY to this park:
+ * the gap has no separate cause.  Every one of those eleven sites is the SAME
+ * fact, and it is the one the park already names.
+ *
+ * ============================================================
+ * THE MECHANISM, UNIFIED: HIGH REGISTERS BUY TWO-OPERAND FORMS
+ * ============================================================
+ * The ROM keeps its long-lived values in r8-r12/r14 and ours keeps them one
+ * role rotated with the hot ones in LOW registers.  Three Thumb encodings are
+ * available only off a high base and the ROM uses all three:
+ *   `add rD, Hs`        two-operand, destructive      vs our `adds rD, rA, rB`
+ *   `ldrb rD, [rB, rI]` register-offset load          vs our `adds` + `ldrb #0`
+ *   `strb rD, [rB, rI]` register-offset store         vs our `adds` + `strb #0`
+ * Each costs us exactly one instruction per site, which is the whole +3.
+ *
+ * ============================================================
+ * THE MISSING POOL WORD IS 0x0000f000, AND IT IS LEVER 2 OVERSHOOTING
+ * ============================================================
+ * The ROM's mid-function pool is  0x0000f000, iwram_3001e8c, _FILE_13,
+ * 0x040000d4, 0x84000008 -- FIVE words at 0x110..0x123 with a `b.n 0x124`
+ * around them.  Ours has FOUR words at the function tail and no `b`, because we
+ * build 0xf000 in registers:
+ *     rom   ldr r2,=0xf000 ... adds r3, r5, #0 / orrs r3, r2
+ *     ours  movs r3,#240 / lsls r3,#8 / orrs r3, r1
+ * 0xf000 is 0xf0 << 8, so thumb_shiftable_const builds it and gcc never pools
+ * it.  The old header's lever 2 ("a named `int` temporary for every value stored
+ * as a halfword") fixed the `ldr r2,=0xfffff000` sign-extension defect and
+ * ALSO removed the pool word the ROM keeps -- it overshot.  The two spellings
+ * come out the same LENGTH at this site, so this is not where the +2 is, but it
+ * is why the pool count differs and why the ROM has the `b` and the early dump.
+ * A successor wanting byte-exactness must get 0x0000f000 POOLED, not built:
+ * that is the arm.md pool_range / LEGITIMATE_CONSTANT_P question, and the
+ * HImode-store route (arm.md:4269-4271) is the one documented way to force it.
+ *
+ * ============================================================
+ * THE MECHANICAL AXES -- full output in scratch_elev/b348/E/work/p3_autosweep.txt
+ * ============================================================
+ * FLAG AXIS, 8 groups, against the PRE-ANCHOR body: -fno-strict-aliasing,
+ * -fno-strength-reduce, -fno-rerun-cse-after-loop and -fno-rerun-loop-opt are
+ * all bit-identical at 140; -fno-schedule-insns2 122 (aligned 117, worse);
+ * -O1 136 (aligned 139, -7 insns); -fno-gcse 138 (aligned 118, -11 insns);
+ * -ffixed-r7 148 (aligned 113, +5 insns).  NOTHING beats base on aligned
+ * residue.  These rows have NOT been re-run against the anchored body and a
+ * recorded negative expires when the body changes -- re-cross them.
+ * ANCHOR AXIS, 40 of 40 boundaries, uncapped: the 106 above is its best.
+ *
+ * NEXT.  Unchanged: rotate the allocation so v/map/off/p/idx/file land in the
+ * ROM's roles.  What batch 348 adds is that the instruction-count gap is NOT a
+ * separate obstacle to clear first -- it is eleven instances of the rotation --
+ * so there is no "close the gap" step to spend a round on.
+ */
 /* Func_801dd28 -- NON-MATCHING, 140 encodings of 148.  SIZE EXACT (308 bytes both), 149
  * instructions against 148.
  *
@@ -123,6 +230,7 @@ void Func_801dd28(u16 *a, u16 *b, int idx, u8 *map)
     file = GetFile((int)&_FILE_13);
     v = *(u8 *)a;
     off = v * 32;
+    do { } while (0);
     s = (u8 *)0x6000000 + off;
     w = tmp;
     for (i = 0; i <= 0x1f; i++) {

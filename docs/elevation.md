@@ -36172,3 +36172,65 @@ never been worked."** Two of brief B's parks hold recorded sweeps of 220 and 115
 variants with no batch number anywhere — extensive prior work, invisible to a
 query looking for the word *batch*. Measure the thing, not a proxy for it; the
 honest detector looks for any recorded measurement, which is what gives 45.
+
+# THE ANCHOR AXIS HAS BEEN TESTING A THIRD OF WHAT IT REPORTED
+
+The most consequential tooling finding of this session, and it is upstream of
+everything else the sweep route claims.
+
+## The measurement
+
+`autosweep`'s anchor axis inserts `do { } while (0);` at each statement boundary
+and reports "all N inert or worse". Batch 348 added **object fingerprinting** to
+`sweep_variants.py` — hashing each variant's encodings and relocations — and
+re-ran the 30 parks whose headers had just been marked "both axes closed":
+
+    30 parks re-checked
+    30 of 30 affected
+    710 boundaries swept
+    443 BIT-IDENTICAL to the base -- they measured NOTHING   (62%)
+    267 distinct programs actually tested
+
+Per-park it runs from bad to total: `2008904` tested **13 distinct programs out
+of 61 placements**; `807905c` 26 of 56; `200985c` 3 of 18; and **three parks had
+every single placement bit-identical**, so their anchor axis measured nothing at
+all while reporting a clean sweep.
+
+## Why it happens, and why it was invisible
+
+An anchor between two statements that gcc reorders anyway, or inside a region
+whose scheduling is already determined, produces a byte-identical object. The
+difference is canonicalised away **before the back end**, so there is nothing to
+measure — but the row still prints a figure equal to the base, which reads
+exactly like a tested-and-inert placement.
+
+Nothing detected it because the obvious check does not work: hashing the
+candidate's **`.s` text** always differs, since gcc writes `.file "<name>.c"` and
+each variant lives in its own file. Batch 348 brief C tried that first and it
+passed everything. The fingerprint has to come from the **object**.
+
+## What this corrects
+
+- **"Anchor axis closed" was a much weaker claim than it read as**, including in
+  the 29 park headers written during the batch-347 harvest pass. All 29 now carry
+  **distinct-program counts** instead of boundary counts.
+- **It partly explains the harvest pass's zero landings.** That was attributed to
+  the parks having been hand-worked, which is true, but the axis being relied on
+  was also covering about a third of the search space its count implied.
+- **Six landings came from this axis anyway**, which is the other way to read the
+  number: it pays despite testing a fraction of what it claimed, so the remaining
+  two thirds are unexplored rather than exhausted.
+
+## The rule
+
+**A variant that produces a byte-identical object is not a negative — it is a
+non-measurement.** Record the distinct-program count, never the placement count.
+This applies to every sweep in this tree, not just the anchor axis: briefs have
+independently rediscovered bit-identical blocks in batches 346 (ten spellings),
+347 (fourteen across two parks) and 348 (ten across three), and in every case the
+rows had been or were about to be filed as levers tried.
+
+`sweep_variants.py` now reports it for every variant and `autosweep` distinguishes
+*"all N inert"* from *"all N measured nothing"*. One park and one earlier batch
+spent roughly 22 rows re-spelling an expression gcc normalises; that is the cost
+of not knowing.

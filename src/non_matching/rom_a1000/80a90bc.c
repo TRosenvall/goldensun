@@ -1,3 +1,70 @@
+/* Func_80a90bc -- NON-MATCHING.
+ * 216 of 303 encodings.  THREE DIMENSIONS, RE-DERIVED batch 348 brief E:
+ *   16-bit instructions   259 ref / 261 ours   (+2)
+ *   32-bit entries        43 / 43              (EQUAL -- BOTH POOLS ARE RIGHT)
+ *   bytes                 692 / 696            (+4, which is exactly the +2
+ *                                               instructions; nothing hidden)
+ * The old header's "305 instructions against 303" was the stream length.
+ *
+ * Verify with:
+ *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
+ *     goldensun-build python3 tools/objcmp.py src/non_matching/rom_a1000/80a90bc.c \
+ *     asm/rom_a1000/rom_a8604_a_a_c_c_c.s --func Func_80a90bc
+ *
+ * ============================================================
+ * THE +2 IS NOT IN THE REFRESH BLOCK.  THE REFRESH BLOCK IS EXACT.
+ * ============================================================
+ * Both streams carry the same 38 relocations; the ORDER differs because of the
+ * layout defect, but within each contiguous block the spacings are directly
+ * comparable.  Measured (deltas between consecutive relocations):
+ *
+ *   ENTRY BLOCK  LoadMoveRangeIcons .. StartTask
+ *       identical EXCEPT around Func_80a33d4: ref 0x84->0x8e->0xa2 is 10,20;
+ *       ours 0x84->0x92->0xa2 is 14,16.  So +2 instructions then -2, NET 0 --
+ *       a two-instruction DISPLACEMENT, which is the old header's residue
+ *       item 3 (the ROM materialises `done = 1` into r1 and moves it to r11
+ *       BEFORE storing `ret = -1`; we emit the -1 store first).
+ *
+ *   BODY BLOCK   Func_80a8f40 .. the second _GetFlag
+ *       ten spacings, NINE IDENTICAL (16,6,10,16,22,80,-,32,12,22).  The one
+ *       that moves is _PlaySound -> __modsi3: ref 54 bytes, ours 56.  +1.
+ *       That is the old header's residue item 1, the state[0x208 + cur*2] move
+ *       block where the ROM keeps a register-offset `ldrh r3,[r1,r2]` and reloads
+ *       after each intervening store while gcc CSEs our full-address form.
+ *
+ *   REFRESH BLOCK  Func_80a9cbc .. Func_80a9374
+ *       seven relocations, spacings 8,8,12,14,10,12 in BOTH.  EXACTLY ZERO
+ *       delta.  The block is internally byte-for-byte; it is only in the wrong
+ *       PLACE (ours at 0xe8-0x128, the ROM's at 0x216-0x256).
+ *
+ *   EXIT BLOCK   _Func_80164ac .. _Func_8016498
+ *       spacings 8,4,12,8 in BOTH.  ZERO delta.
+ *
+ *   The remaining +1 is in the inter-block transitions -- one extra branch,
+ *   which is what the layout defect costs.
+ *
+ * SO THE WHOLE ACCOUNT IS: +1 (the move block) +1 (the layout's extra branch)
+ * +2/-2 (a displacement that nets out).  TWO of the three are the layout and
+ * the move block the park already names; the displacement costs nothing.
+ * There is no third, unexplained site, and nothing to gain from treating the
+ * "+2" as a separate problem from the 216.
+ *
+ * ============================================================
+ * BOTH MECHANICAL AXES: see scratch_elev/b348/E/work/p4_autosweep.txt
+ * ============================================================
+ * The old header's flag sweep was run against a DIFFERENT, 287-baseline body
+ * ("FLAG SWEEP, baseline 287"), so none of those eight rows is a measurement of
+ * THIS 216 body -- a recorded negative expires when the body changes.  Batch 348
+ * re-ran both axes against the installed body; read the file.  The ANCHOR axis
+ * had never been run on this park at all.
+ *
+ * NEXT.  Unchanged, and the old header's NEXT is still the right question: find
+ * a source form that makes the checks' last condjump target something other
+ * than the label after `goto newstart_label`, so jump.c (~line 437) cannot
+ * invert-and-delete it and flow.c's merge_blocks_move_successor_nojumps keeps
+ * its candidate.  Also still open and still worth doing FIRST: identify the real
+ * value behind the diagnostic `mask = 1;`.
+ */
 /* Func_80a90bc -- NON-MATCHING, 216 encodings of 303, size 696 against the ROM's
  * 692 (+4), 305 instructions against 303.
  *

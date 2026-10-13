@@ -121,6 +121,75 @@
  * the ewram_2010018 clear as `sub r1,#1` on the register that already holds the
  * 0 from `i = 0`, where gcc emits `movs r2,#1 / negs r2,r2`.  That disappeared
  * once the walkers were split, so it was a pressure artefact, not a spelling.
+ *
+ * ================================================================
+ * BATCH 348 BRIEF C -- THE "NEXT IDEA, NOT TRIED" IS NOW TRIED AND IT IS
+ * FIRMLY NEGATIVE; SO ARE BRIEF LEVERS 1 AND 7 HERE
+ * ================================================================
+ * RE-DERIVED, ALL THREE LENGTH DIMENSIONS, production flags:
+ *     stream encodings  367 / 367
+ *     16-bit insns      317 / 317      (objcmp.insn_pool_counts, pads excluded)
+ *     32-bit entries    48 / 48        (pool words + every `bl`)
+ *     byte size         832 / 832
+ *     objcmp            39 differing, first at index 73: ref 263f ours 444d
+ *     aligncmp          337 aligned-equal (91.8%), 38 in 21 hunks
+ * 39 is still a true distance.
+ *
+ * *** -fno-schedule-insns2 IS NOT THE ANSWER: 39 -> 287. ***  This header's
+ * only remaining proposal was "measuring this TU under -fno-schedule-insns2 is
+ * the one cheap experiment left".  Measured (diagnostic only -- this stem's
+ * production flags do NOT include it, so the number may never be quoted as this
+ * park's figure): 287 of 367, 317 instructions still, relocations DIRTY, and
+ * the aligned residue falls 337 -> 282.  Turning sched2 off does not undo six
+ * ties, it rewrites the whole schedule, and the ROM's schedule IS sched2's --
+ * just with the ties broken the other way in six windows.  Treat the pass
+ * attribution in this header as CONFIRMED and the flag as CLOSED.
+ *   -fno-schedule-insns (sched1)                        BIT-IDENTICAL.
+ *   -fno-cse-follow-jumps -fno-cse-skip-blocks TOGETHER BIT-IDENTICAL.
+ *
+ * SIX MORE MEASUREMENTS ON RESIDUE (a), the particle loop's second mask, which
+ * is ~14 of the 39 (`scratch_elev/b348/C/v_jup`, `v_jup2`):
+ *   the two Random() statements SWAPPED (`r` before `a`) -- the one spelling
+ *       the header's four-row list never tried, and the ROM masks the FIRST
+ *       Random result:                                  49 of 367, relocations
+ *       dirty, aligned 337 -> 329.  WORSE.
+ *   the `t->x` / `t->y` stores moved BELOW the vx/vy stores, so the qq loads no
+ *       longer sit between the call and the mask:        49 of 367, aligned 335.
+ *       WORSE.
+ *   BRIEF LEVER 7, both stores spelled through a one-member UNION so
+ *       lang_get_alias_set returns 0 (c-common.c:3340-3345) and the store
+ *       conflicts with every load:                      BIT-IDENTICAL.  The
+ *       memory dependence the lever restores ALREADY EXISTS here -- `Part` has
+ *       `int` members and the loads are from `Part` too, so both are in one
+ *       conflicting set already.  Lever 7 cannot bite on a same-type load/store
+ *       pair; it is for the case where the types do not alias.
+ *   naming the first product (`sr = sin(a) * r;`) to lengthen the dependence
+ *       path that feeds INSN_PRIORITY (haifa-sched.c:4061-4064):
+ *                                                       BIT-IDENTICAL.
+ *   `a` and `r` declared at the block top and assigned in place:
+ *                                                       BIT-IDENTICAL.
+ *   BRIEF LEVER 1, the 0x1ff pool constant NAMED once in the j-loop's
+ *       preheader:                                      245 of 373 -- FIVE
+ *       INSTRUCTIONS LONG, 12 bytes bigger, aligned 281.  Lever 1 wants a CALL
+ *       between the uses so reload rematerialises the REG_EQUIV per argument;
+ *       here the name becomes a loop invariant that LICM parks in a register
+ *       and the mask stops being rematerialised at all.
+ *
+ * SO RESIDUE (a) NOW HAS EIGHT NEGATIVE SPELLINGS (four in the list above this
+ * section, four new) AND THREE NON-MEASUREMENTS, and the park's own conclusion
+ * -- "the ordering is not reachable from the source" -- is the better supported
+ * of the two readings.  What has NOT been tried: reading
+ * `.23.sched2` with -fsched-verbose=6 (it writes INTO that dump file, not to
+ * stderr) to see WHICH rung of rank_for_schedule decides each of the six
+ * windows.  Note that `rank_for_schedule` has a rung EARLIER than the
+ * dependent-count one at haifa-sched.c:4069-4096, which a park header elsewhere
+ * in this tree got wrong from memory; the first rung is INSN_PRIORITY at
+ * haifa-sched.c:4061-4064.
+ *
+ * HARNESS LESSON: detect bit-identical variants by hashing the OBJECT's
+ * encodings and relocations, not the `.s` text -- gcc's `.file "<name>.c"` line
+ * makes every variant in its own file hash differently.  Three of the six rows
+ * above would otherwise have been filed as clean negatives.
  */
 #include "gba/types.h"
 #include "gba/io.h"

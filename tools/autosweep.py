@@ -651,6 +651,7 @@ def main():
                 # clean sweep.  Parse the key.
                 parsed = 0
                 min_nd = None
+                nident = 0
                 for line in out.splitlines():
                     f = line.split()
                     m = re.search(r"ndiff=(\d+)", line)
@@ -702,6 +703,16 @@ def main():
                             print(f"  {line}{tag}{where}")
                         parsed += 1
                         min_nd = nd if min_nd is None else min(min_nd, nd)
+                        # SURFACE BIT-IDENTITY.  sweep_variants now fingerprints
+                        # each variant's OBJECT (encodings + relocations), and a
+                        # row identical to the base measured NOTHING -- gcc
+                        # canonicalised the difference away before the back end.
+                        # "all N inert" and "all N measured nothing" are very
+                        # different claims, and only the second one tells an agent
+                        # to stop re-spelling.  One park and one earlier batch
+                        # spent ~22 rows re-spelling an expression gcc normalises.
+                        if "BIT-IDENTICAL TO BASE" in line or "bit-identical to" in line:
+                            nident += 1
                         # A ROW THE GUARD JUST REJECTED MUST NOT ENTER `BEST`.
                         # The flag axis was given this refusal in batch 345; the
                         # anchor axis was not, so it kept appending every row and
@@ -728,8 +739,18 @@ def main():
                     print(f"  !! NO ROWS PARSED from sweep_variants -- do NOT read this"
                           f" as a clean sweep; check its output by hand")
                 elif min_nd >= base[0]:
-                    print(f"  all {parsed} inert or worse (best {min_nd}, "
-                          f"base {base[0]})")
+                    if nident == parsed and parsed:
+                        print(f"  !! ALL {parsed} VARIANT(S) WERE BIT-IDENTICAL TO "
+                              f"THE BASE -- this axis measured NOTHING.")
+                        print(f"     gcc canonicalises these spellings away before "
+                              f"the back end; they are")
+                        print(f"     NOT negatives and must not be recorded as "
+                              f"levers tried.")
+                    else:
+                        print(f"  all {parsed} inert or worse (best {min_nd}, "
+                              f"base {base[0]})"
+                              + (f"  -- BUT {nident} OF THEM WERE BIT-IDENTICAL TO "
+                                 f"THE BASE and measured nothing" if nident else ""))
             finally:
                 shutil.rmtree(d, ignore_errors=True)
             print()

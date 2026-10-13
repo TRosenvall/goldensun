@@ -1,29 +1,29 @@
-/* Func_807905c (ApplyLevelUp, 0x0807905c) -- NON-MATCHING, 38 of 288 encodings differ.
- * COUNT DOES NOT MATCH: ref 286, ours 288, size 616 against 620. So the 38 is
- * NOT a distance -- read it as "the stream aligns except for five instructions".
+/* Func_807905c (ApplyLevelUp, 0x0807905c) -- NON-MATCHING.
+ * 8 of 286 encodings differ.  264 instructions against 264, 22 32-bit entries
+ * against 22, 616 bytes against 616 -- all three length dimensions AGREE, so
+ * the 8 IS A DISTANCE.  Aligned residue (tools/aligncmp.py) 8 in 8 hunks.
+ * Batch 348 brief E took it from 38 of 286 at +2 instructions.
  *
  * Verify with:
  *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
  *     goldensun-build python3 tools/objcmp.py src/non_matching/rom_77000/807905c.c \
  *     asm/rom_77000/rom_79008_a_c.s --func Func_807905c
  *
- * SPLIT SHAPE. asm/rom_77000/rom_79008_a_c.s holds TWO functions, Func_8079008
- * (CanLevelUp, 40 instructions, also unattempted) and Func_807905c. Converting
- * this one needs
- *     asm/rom_77000/rom_79008_a_c.s -> rom_79008_a_a.s  (Func_8079008, stays asm)
- *                                  + rom_79008_a_b.c  (Func_807905c)
- * with the two stems in place of the one in stage1.ld. EXPORTS: Func_807905c
- * only; it calls its own file-mate Func_8079008, which must stay `.global`.
- * `python3 tools/datacheck.py asm/rom_77000/rom_79008_a_c.s` is CLEAN -- no data
- * section rides along, so the split is text-only.
- *
- * RELOCATION SEQUENCE IS EXACT from the first draft on: GetUnit, Func_8004970,
- * Func_8079008, GetPCBaseStats, __divsi3, then six Random/__udivsi3 pairs, then
- * Func_8078bf0, CalcStats, free. Twenty relocations, same symbols, same order.
- * Only the offsets differ, and only because of the five instructions below.
+ * NO SPLIT IS NEEDED, AND THE OLD HEADER WAS WRONG ABOUT THIS.  It said the .s
+ * "holds TWO functions, Func_8079008 (CanLevelUp, 40 instructions) and
+ * Func_807905c" and prescribed a two-stem split with a stage1.ld edit.  The file
+ * holds ONE `.thumb_func_start`, Func_807905c, at line 9 and nothing else;
+ * Func_8079008 already has its own stem (rom_79008_a_b.s).  Verbatim:
+ *     $ python3 tools/split_s.py asm/rom_77000/rom_79008_a_c.s Func_807905c --dry-run
+ *     asm/rom_77000/rom_79008_a_c.s holds only Func_807905c and no data;
+ *     convert it directly, no split needed
+ *     $ python3 tools/datacheck.py asm/rom_77000/rom_79008_a_c.s   # silent, exit 0
+ * piece.py agrees (1 function, no non-function exports).  So the landing is a
+ * plain conversion to src/rom_77000/rom_79008_a_c.c with no linker-script work
+ * at all.  PIN COUNT ZERO, tools/shimcount.py clean -- no device.
  *
  * ============================================================
- * WHAT THE FUNCTION IS
+ * WHAT THE FUNCTION IS   (unchanged from the previous header, still correct)
  * ============================================================
  * Levels a PC up by one and returns the eight-halfword gain record it was
  * handed. `g->f0` is the new level, `g->f2` is 0xffff, `g->f4..g->fe` are the
@@ -37,102 +37,123 @@
  * (six bytes) inside the 0xb4-byte PCStats record GetPCBaseStats returns.
  *
  * ============================================================
- * FIVE THINGS THAT ARE LOAD-BEARING, each measured alone
+ * THE FIVE OLD LOAD-BEARING FACTS ALL SURVIVED -- re-measured, batch 348
  * ============================================================
- * 1. THE CURVE LOOKUP MUST BE A STRUCT ARRAY INDEX, NOT BYTE ARITHMETIC.
- *    `*(short *)(b + i2 + 0x52)` makes gcc fold `b + i2` into the address and
- *    then materialise a zero register for the `ldrsh`, which has no immediate-
- *    offset form in Thumb -- two extra instructions per site, five sites:
- *        ours  add r3, r0, r5 / mov r2, r3 / add r2, #0x52 / add r3, #0x50
- *              / mov r1, #0 / ldrsh r2, [r2, r1] / mov r1, #0 / ldrsh r3, [r3, r1]
- *        rom   mov r3, r8 / add r3, #0x52 / ldrsh r2, [r1, r3] / sub r3, #0x2
- *              / ldrsh r3, [r1, r3]
- *    `b->hp[k + 1] - b->hp[k]` on a `struct Base { ... short hp[6]; ... }` gives
- *    the ROM's form, with `k * 2` hoisted to its own pseudo (the ROM's r8) and
- *    ONE offset register walked back by `sub r3, #2`. 302 instructions -> 286.
- *
- * 2. THE FIRST TWO CURVES ARE `short`, THE NEXT THREE `unsigned short`, THE
- *    LAST `unsigned char`. The ROM reads +0x50 and +0x5c with `ldrsh` and
- *    +0x68/+0x74/+0x80 with `ldrh` in the SAME expression shape, which is a
- *    signedness fact, not a scheduling one. The `g->f0 == 1` arm reads all six
- *    with `ldrh`/`ldrb` because the result is truncated to a halfword there --
- *    combine turns the sign-extending load into a zero-extending one when only
- *    the low 16 bits survive, so element 0 needs no separate type.
- *
- * 3. THE PCStats POINTER MUST BE RE-READ FROM THE SCRATCH AT EVERY SITE, INLINE.
- *    `s->f8->hp[k + 1] - s->f8->hp[k]` gives the ROM's `mov r3, r9 / ldr rX,
- *    [r3, #8]` per block. Hoisting it into one `b = s->f8;` variable assigned
- *    six times gives that variable ONE hard register for all six blocks (r0 in
- *    every one) where the ROM uses r1 in the first and r2 in the rest: 220
- *    differing against 74. Six separate block-scoped locals measure exactly the
- *    same as the inline form -- gcc merges them -- so the lever is "no variable",
- *    not "a fresh variable".
- *
- * 4. THE BRACKET INDEX k IS A `short`. The ROM truncates the division result
- *    back to 16 bits (`lsl r0,#16 / asr r5,r0,#16`) before clamping, and reads
- *    it unextended as the byte-curve index later. `int k` loses the pair.
- *
- * 5. THE LAST GAIN IS HELD IN A TEMPORARY WHOSE STORE TO `g->fe` COMES AFTER
- *    THE UNIT UPDATES. The ROM computes `ldrh r1,[r6,#0xe] / add r1, r0` once
- *    and spends it twice -- into `u[0x1e]` and, at the very end, back into
- *    `g->fe`. Writing `g->fe += n;` first forces a RELOAD, because the five
- *    `*(unsigned short *)(u + 0x10..0x1c) +=` stores in between have the same
- *    alias set as `g->fe` (c-common.c's lang_get_alias_set maps signed and
- *    unsigned variants of a type to ONE set, so no signedness game separates
- *    them). That reload is `ldrb r2,[r6,#0xe]`, and it is one of the two extra
- *    instructions when the temporary is omitted.
+ * 1. The curve lookup must be a struct array index, not byte arithmetic.
+ * 2. The first two curves are `short`, the next three `unsigned short`, the
+ *    last `unsigned char`.
+ * 3. The PCStats pointer must be re-read from the scratch at every site,
+ *    inline -- no hoisted `b = s->f8;`.
+ * 4. The bracket index k is a `short`.
+ * 5. The last gain is held in a temporary spent twice, into `u[0x1e]` and into
+ *    `g->fe`.
+ * None of these was re-screened; they were inherited and the body still
+ * reproduces the stream they predict.
  *
  * ============================================================
- * THE RESIDUE: 38 encodings in FOUR places, 2 of them a real excess
+ * WHAT BATCH 348 CHANGED, AND WHY -- the +2 was ONE SITE, AND IT WAS A MODE
  * ============================================================
- * (a) 2 instructions of EXCESS -- `lsl r1, #0x10 / asr r1, #0x10`, the widening
- *     of the tail temporary before `add r3, r1`. It is there because the
- *     temporary is `unsigned short`; the ROM needs no widening at all, because
- *     its temporary is an `int` fed by a zero-extending `ldrh`.
+ * The old body's whole excess was `lsl r1,#0x10 / asr r1,#0x10`: the widening
+ * of the tail temporary before `add r3,r1`, present because the temporary was
+ * `unsigned short`.  Re-measured and still exactly that: ONE region, ONE site,
+ * two instructions, everything else aligned.  `short`, `unsigned short`,
+ * `u[0x1e] += (unsigned char)m`, `u[0x1e] += m & 0xff`,
+ * `u[0x1e] = (unsigned char)(u[0x1e] + m)` and `u[0x1e] = u[0x1e] + m` are all
+ * BIT-IDENTICAL to each other -- the old header's "inert at 38/288" for the
+ * cast was a measurement of nothing, which is the recorded-negative trap.
  *
- *     AND THAT IS THE WHOLE BLOCKER, because `int` costs more than it saves:
- *         unsigned short m   38 differing, 288 instructions  <- this file
- *         int m             214 differing, 290 instructions
- *     With `int m` the stream shape is otherwise IDENTICAL (one insert/delete
- *     pair in 290), but the ALLOCATION rotates wholesale -- g r6->r7, unit
- *     r10->r8, the temporary into r5 -- and pays four extra `mov`s in the unit
- *     update block. The temporary is HImode-vs-SImode, one basic block wide, and
- *     that one bit decides whether it gets the ROM's call-used r1 or a
- *     callee-saved register. MEASURED and inert: nine declaration positions for
- *     `int m` (every slot in the local list) all give 214/290 -- DECLARATION
- *     ORDER DOES NOT REACH IT, which is worth knowing because stack-slot order
- *     usually does. `unsigned int` 214/290, `unsigned char` 217/292,
- *     `register int __asm__("r1")` 217/292, reusing `d` 214/290, reusing `lvl`
- *     218/290, reusing `r` 218/292, reusing the `short k` 58/288 (the sext moves
- *     but does not go away), `u[0x1e] += (unsigned char)m` inert at 38/288.
+ * The old header's bound was "`int` costs more than it saves, 214 of 290", and
+ * THAT BOUND WAS WRONG -- it was true only of the one-statement spelling.
+ * `int m` with `m = g->fe + <quotient expression>;` does cost +4, and the
+ * mechanism is now named: LOCAL-ALLOC owns this pseudo, not global-alloc.
+ * `-da` shows `;; Register 41 in 5.` in the `.17.lreg` dump (that line is
+ * local-alloc.c:2251's dump_local_alloc) for the `int` spelling and NO entry
+ * for the `unsigned short` one, because with HImode the DECL pseudo dies and
+ * the value lives in a chain of short-lived pseudos (451/453/454/455, all
+ * assigned r1).  `.17.lreg`'s "crosses" lines show pseudo 41 crossing ZERO
+ * calls, so find_reg's call-clobbered exclusion (local-alloc.c:1964-1969) is
+ * NOT what pushes it to r5; QTY_CMP_PRI (local-alloc.c:1495-1497,
+ * floor_log2(n_refs)*n_refs*size/(death-birth)) is -- one long-lived qty sorts
+ * late, r0-r3 are already marked by post_mark_life, and REG_ALLOC_ORDER
+ * (arm.h:989: 3,2,1,0,12,14,4,5) hands it r5.  r5 was `k`'s, so `k` went to sl
+ * and the clamp paid `movs r2,#4 / mov sl,r2 / mov r0,sl` plus one more copy:
+ * the four extra instructions, all in the CLAMP region, none in the tail.
  *
- * (b) 3 encodings -- three loads scheduled one slot early:
- *     `ldrh r1,[r6,#0xe]`, `ldrh r3,[r0,#0x12]`, `ldrh r3,[r0,#0x1a]`.
+ * THE FIX IS TO NAME THE QUOTIENT, so the temporary is an SImode value defined
+ * by an ADD rather than by a copy of the libcall return:
+ *     n = <quotient expression>;      (int, the previously-dead `n`)
+ *     m = g->fe + n;                  (int)
+ * 264/264 instructions, 616/616 bytes, 22/22 32-bit entries, 9 of 286.
+ * `d = <quotient>; m = g->fe + d;` measures IDENTICALLY (9 of 286), so the
+ * carrier's identity does not matter -- only that the add is not the copy.
+ * The near misses say what the lever is:
+ *     m = <quotient>; m += g->fe;     266 insns, 50 of 286 -- m gets r0 from
+ *                                     the copy suggestion and the long-lived
+ *                                     `mov r0, sl` unit copy is pushed to r2,
+ *                                     paying two extra `mov r2, sl`
+ *     m = g->fe; m += <quotient>;     268 insns, 214 of 286 -- gcc merges it
+ *                                     back into the one-statement form
+ * So the axis is NOT "int vs short" and NOT declaration order (nine positions
+ * were already measured inert and still are); it is WHICH INSN DEFINES THE
+ * PSEUDO.
  *
- * (c) the rest -- the base-pointer reload in blocks 2..6 sits one slot earlier
- *     than the ROM's, which forces a different reload register:
- *         rom   ldrh r3,[r6,#N] / add r3,r0 / mov r0,r9 / ldr r2,[r0,#8] / strh
- *         ours  ldrh r3,[r6,#N] / mov r1,r9 / add r3,r0 / ldr r2,[r1,#8] / strh
- *     NOT an aliasing fact: the ROM itself hoists the load above the `strh` in
- *     blocks 4 and 6 and not in 2, 3 and 5, so sched2 is choosing freely in both
- *     streams. `do { ... } while (0)` around each block (batch 295's sched2
- *     barrier) measures 217/293 -- it separates them but at the cost of the
- *     allocation, so the barrier is not the tool here.
+ * `g->fe = m;` BETWEEN `u[0x20] = 0;` AND `u[0x21] = 0;` is worth one more
+ * encoding: it puts `strh r1,[r6,#14]` in the ROM's slot.  The four positions
+ * measure 15 / 11 / 8 / 9 of 286 (after u[0x1e], u[0x1f], u[0x20], u[0x21]).
+ * The natural trailing position is the 9; this file takes the 8.  A successor
+ * that prefers the plainer order loses exactly one encoding.
  *
  * ============================================================
- * THE COUNT-EQUAL ALTERNATIVE, kept on the record
+ * THE RESIDUE: 8 encodings, FOUR one-slot sched2 swaps, no excess
  * ============================================================
- * Lever 1 + 2 + 4 with a single `b = s->f8;` variable and no tail temporary
- * measures 220 of 286 with SIZE AND COUNT BOTH EQUAL. That is the only spelling
- * found with a legal distance, and it is 220, so it is not useful as a starting
- * point -- but a successor testing a whole-function hypothesis should re-derive
- * it rather than trust 38.
+ * Every one is OURS SCHEDULING AN INSTRUCTION ONE SLOT EARLY, in a pair of
+ * adjacent independent insns:
+ *   (a) `ldrh r1,[r6,#14]`  before  `ldrh r3,[r2,#16]`   (ROM: after)
+ *   (b) `ldrh r3,[r0,#18]`  before  `ldrh r2,[r6,#6]`    (ROM: after)
+ *   (c) `ldrh r3,[r0,#26]`  before  `ldrh r2,[r6,#10]`   (ROM: after)
+ *   (d) `mov r0, fp`        before  `strb r2,[r3,#0]`    (ROM: after)
+ * (b) and (c) are the only two of the five halfword updates where the u-side
+ * base is the long-lived `r0` copy rather than a fresh `mov r2, sl`.  In the
+ * other three the g-side load TARGETS r2, which the u-side load uses as its
+ * base, so the order is forced by an anti-dependence and both streams agree.
+ * In (b) and (c) nothing forces it: both loads have exactly one dependent (the
+ * `adds`), so rank_for_schedule falls past INSN_PRIORITY
+ * (haifa-sched.c:4061-4064), past the last-scheduled-insn class rung
+ * (:4069-4096) and past the dependent-count rung (:4099-4111) to
+ * `INSN_LUID (tmp) - INSN_LUID (tmp2)` at :4114, i.e. ORIGINAL ORDER.
  *
- * NEXT: the question is narrow and answerable. Get an `int` tail temporary into
- * r1 without disturbing g=r6 / unit=r10. The four extra `mov`s it costs are all
- * copies of `unit` out of r10 in the update block, so the probe is a spelling of
- * those five `*(unsigned short *)(u + N) +=` statements that needs one fewer
- * low-register copy of `unit` -- not another type for the temporary.
+ * MEASURED on the closed body, all at 264/264 instructions:
+ *   `*(unsigned short *)(u + 0x12) = g->f6 + *(unsigned short *)(u + 0x12);`
+ *   at sites 0x12 and 0x1a                       8 of 286, aligned 8 in 6
+ *       -- it FIXES the order of (b) and (c) and SWAPS THEIR REGISTERS, because
+ *          the add's first operand is what gets r3.  The order and the register
+ *          assignment are the same knob pulled from opposite ends; this is the
+ *          precondition a successor needs, not the arithmetic.
+ *   the same swap at 0x10 / 0x18 / 0x1c          31 / 10 / 10 of 286 -- worse
+ *   all five swapped                             29 of 286
+ *   an `int` carrier for the g-side value at 0x12 and/or 0x1a
+ *                                                +2 instructions, 44-56 of 286
+ *          -- the carrier gets its own register and costs a `mov`
+ *   `m = g->fe + n;` moved after update 1..5     +1/+1/+2/+2/+0 instructions,
+ *          51 / 54 / 56 / 54 / 50 of 286 -- the m-position axis is CLOSED
+ *
+ * BOTH MECHANICAL AXES ARE CLOSED ON **THIS** BODY -- re-run, not inherited:
+ *   FLAG AXIS, 8 groups: -fno-strength-reduce and -fno-rerun-loop-opt are
+ *     bit-identical at 8; -fno-strict-aliasing 37, -fno-schedule-insns2 61,
+ *     -fno-gcse 220 (-1 insn), -fno-rerun-cse-after-loop 233 (+2),
+ *     -O1 244 (+1), -ffixed-r7 294 (+8).  Nothing beats base.
+ *   ANCHOR AXIS, 56 of 56 boundaries swept (NOT capped): all inert or worse,
+ *     best 8 = base.  Five placements tie at 8 (boundaries 3, 4, 8, 9, 10).
+ * So the next round should NOT re-screen either; spend it on the tie below.
+ *
+ * NEXT.  The question is narrow and it is a tie, not a cost: make the g-side
+ * load of `g->f6` / `g->fa` precede the u-side load WITHOUT making it the add's
+ * first operand.  The operand swap does both at once and the int carrier costs
+ * an instruction, so the remaining idea is a spelling that lowers the g-side
+ * load's LUID while leaving the PLUS's operand order alone -- or emptying the
+ * ready list at that point, which is what the anchor axis reaches and what
+ * batch 342's Func_80a7440 turned out to need.  (d) is a separate tie with the
+ * call's argument setup and may well fall out with it.
  */
 struct Gain {
     short f0;
@@ -180,7 +201,7 @@ struct Gain *Func_807905c(int id, struct Gain *g)
     int lvl;
     int r;
     short k;
-    unsigned short m;
+    int m;
     int d;
     int n;
 
@@ -232,7 +253,8 @@ struct Gain *Func_807905c(int id, struct Gain *g)
         d = s->f8->agi[k + 1] - s->f8->agi[k];
         g->fc += (unsigned int)(((unsigned int)(Random() * 20) >> 16) + d) / 20;
         d = s->f8->lck[k + 1] - s->f8->lck[k];
-        m = g->fe + (unsigned int)(((unsigned int)(Random() * 20) >> 16) + d) / 20;
+        n = (unsigned int)(((unsigned int)(Random() * 20) >> 16) + d) / 20;
+        m = g->fe + n;
         *(unsigned short *)(u + 0x10) += g->f4;
         *(unsigned short *)(u + 0x12) += g->f6;
         *(unsigned short *)(u + 0x18) += g->f8;
@@ -241,8 +263,8 @@ struct Gain *Func_807905c(int id, struct Gain *g)
         u[0x1e] += m;
         u[0x1f] = 1;
         u[0x20] = 0;
-        u[0x21] = 0;
         g->fe = m;
+        u[0x21] = 0;
         Func_8078bf0(id);
         CalcStats(id);
     }

@@ -1,91 +1,107 @@
-/* Func_80bb7c0 (CloseBattleHud) -- NON-MATCHING, 97 encodings of 119.
- * 0x080bb7c0, third of three in asm/rom_b5000/rom_bb588_a.s.
+/* Func_80bb7c0 (CloseBattleHud) -- NON-MATCHING, 94 encodings of 119 differ.
  *
- * objcmp: XX SIZE ref 280 bytes, ours 272 / XX ENCODINGS differ in 97 place(s)
- * (ref 119, ours 115).  tryc --align: 32 instructions in disagreeing regions,
- * of 112.  Reproduced on three runs.  NO SHIM, NO PIN, NO FLAG in this file.
- * datacheck reports no data in the .s, so landing would be a plain text split.
+ * 0x080bb7c0, SECOND of the two functions in asm/rom_b5000/rom_bb588_a_c.s.
+ * ours 120 encodings / 96 16-bit instructions against ref 119 / 96 -- the
+ * INSTRUCTION COUNTS AGREE -- pool/32-bit entries 22 against 21, 284 bytes
+ * against 280.  Honest residues: tryc --align 27 of 112; aligncmp 57 (raw, 80 aligned-equal of 119; and
+ * INFLATED by the one extra pool word, which shifts every PC-relative load --
+ * aligncmp's own docstring says it counts those).  0 pins, 0 devices.
  *
  * Verify with:
- *   python3 tools/objcmp.py src/non_matching/rom_b5000/80bb7c0.c \
+ *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
+ *     goldensun-build python3 tools/objcmp.py src/non_matching/rom_b5000/80bb7c0.c \
  *     asm/rom_b5000/rom_bb588_a_c.s --func Func_80bb7c0
+ * Rank variants on tryc --align here, NOT aligncmp, until the pool count agrees.
  *
- * NOTE THE SIZE LINE: this park is 8 BYTES SHORT with 115 instructions against 119, so
- * the 97 is NOT a distance to exact -- most of it is the stream shifting past the four
- * missing instructions.  Quote it only beside the size and count, per the measurement
- * rule in docs/elevation.md.
+ * SPLIT SHAPE.  datacheck.py exits silent: no data section, no EXPORTS line.
+ * split_s.py asm/rom_b5000/rom_bb588_a_c.s Func_80bb7c0 --dry-run:
+ *   would write rom_bb588_a_c_a.s (1 function, 164 lines)   <- WaitTextPrompt
+ *   would write rom_bb588_a_c_b.s (1 function, 129 lines)   <- this function
+ *   would REMOVE rom_bb588_a_c.s, rewrite stage1.ld
+ * Plain two-way TEXT split; no exports.  (The piece's other member,
+ * WaitTextPrompt, is parked separately at 33 of 153.)
  *
- * EVERYTHING EXCEPT ONE VALUE IS EXACT: the wait loop, the sprite-slot
- * allocation, both OAM bitfield inserts with all four mid-function pool masks in
- * the reference's order, the byte store, the key test, the loop's back edge and
- * the whole epilogue.  The residue is FOUR INSTRUCTIONS in one place.
+ * ========= THREE CORRECTIONS TO THE PREVIOUS HEADER (batch 348, brief D) =====
  *
- * ===================== THE BLOCKER, NAMED =====================
- * PASS: loop.c's invariant motion, guarded by true_dependence against the
- * loop's own stores -- NOT cse, NOT combine, NOT the scheduler.
+ * 1. "115 instructions against 119 ... the residue is FOUR INSTRUCTIONS in one
+ *    place" was wrong on both halves.  119/115 was the STREAM length; the
+ *    16-bit instruction counts were 96/94 and the 21 pool/`bl` entries were
+ *    EQUAL, so the gap was TWO instructions plus the two alignment pad
+ *    halfwords that follow from it.  And it was TWO SITES OF 1, measured:
+ *      preamble after AllocUploadSpriteGFX   ref 10, ours 9    -1
+ *      second OAM bitfield insert            ref  3, ours 2    -1
+ *    Site 2 is downstream of site 1 exactly as the old header argued: the extra
+ *    long-lived value pushes the mask constant 4 out to r8, so each `and` pays
+ *    a `mov r2, r8` first.  One cause, two instructions.
  *
- * The ROM hoists ONE `ldrh` of the x parameter's stack home out of the sprite
- * loop and keeps the zero-extended value in r9 for the whole loop:
- *     mov r2, sp / ldrh r2, [r2] / ... / mov r9, r2     (preheader)
- *     ... add r3, r9 ...                                (body)
- * That extra live value is what pushes the y parameter out to sp+4 and the mask
- * constant 4 up into r8, which is why the ROM copies `mov r2, r8` before each
- * `and` and we do not.  ONE cause, four instructions, three symptoms.
+ * 2. THE NAMED BLOCKER IS REFUTED BY THE COMPILER'S OWN SOURCE.  The old header
+ *    said "PASS: loop.c's invariant motion, guarded by true_dependence against
+ *    the loop's own stores", and that loop.c would not move the HImode load
+ *    above the `strh [r5,#6]` bitfield store because of a shared alias set.
+ *    true_dependence IS NEVER REACHED for this loop.  loop.c:2444-2447
+ *        else if (GET_CODE (insn) == CALL_INSN)
+ *          { if (! CONST_CALL_P (insn)) unknown_address_altered = 1;
+ *    fires for ANY non-const call in the loop, and loop.c:3265-3267
+ *        if (RTX_UNCHANGING_P (x) ? unknown_constant_address_altered
+ *                                 : unknown_address_altered) return 0;
+ *    returns 0 for every non-RTX_UNCHANGING_P MEM BEFORE the loop_store_mems /
+ *    true_dependence walk at loop.c:3269-3277.  This loop holds FIVE calls
+ *    (Func_80039fc, Func_800393c, UploadSprite2, Func_8003dec, WaitFrames), so
+ *    NO ordinary memory load can EVER be hoisted out of it and no alias set can
+ *    matter.  The old header's "a spelling that is BOTH is what this park needs,
+ *    and nothing in the corpus offers one" rests on a guard that does not run.
  *
- * `*thumb_zero_extendhisi2` accepts a MEM only, so the ROM's `ldrh` PROVES the
- * value was in memory at that point -- a register source gives lsl+lsr instead.
- * Two ways to put it in memory were measured:
+ *    Corollary and the lever: the ROM's `mov r2, sp / ldrh r2, [r2] / mov r9, r2`
+ *    is NOT A HOIST.  It is a read written BEFORE the loop in the source.
+ *    `xx = (unsigned short)pos[0];` placed right after AllocUploadSpriteGFX --
+ *    the ROM's own position -- takes the instruction count to the reference's 96
+ *    exactly, the pad count to the reference's 2, and tryc --align 32 -> 27.
+ *    (aligncmp moves 41 -> 57 the other way, which is the extra pool word
+ *    shifting every PC-relative load, not a regression in the code.)
  *
- *   (a) `unsigned short x0` as the parameter.  gcc gives the SImode parm pseudo
- *       a register, expands the zero_extend as lsl+lsr, hoists only the lsl and
- *       leaves `lsr r2, r1, #0x10` in the loop: 54 of 112, 120 encodings.
- *   (b) `int pos[2]; pos[0] = x0; pos[1] = y0;` -- a local ARRAY always has a
- *       memory home, and its two `str`s, the `ldr [sp,#4]` of y each iteration
- *       and the 0x14 frame are all the ROM's.  THIS IS THE SHIPPED FORM (32 of
- *       112).  But `(unsigned short)pos[0]` is absorbed by combine's
- *       force_to_mode into the 9-bit bitfield mask that consumes it, so gcc
- *       reads the WORD; and spelled `*(unsigned short *)pos` to force a genuine
- *       HImode load the load is NOT hoisted (104 of 119, +3 insns, plus a
- *       frame-pointer copy) -- loop.c will not move it above the `strh [r5,#6]`
- *       bitfield store, which has the same `unsigned short` alias set and whose
- *       base is a pseudo loop.c created itself.  Hoisting it by hand
- *       (`xx = *(unsigned short *)pos;` before the loop) costs a frame pointer
- *       and 0x18 of stack: 45 of 112.  Three placements tried, all worse.
+ * 3. "a frame-pointer copy" was a misreading.  `mov r2, sp` is there because
+ *    Thumb-1 `ldrh` cannot use sp as a base register; there is no frame pointer.
  *
- * So the two halves are in tension: the absorbable cast hoists and reads a word;
- * the unabsorbable HImode load reads a halfword and does not hoist.  A spelling
- * that is BOTH is what this park needs, and nothing in the corpus offers one.
+ * ======================= WHAT REMAINS, TWO NAMED THINGS =====================
+ * a) Ours reads the WORD and shifts:
+ *      ldr r2, [sp] / lsl r3, r2, #16 / lsr r3, r3, #16 / mov r9, r3     (4)
+ *    against the ROM's
+ *      mov r2, sp / ldrh r2, [r2] / mov r9, r2                           (3)
+ *    combine's force_to_mode pushes the 9-bit bitfield mask into the PLUS
+ *    operands (combine.c:6855-6860) and the `(unsigned short)` disappears.
+ *    A UNION memory home does NOT help: `union { int w[2]; unsigned short h[4]; }`
+ *    read as `pos.h[0]` is BIT-IDENTICAL to this body, so the narrowing is
+ *    force_to_mode and not aliasing.  `*(unsigned short *)pos` forces the HImode
+ *    load but costs +2 instructions and +1 pool (tryc --align 45).
+ * b) The one extra pool entry is `ldrh r2, .L12` for
+ *      *(volatile unsigned short *)0x4000052 = bld;
+ *    where the ROM has `mov r2, #0x10`.  Brief lever 3 / arm.md:4269-4271,
+ *    pool_range 64: with no free high register left, reload no longer parks the
+ *    `int bld` carrier in fp (which is what the OLD body did -- `mov r2, fp`)
+ *    and the literal folds into the HImode store instead.  The ROM materialises
+ *    0x10 TWICE -- `mov r1, #0x10` for the call argument and `mov r2, #0x10` for
+ *    the store -- so the carrier is rematerialised there, not shared.
+ *    `bld` declared and assigned INSIDE the loop in its own block is
+ *    BIT-IDENTICAL, which re-confirms the old header's negative at the new,
+ *    higher pressure.
  *
- * ===================== WHAT DID PAY, FOR THE NEXT ATTEMPT =====================
- * From 111 of 119 down to 97, four levers, each measured alone:
- *
+ * ================= KEEP ALL OF THIS (unchanged, still measured) =============
  * 1. `volatile unsigned int iwram_3001e40`.  The ROM re-reads it between the two
  *    bitfield stores; non-volatile gcc reads once and shifts the same value
- *    twice.  This is NOT a fakematch dodge: `(iw & 4) >> 1` and `>> 2` are a
- *    one-pixel jitter off bit 2, i.e. a counter an interrupt writes.  111 -> 97.
+ *    twice.  NOT a fakematch dodge: `(iw & 4) >> 1` and `>> 2` are a one-pixel
+ *    jitter off bit 2, i.e. a counter an interrupt writes.
  * 2. `unsigned int`, not `int`: the ROM shifts with `lsr`, not `asr`.
  * 3. `int Func_80bb7c0(...)` with `return WaitFrames(1);`.  `pop {r1} / bx r1`.
- * 4. THE TWO ADDITIVE CONSTANTS ARE ALREADY-NARROWED, AND WRITING THEM NARROWED
- *    IS FREE.  The reference adds 0xfffc before a 9-bit bitfield insert and 0xf8
- *    before an `unsigned char` store -- force_to_mode's own reduction of -4 and
- *    -8 to the store's mode.  `+ 0xfffc`/`+ 0xf8`, `- 4`/`- 8`, and
- *    `(unsigned short)(... - 4)`/`(unsigned char)(... - 8)` ALL compile
- *    identically, so the spelling is inert -- but read the pool placement, not
- *    the value: 0x3ff, ~0x3ff, 0x1ff and ~0x1ff are in the MID-function pool
- *    (HImode, 60-byte range) and 0xfffc is in the END pool (SImode, 1020), which
- *    is what says the add is SImode and only the mask is narrow.
- *
- * STILL WRONG, AND DOWNSTREAM OF THE BLOCKER: `mov r2, #0x10` for the BLDALPHA
- * store comes out as `ldr r2, =0x10` (the HImode-constant rule) because the
- * `int bld` carrier is loop-invariant and gcc hoists it into a register instead
- * of rematerialising it.  Declaring it inside the loop, assigning inside the
- * loop, and sharing it with the adjacent `Func_800393c(reg, bld)` argument all
- * measure the same.  Expect this to resolve once the register pressure is the
- * ROM's; it is one instruction.
- *
- * A NAMED `void *reg` LOCAL FOR 0x400004a IS WRONG -- the bare literal is
- * hoisted into r7 as the ROM has it, the named local reloads the pool at both
- * call sites.
+ * 4. `+ 0xfffc` / `+ 0xf8`, `- 4` / `- 8` and the cast forms ALL compile
+ *    identically, so the spelling is inert -- but read the POOL PLACEMENT: 0x3ff,
+ *    ~0x3ff, 0x1ff, ~0x1ff sit in the MID-function pool (HImode, 60-byte range)
+ *    and 0xfffc in the END pool (SImode, 1020), which is what says the add is
+ *    SImode and only the mask is narrow.
+ * 5. `int pos[2]` is the memory home: a local ARRAY always has one, and its two
+ *    `str`s, the `ldr [sp,#4]` of y each iteration and the 0x14 frame are all
+ *    the ROM's.  `unsigned short x0` as the parameter is NOT (120 encodings).
+ * 6. A NAMED `void *reg` LOCAL FOR 0x400004a IS WRONG -- the bare literal is
+ *    hoisted into r7 as the ROM has it; the named local reloads the pool twice.
  */
 extern volatile unsigned int iwram_3001e40;
 extern int gKeyPress;
@@ -120,6 +136,7 @@ int Func_80bb7c0(int x0, int y0)
 	void *gfx;
 	int slot;
 	int bld;
+	unsigned int xx;
 
 	gfx = _Func_8021bc8(0);
 	pos[0] = x0;
@@ -127,6 +144,7 @@ int Func_80bb7c0(int x0, int y0)
 	while (_Func_8017364() == 0)
 		WaitFrames(1);
 	slot = AllocUploadSpriteGFX(0x80);
+	xx = (unsigned short)pos[0];
 	while (1) {
 		Func_80039fc((void *)0x400004a, 4);
 		bld = 0x10;
@@ -135,7 +153,7 @@ int Func_80bb7c0(int x0, int y0)
 		e.w[1] = 0x80 << 23;
 		e.w[2] = 0;
 		e.f.tile = UploadSprite2(slot, gfx);
-		e.f.x = ((iwram_3001e40 & 4) >> 1) + (unsigned short)pos[0] + 0xfffc;
+		e.f.x = ((iwram_3001e40 & 4) >> 1) + xx + 0xfffc;
 		e.f.f4 = pos[1] - ((iwram_3001e40 & 4) >> 2) + 0xf8;
 		Func_8003dec(&e, 0xf0);
 		if ((gKeyPress & 0x303) != 0)
