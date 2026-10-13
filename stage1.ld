@@ -606,7 +606,8 @@ SECTIONS {
 		asm/rom_15000/rom_23178_a_a_a_c_c_c.o(.text)
 		asm/rom_15000/rom_23178_a_a_b.o(.text)
 		asm/rom_15000/rom_23178_a_a_c_b.o(.text)
-		asm/rom_15000/rom_23178_a_a_c_c_a.o(.text)
+		asm/rom_15000/rom_23178_a_a_c_c_a_b.o(.text)
+		asm/rom_15000/rom_23178_a_a_c_c_a_c.o(.text)
 		asm/rom_15000/rom_23178_a_a_c_c_b.o(.text)
 		asm/rom_15000/rom_23178_a_b.o(.text)
 		asm/rom_15000/rom_23178_a_c_a.o(.text)
@@ -2149,7 +2150,9 @@ SECTIONS {
 
 	rom_f9000 : ALIGN(0x1000) {
 		src/rom_f9000/exports.o(.text)
-		asm/rom_f9000/rom_f9080_a_a_a.o(.text)
+		asm/rom_f9000/rom_f9080_a_a_a_a.o(.text)
+		asm/rom_f9000/rom_f9080_a_a_a_b.o(.text)
+		asm/rom_f9000/rom_f9080_a_a_a_c.o(.text)
 		asm/rom_f9000/rom_f9080_a_a_b.o(.text)
 		asm/rom_f9000/rom_f9080_a_a_c_b.o(.text)
 		asm/rom_f9000/rom_f9080_a_a_c_c_b.o(.text)

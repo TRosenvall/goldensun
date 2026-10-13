@@ -1,3 +1,102 @@
+/* Func_80a4924 (DrawAbilityDescription, 0x080a4924) -- PARKED.  Batch 346, brief B.
+ *
+ * CURRENT FIGURE: 62 of 505 encodings differ, and THE LENGTH GAP IS CLOSED.
+ * This body replaces the batch-301 `w2` body (132 of 505).  Re-derived at
+ * production flags:
+ *
+ *                            THIS BODY        w2 (previous park)
+ *     16-bit INSTRUCTIONS    426 / 426  EQUAL   426 / 425   <- was one short
+ *     32-bit entries          79 / 79            79 / 79
+ *     stream encodings       505 / 505          505 / 505
+ *     size                  1168 / 1168 EQUAL  1168 / 1168 (ours held a 2-byte pad)
+ *     objcmp figure           62 of 505         132 of 505
+ *     ALIGNED residue         59 in 43 hunks     68 in 49 hunks
+ *     aligned-equal          455 (90.1%)        447 (88.5%)
+ *
+ * The aligned residue IMPROVED across the length change, so this is progress
+ * and not a vanished phase offset.
+ *
+ * Verify with:
+ *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
+ *     goldensun-build python3 tools/objcmp.py src/non_matching/rom_a1000/80a4924.c \
+ *     asm/rom_a1000/rom_a47b4_a_c_a_c.s --func Func_80a4924
+ *
+ * SPLIT: NONE (see the carried-forward header below).  Pin-free.
+ *
+ * =====================================================================
+ * THE PARK'S ARITHMETIC WAS RIGHT AND ITS NEGATIVE LIST HAD EXPIRED
+ * =====================================================================
+ *
+ * The region split, read off the relocation drift, confirms the old header
+ * exactly: +1 instruction in 0x26a..0x29c (blocker 1, which contains .La4b9e
+ * and .La4baa) and -2 in 0x2ea..0x316 (blocker 2, the info->fc switch at
+ * .La4c18), net -1.  So the plan in the old header -- "SOLVE BLOCKER 1 AND THEN
+ * ADD `case 0:`" -- was correct.  BOTH are now done:
+ *
+ * 1. `case 0: break;` added to the info->fc switch.  stmt.c's
+ *    balance_case_nodes then makes case 1 the root with case 0 as its left
+ *    child, and the both-children path emits the reference's
+ *    `cmp r3,#1 / ble <default>`.  +2 instructions, exactly as recorded.
+ *
+ * 2. BLOCKER 1 -- `one = 1;` WRITTEN AS THE LAST STATEMENT OF THE SLOT LOOP'S
+ *    BODY, and the post-loop mask spelled `info->f3 & one`.  -1 instruction.
+ *    The old header lists `int one = 1;` used for both the increment and the
+ *    mask as MEASURED WORSE (439 of 507) -- and it is, because it was written
+ *    ABOVE the loop, where loop.c hoists it into its own allocno.  The
+ *    definition has to be INSIDE THE LATCH BLOCK, and the reason is
+ *    reload1.c:3978-3979:
+ *
+ *        if (GET_CODE (insn) == CODE_LABEL)
+ *          CLEAR_HARD_REG_SET (reg_reloaded_valid);
+ *
+ *    Reload inheritance CANNOT cross a CODE_LABEL, and `.La4baa:` sits between
+ *    the reference's `mov r3,#1` and its `and r3,r2`.  So the reference's reuse
+ *    of r3 is NOT inheritance -- it can only be one real pseudo whose def lives
+ *    in the same block as the increment.  Writing the def in the latch is what
+ *    puts it there.  Measured: 132 -> 62, and it is the instruction the park
+ *    was missing.
+ *      (`one = 1;` just BEFORE the loop: 266 of 507, 427 instructions -- still
+ *       one long.  `one = 1; i += one;` in the latch: 267 of 507, 428.)
+ *
+ * WHAT IS LEFT: 59 aligned, and EVERY REMAINING HUNK IS A REGISTER ROLE, not a
+ * missing or extra instruction.  Four families:
+ *
+ *   a. the `1`'s register.  ref `movs r3,#1 / add r9,r3 / mov r0,r9 / cmp r0,#3`
+ *      and `mov r1,sl / ldrb r2,[r1,#3] / ands r3,r2`; ours the same shape with
+ *      r1 / r2 / r0 / r3 where the reference has r3 / r0 / r1 / r2.  A
+ *      rotation, not a difference in program.
+ *   b. the 0xb3b pool load takes r3 in the reference and r2 in ours, at four
+ *      sites, and is one slot later in two of them (the old header's blocker 3,
+ *      correctly re-attributed to sched2 by the batch-305 correction).
+ *   c. `movs r2,#0x80 / lsls r2,r2,#17 / adds r3,r6,r2` vs ours in r0.
+ *   d. the prologue's `mov r9, r1` sits AFTER the `bne` in the reference and
+ *      BEFORE it in ours.
+ *
+ * All four are the same question -- which of r0..r3 each reload takes -- and
+ * reload1.c's `allocate_reload_reg` walks the spill registers round-robin from
+ * `last_spill_reg`, so it is a CURSOR, set by how many reloads happened
+ * earlier in the function.  That is the next lever, and it is NOT a spelling of
+ * the mask: all eight mask spellings are inert (below).
+ *
+ * MEASURED INERT OR WORSE ON THIS BODY (not on w2 -- these are fresh):
+ *   - `1 & info->f3`                                62 of 505, inert
+ *   - `(info->f3 & 1) == 1`                         62, inert
+ *   - `((unsigned char *)info)[3] & 1`              62, inert
+ *   - `n = info->f3; if (n & 1)`                    263, worse
+ *   - `for (i = 0; i != 4; i++)`                    262, worse
+ *   - `i <= 3`                                      491, much worse (430 insns)
+ *   - the slot loop as a `while` with two `i++`s    486, much worse (432 insns)
+ *   - `one` used for the increment too (`i += one`) 267, worse
+ *   - `info->slots[i].kind + 0xb3b` (operand order) **BIT-IDENTICAL** to this
+ *     body -- 62, same 59-in-43 residue, same first index.  It measures nothing.
+ *   - `i = 0;` moved into the else branch           484, worse (the old header's
+ *     lever 6 still holds on this body)
+ *   - `for (i = 0; ...)` instead of `for (; ...)`   484, worse (ditto)
+ *   - BOTH CHEAP AXES CLOSED on w2 and nothing in them transfers:
+ *     scratch_elev/b346/B/autosweep_p2.txt, 8 flag groups and 77 of 77 anchors.
+ *     -fno-strict-aliasing and -fno-rerun-loop-opt are exactly inert (132);
+ *     every other flag is much worse.
+ */
 /* Func_80a4924 -- DrawAbilityDescription, 0x080a4924, 457 ROM instructions.
  * PARKED.
  * NON-MATCHING, 132 of 505 encodings differ.
@@ -211,6 +310,7 @@ void Func_80a4924(int win, int id)
     int base;
     int seen;
     int n;
+    int one;
 
     line = 0;
     done = 0;
@@ -302,8 +402,9 @@ void Func_80a4924(int win, int id)
             break;
         }
         line++;
+        one = 1;
     }
-    if (info->f3 & 1) {
+    if (info->f3 & one) {
         _Func_801e7c0(0xb76, win, 0, line * 8);
         line++;
     }
@@ -318,6 +419,8 @@ void Func_80a4924(int win, int id)
             line++;
         }
         switch (info->fc) {
+        case 0:
+            break;
         case 1:
             _Func_801e7c0(0xb63, win, 0, line * 8);
             line++;

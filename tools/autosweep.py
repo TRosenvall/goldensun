@@ -507,7 +507,30 @@ def main():
             # not progress.  A lower count only means something when the length
             # is unchanged AND the first differing index moved.
             mark = ""
-            if r and r[0] < base[0]:
+            # A FLAG THAT READS *EQUAL* WHILE CHANGING THE BODY STAYS INVISIBLE,
+            # and batch 346 brief C caught one hiding in exactly that gap:
+            # -fno-strength-reduce on Func_80bac6c reads the SAME ndiff 35 at the
+            # same equal stream length 57/57, while actually producing 52
+            # instructions against the base's 55 and taking the ALIGNED residue
+            # 12 -> 30.  Reading lower is not the only way a row lies; reading
+            # EQUAL while the instruction count moves is the other way.
+            #
+            # So measure the aligned residue whenever the row is not strictly
+            # worse OR the instruction count moved -- not only when ndiff fell.
+            if r and (r[0] <= base[0] or r[2] != base[2]) and r[0] != 0:
+                ab = globals().setdefault("_ALIGN_BASE",
+                                          aligned_residue(park, ref, fn))
+                av = aligned_residue(park, ref, fn, extra=flag)
+                if ab and av and av[0] > ab[0]:
+                    mark = (f"  <-- ALIGNED RESIDUE IS WORSE ({ab[0]} -> {av[0]})"
+                            + (f" despite ndiff {r[0]} vs base {base[0]}"
+                               if r[0] <= base[0] else "")
+                            + "; NOT progress")
+                elif ab and av and av[0] < ab[0]:
+                    mark = f"  <-- ALIGNED RESIDUE IMPROVES ({ab[0]} -> {av[0]})"
+                if r[2] != base[2] and mark:
+                    mark += f"  [instruction count moved to {r[2]:+}]"
+            if r and r[0] < base[0] and not mark:
                 # ANY lower row gets the ALIGNED verdict attached, because the raw
                 # count is not comparable across a length change and a caveat
                 # beside a misleading number still reads as progress (345 brief A).

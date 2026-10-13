@@ -359,6 +359,26 @@ def check(path):
             extra_note += ("  *** INFLATED: instruction counts differ (ref %d, ours %d)"
                            " AND stream lengths differ, so this positional figure"
                            " counts PHASE, not distance" % insn)
+        # AND CROSS-CHECK THE HEADER'S OWN PROSE AGAINST WHAT WAS JUST MEASURED.
+        # objcmp has printed a note about this for some time; what it cannot do is
+        # notice that the PARK SAYS THE OPPOSITE.  Batch 346 found three of brief
+        # E's four targets and one of brief A's asserting "this figure IS a true
+        # distance" on the grounds that "N == N encodings and no SIZE line" --
+        # reading the STREAM figure as an instruction count while
+        # `XX INSTRUCTION COUNT ref N, ours N+1` sat on the line directly above.
+        #
+        # Swept tree-wide when this was added: 256 parks assert a distance in
+        # prose and 100 OF THEM ARE OUT OF PHASE.  That is a class, not a few
+        # slips, and it matters because the claim is load-bearing -- it is the
+        # sentence that tells the next agent the figure can be trusted, and every
+        # targeting instrument here ranks on that figure.
+        if re.search(r"(?:true|real|plain|genuine)\s+distance|"
+                     r"IS\s+a\s+distance|a\s+distance\s+(?:now|at\s+last)",
+                     hdr.replace("*", " "), re.I):
+            extra_note += ("  !!! HEADER ASSERTS THIS IS A TRUE DISTANCE AND IT IS"
+                           " NOT -- the instruction counts above disagree with the"
+                           " park's own prose.  Fix the header before anyone"
+                           " targets on it")
     if not cm:
         return ("NO CLAIM", f"measures {got[0]}{extra_note}", None, got[0])
     claimed = int(cm.group(1))

@@ -1,3 +1,81 @@
+/* Func_80b8c1c (RunResultPhase, 0x080b8c1c) -- PARKED.  Batch 346, brief B.
+ *
+ * CURRENT FIGURE: 107 of 184 encodings differ, and THE LENGTH GAP IS CLOSED.
+ * Re-derived at production flags:
+ *
+ *                            THIS BODY        previous park body
+ *     16-bit INSTRUCTIONS    161 / 161 EQUAL   161 / 160  <- was one short
+ *     32-bit entries          22 / 22            22 / 22
+ *     stream encodings       184 / 184          184 / 182
+ *     size                   412 / 412 EQUAL   412 / 408
+ *     objcmp figure          107 of 184        140 of 184
+ *     ALIGNED residue         78 in 27 hunks    103 in 36 hunks
+ *     aligned-equal          124 (67.4%)       112 (60.9%)
+ *
+ * The aligned residue improved by 25 across the length change, so this is real.
+ *
+ * Verify with:
+ *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
+ *     goldensun-build python3 tools/objcmp.py src/non_matching/rom_b5000/80b8c1c.c \
+ *     asm/rom_b5000/rom_b8228_c_a_c_a_c_c_c_a.s --whole
+ *
+ * SPLIT: NONE -- one function, no data section.  Pin-free: the only artifact is
+ * the `do { } while (0);` anchor below, which emits nothing and is not counted
+ * by shimcount.py, but IS pass-3 debt and must be removed there.
+ *
+ * ===============================================================
+ * WHAT CHANGED: ONE ANCHOR, FOUND BY tools/autosweep.py, NOT BY AN AGENT
+ * ===============================================================
+ *
+ * `do { } while (0);` BETWEEN `s.f0 = 0;` AND `s.f18 = 0;`.  Eight consecutive
+ * boundaries (35..42 in autosweep's numbering) all reach 107, so it is a
+ * plateau and the exact placement inside it does not matter -- but it must be
+ * AFTER `s.f0 = 0;`.  One boundary earlier (before `s.f0 = 0;`, i.e. straight
+ * after the middle loop's closing brace) is 140, i.e. completely inert.  That
+ * one-statement sensitivity is why the placement is recorded here literally.
+ *
+ * READ scratch_elev/b346/B/autosweep_p3.txt BEFORE RE-SWEEPING ANYTHING: 8 flag
+ * groups and 50 of 50 anchor boundaries, device-free, no --max cap.
+ *
+ * ===============================================================
+ * THE -1 WAS SEVEN SITES AND THE PARK'S "RESIDUE IS TWO INSTRUCTIONS" IS REFUTED
+ * ===============================================================
+ *
+ * Relocation drift on the PREVIOUS body (ours - ref, in instructions, per
+ * region between consecutive relocations):
+ *
+ *   Func_80b8808 -> Func_80b6b40#1        +1
+ *   _Actor_SetAnimSpeed -> Func_80b6b40#2 -1
+ *   Func_80b6b40#3 -> GetBattleActor#2    +3
+ *   GetBattleActor#2 -> _Anim_EPowerUp#1  -1
+ *   _Actor_SetAnim#2 -> Func_80b8000#1    -2
+ *   Func_80b8000#1 -> Func_80b8000#2      -1
+ *   Func_80b8000#2 -> iwram_3001f00       -1
+ *
+ * Nine instructions of error across seven regions for a net of -1, plus the
+ * reference's 2-byte pad that ours lacked.  The park said the residue was "two
+ * instructions, and it is the SAME SHAPE AS Func_80b5f0c's" -- the two-pseudo
+ * `&s` spill in the last loop pre-header.  That region IS one of the seven
+ * (the two -1s after _Actor_SetAnim#2 and the `sub sp, #0x54` vs `#0x5c`), so
+ * the observation survives; the VERDICT that it is the whole residue does not.
+ *
+ * MEASURED INERT OR WORSE ON THIS BODY:
+ *   - -fno-strict-aliasing        109 of 184, aligned 78 in 28   (inert)
+ *   - -fno-schedule-insns2        116, aligned 94                (worse)
+ *   - -fno-gcse                   171, 162 instructions          (worse, +1 long)
+ *   - -fno-rerun-loop-opt         160, 159 instructions          (REOPENS the gap)
+ *   - -fno-strength-reduce        113, 156 instructions          (reopens, -5)
+ * Note the last two read LOWER on the parked body's figure (131 and 130, with
+ * aligned 103 -> 83 and 103 -> 97) and the anchor is strictly better than both:
+ * it is the only change that closes the length gap.  A flag that improves a
+ * phase-saturated figure while moving the instruction count further from zero
+ * is not progress, and autosweep now says so in its own output.
+ *
+ * NEXT: the +3 region (Func_80b6b40#3 -> GetBattleActor#2, the middle loop) is
+ * the single largest and is where the park's levers 2 and the `s.f34`/`s.f24`
+ * giv choice live.  Fix the LONG region first -- the three short ones are a
+ * separate problem and closing them first makes the phase worse again.
+ */
 /* Func_80b8c1c (RunResultPhase) -- 0x080b8c1c, the ONLY function in
  * asm/rom_b5000/rom_b8228_c_a_c_a_c_c_c_a.s (datacheck: no data;
  * `grep -ci func_start` = 1).  Whole-file conversion when it closes.
@@ -228,6 +306,7 @@ int Func_80b8c1c(struct In *in)
 		}
 	}
 	s.f0 = 0;
+	do { } while (0);
 	s.f18 = 0;
 	_Anim_EPowerUp(&s);
 	s.f0 = 1;

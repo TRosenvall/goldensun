@@ -1,6 +1,8 @@
 /* Func_80a60d4 -- 0x080a60d4, asm/rom_a1000/rom_a5534_c_a_a_c.s
- * NON-MATCHING, 191 encodings of 307.  A TRUE DISTANCE -- 307 = 307 encodings and no SIZE line, so size and instruction count both
- * match.  READ `--align` alongside it: 88 of 316.  Zero shims in both classes.
+ * NON-MATCHING, 191 encodings of 307.  NOT A DISTANCE -- re-measured batch 346 brief E:
+ * ref 267 / ours 268 SIXTEEN-BIT INSTRUCTIONS, with 307 == 307 stream and 688 == 688 bytes
+ * only because a PAD absorbs the extra instruction.  READ `--align` alongside it: 88 of 316,
+ * ours 317.  Zero shims in both classes.
  * Tail split from a six-function file; no data crosses either way and the one inbound code
  * reference becomes a link-time relocation, so no export is needed.
  *
@@ -13,12 +15,13 @@
  *
  * NOT MATCHING. objcmp --func Func_80a60d4: 191 of 307 encodings differ, ref 307 / ours
  * 307 -- SIZE AND INSTRUCTION COUNT BOTH EXACT, and all 32 relocations present with the
- * same symbols in the same order.  tryc --align: 88 of 316.  191 is therefore a TRUE
- * DISTANCE; it is high only because objcmp is positional.  Read the count honestly, though:
- * thirteen relocations from `Func_80a1a40` onward sit at +2 and the last two pool words are
- * back at the ROM's offsets, so the totals agree by CANCELLATION -- one extra 2-byte
- * instruction early (the else arm's `mov r8,r9`) against one missing late (`mov r9,r8`).
- * Both belong to the single blocker.
+ * same symbols in the same order.  tryc --align: 88 of 316.  THE "TRUE DISTANCE" CLAIM
+ * THAT USED TO BE HERE IS WRONG, and so is the cancellation story under it -- batch 346
+ * retired both.  `XX INSTRUCTION COUNT ref 267, ours 268`: there is ONE extra 16-bit
+ * instruction and nothing cancels it.  `mov r9,r8` is NOT missing; it is present at
+ * rom[118] with its operands SWAPPED (`mov r8,r9`), and the extra instruction is a
+ * FOURTH insn in the else arm.  Thirteen relocations from `Func_80a1a40` onward sit at
+ * +2 for that reason.
  *
  * SIX FUNCTIONS IN THE FILE, confirmed by `grep -ci func_start` (Func_80a5788,
  * Func_80a5b94, Func_80a5cc0, Func_80a5fe0, Func_80a602c, Func_80a60d4).  Func_80a60d4 is
@@ -135,6 +138,60 @@
  *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
  *     goldensun-build python3 tools/objcmp.py src/non_matching/rom_a1000/80a60d4.c \
  *     asm/rom_a1000/rom_a5534_c_a_a_c.s --func Func_80a60d4
+ *
+ * ================= BATCH 346 BRIEF E: ONE SITE, AND FOUR MORE DEAD SPELLINGS ====
+ *
+ * FIGURES RE-DERIVED.  ref 307 stream / 267 instructions / 37 32-bit entries / 688
+ * bytes; ours 307 / 268 / 37 / 688.  aligncmp 227 of 307 aligned-equal (73.9%) in 45
+ * hunks.  The length gap is +1 INSTRUCTION, absorbed in the byte total by a pad.
+ *
+ * PER-REGION, AND IT REALLY IS ONE SITE.  Every hunk of tryc --align sums to zero
+ * within its own region except ONE.  rom[155:158] against ours[155:159]:
+ *       rom   mov r3, r10 / lsl r3, #0x1 / mov r8, r3                     (3)
+ *       ours  mov r1, r10 / lsl r1, #0x1 / mov r9, r1 / mov r8, r9        (4)
+ * That is the `else { ofs = cursor * 2; }` arm, and the blocker paragraph above
+ * names it correctly.  What the old header got wrong is the direction: in the ROM
+ * the pseudo defined in BOTH arms is the SHARED one (r8 -- the pointer, the
+ * Func_80a1a40 argument, both key reads and the exit), and r9 is a one-use COPY
+ * made inside the refresh arm (`mov r9,r8` at rom[118], physically at
+ * `q = state + 0xa5 * 2`, live ACROSS the inner do-while and consumed by the 0x1a
+ * store after it).  HERE THE ROLES ARE EXACTLY REVERSED -- `ofs` is defined in both
+ * arms and the cse temp for `roster[cursor]` is the one that needs a copy -- so the
+ * else arm has to materialise BOTH and pays the fourth instruction.
+ *
+ * THE EIGHT-COMBINATION ROSTER SWEEP, RE-RUN IN LENGTH TERMS.  The old lever 1
+ * ranked the cast form against the array form at three sites by the positional
+ * figure (93 vs 98).  Re-measured as `i16 / i32 / bytes`, only the EXIT site moves
+ * anything and the two forms are not one apart, they are THREE:
+ *       array form at the exit read (all four combinations)  268 / 37 / 688, fig 191, aligned 227
+ *       cast  form at the exit read (all four combinations)  265 / 37 / 680, fig 297, aligned 221
+ * So lever 1's "ONLY THE EXIT SITE MATTERS" holds exactly, and the array form is
+ * right -- but it costs THREE instructions, not one, and the cast form is three
+ * SHORT of the ROM.  That reframes the blocker: this is not a +1 to be shaved, it
+ * is a +3/-3 pair of which the ROM takes neither extreme.
+ *
+ * FOUR MORE SPELLINGS MEASURED, ALL BIT-IDENTICAL TO THE PARKED BODY (191 / 307 /
+ * 268 / 37 / 688 / aligned 227 -- not "about the same", identical):
+ *       else arm written `ofs = cursor + cursor;`
+ *       `n = 0xa2 * 2 + cursor * 2;` with `ofs` dropped from the 0x1a store
+ *       `m = ofs;` before `q = ...` plus `n = 0xa2 * 2 + m;`     (confirms the old reading)
+ *       `Func_80a1a40((cursor * 2 + cursor) * 8 - 0xa, 0x10);`
+ * THE LAST ONE REFUTES A STANDING CLAIM IN THIS HEADER: "`Func_80a1a40((ofs +
+ * cursor) * 8 - 0xa, 0x10)` must keep `ofs` as a VARIABLE -- `(cursor * 2 + cursor)
+ * * 8` folds to `cursor * 24` and buys a `mul`".  It does not; cse recognises
+ * `cursor * 2` as `ofs` and the object is byte for byte the same.  No `mul` appears.
+ *
+ * AND TWO THAT ARE WORSE, FOR THE RECORD:
+ *       `p = (unsigned short *)(cursor * 2 + (int)roster); ofs = cursor * 2;`
+ *                                                   269 / 37 / 688, fig 215, aligned 209
+ *       `ofs = cursor * 2;` hoisted ABOVE `if (refresh)` with an empty else
+ *                                                   269 / 37 / 688, fig 251, aligned 211
+ *
+ * NEXT.  The question is no longer "can the copy be conjured" -- it is WHICH OF THE
+ * TWO `cursor * 2` PSEUDOS THE ELSE ARM DEFINES.  Make the exit/key-read pseudo the
+ * one that both arms write and `ofs` the derived one, without reverting the exit
+ * read to the cast form (which is what the frame depends on).  Nothing tried this
+ * round separates those two requirements.
  */
 extern unsigned char *iwram_3001f2c;
 extern volatile unsigned int gKeyPress;

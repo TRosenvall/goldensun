@@ -1,5 +1,8 @@
 /* Func_80912b8 (ScreenShakeTask) -- 0x080912b8.  PARKED at 115 instructions in
- * NON-MATCHING, 184 encodings of 217.  A TRUE DISTANCE -- 217 = 217 encodings and no SIZE line.  `--align`: 115 of 207.
+ * NON-MATCHING, 184 encodings of 217.  NOT A DISTANCE -- re-measured batch 346 brief E:
+ * ref 194 / ours 195 SIXTEEN-BIT INSTRUCTIONS.  The 217 == 217 stream and the absent SIZE
+ * line are a PAD absorbing the extra instruction, and objcmp's own NOTE says so.  `--align`:
+ * 115 of 207, ours 208.
  *
  * (Claim line first on purpose: parkcheck reads the FIRST `N encodings of M` in the header.)
  *
@@ -7,11 +10,12 @@
  *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
  *     goldensun-build python3 tools/objcmp.py src/non_matching/rom_8a000/80912b8.c \
  *     asm/rom_8a000/rom_8d9a4_c_c_c_a_c_c_a.s --func Func_80912b8
- * disagreeing regions of 207 (tryc --align).  This IS A TRUE DISTANCE: objcmp
- * reports 217 encodings against 217 and prints no SIZE line, so instruction
- * count and byte size both agree exactly; only the register assignment and the
- * literal-pool ORDER are wrong (objcmp: 184 of 217 positional, RELOCATIONS
- * differ).
+ * disagreeing regions of 207 (tryc --align).  THE "TRUE DISTANCE" SENTENCE THAT USED
+ * TO BE HERE IS WRONG and batch 346 retired it: objcmp reports 217 encodings against
+ * 217 and 476 bytes against 476, but `XX INSTRUCTION COUNT ref 194, ours 195`, with a
+ * pad making up the difference.  The register assignment and the literal-pool ORDER
+ * are wrong AND the stream is one instruction long (objcmp: 184 of 217 positional,
+ * RELOCATIONS differ).
  * ref: asm/rom_8a000/rom_8d9a4_c_c_c_a_c_c_a.s  (ONE function, no data section;
  *      grep -ci func_start = 1; would convert the WHOLE FILE)
  * batch 293, brief A, target 1.  No shims in the draft.
@@ -103,6 +107,62 @@
  * REAL difference, not a register rename -- but the instruction count already
  * matches, so something else is one short.  Reconcile those two before trusting
  * the "true distance" label too far.
+ *
+ * ================= BATCH 346 BRIEF E: THE +1 IS THREE SITES, NOT ONE ===========
+ *
+ * FIGURES RE-DERIVED, NOTHING INHERITED.  ref 217 stream / 194 instructions / 21
+ * 32-bit entries / 476 bytes; ours 217 / 195 / 21 / 476.  aligncmp: 112 of 217
+ * aligned-equal (51.6%) in 30 hunks.  So the 184 is PARTLY PHASE: ONE extra
+ * instruction puts every later index out of step.
+ *
+ * THE CLOSING PARAGRAPH OF THIS HEADER ASKED FOR A RECONCILIATION -- "that is one
+ * extra instruction and it is a REAL difference ... but the instruction count
+ * already matches, so something else is one short.  Reconcile those two before
+ * trusting the 'true distance' label too far."  HERE IT IS.  The count never
+ * matched; the 0xf0 difference is real and it is worth TWO instructions, not one,
+ * at EACH of the two sites, and the other regions are short.  Per-region line
+ * deltas from tryc --align (ours minus rom, running):
+ *
+ *     ENTRY BLOCK   rom[26..41]   +1   ours' extra `mov r3, r2`, the base copy
+ *     HALF 1        rom[101..112] +2   the QImode 0xf0 site
+ *     HALF 2        rom[143..190] -1   another +2 QImode 0xf0 site inside a -3
+ *                                      reordering of the 0x3ff / 0x1ff mask block
+ *     ------------------------------------------------------------------
+ *     NET                         +1
+ *
+ * A single-site fix therefore OVERSHOOTS, which is what makes this park hard, and
+ * it is measured: the 0xf0 narrowing is `convert_to_integer` pushing the narrowing
+ * conversion into the operands of the arithmetic (`convert.c:280-320`, cases
+ * PLUS_EXPR / MINUS_EXPR / BIT_AND_EXPR / BIT_IOR_EXPR / BIT_XOR_EXPR), so
+ * `d[4] = ((z >> 16) & 0xf0) - s4 - hi + 0x10;` is done in QImode, where 0xf0 is
+ * -16 and costs `mov r1,#0x10 / neg r1,r1 / mov r2,r1` against the ROM's single
+ * `mov r2,#0xf0`.  An int carrier for the WHOLE RIGHT-HAND SIDE stops it, because
+ * then the conversion applies to a VAR_DECL and `case BIT_AND_EXPR` is never
+ * reached (same mechanism as AdvanceMsgText's `& 0x1ff`, batch 346):
+ *
+ *     { int v = ((z >> 16) & 0xf0) - s4 - hi + 0x10; d[4] = v; }
+ *
+ *       both sites        191 insns / 21 pool / 468 bytes, fig 172, aligned 110
+ *       first site only   193 / 21 / 472, fig 172, aligned 112
+ *       second site only  193 / 21 / 472, fig 201, aligned 110
+ *
+ * TWO OF THIS PARK'S OWN RECORDED NEGATIVES HAVE EXPIRED.  "a named `int mf = 0xf0`
+ * for the +4 byte store 118 (worse)" measures 191 INSTRUCTIONS -- four FEWER than
+ * the parked body and three fewer than the ROM.  That 118 was phase, not cost; the
+ * named mask is doing exactly what the carrier does.  (Re-measured here as
+ * `a = 0xf0;` before each store: 191 / 21 / 468, fig 172, aligned 109.)
+ *
+ * SO THE BODY IS LEFT UNCHANGED, DELIBERATELY.  Every carrier variant above crosses
+ * the length from +1 to -1 or -3 and its ALIGNED residue is WORSE (113 -> 112 or
+ * 110).  Per the batch-346 rule, a falling figure across a length change is the
+ * phase offset disappearing, not progress.
+ *
+ * NEXT, and it is now a sharp question rather than a spill argument: find the +1 in
+ * the ENTRY BLOCK (the `mov r3, r2` base copy) and the -3 in HALF 2 FIRST, then
+ * apply the 0xf0 carrier at BOTH sites.  The arithmetic says
+ * 195 - 1 (entry) + 3 (half 2) - 4 (both carriers) is not 194, so at least one of
+ * those three numbers is coupled to another; this is the composition cliff the
+ * shared brief calls a SET, not a count.
  */
 extern unsigned char iwram_3001ee0[];
 extern unsigned char gSpriteSlots[];

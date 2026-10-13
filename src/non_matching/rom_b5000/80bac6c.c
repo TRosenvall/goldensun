@@ -21,6 +21,82 @@
  *     src/non_matching/rom_b5000/80bac6c.c \
  *     asm/rom_b5000/rom_b9b30_c_a_c_c.s Func_80bac6c -v
  *
+ * === BATCH 346: NO PROGRESS.  The diagnosis is CONFIRMED and three of its
+ * recorded negatives are CORRECTED.  Figures re-derived, nothing inherited:
+ * 35 differing of 57 encodings; ref 51 instructions against ours 49; SIZE ref
+ * 124 bytes against ours 120; stream ref 57 against ours 55; first diff at
+ * index 18.  Aligned residue 12 differing in 5 hunks, aligned-equal 45 of 57.
+ * Pools agree in CONTENT and position: ref pool 1 = {0xfe, iwram_3001e74},
+ * ours the same; ref pool 2 = {0xfe}, ours the same.
+ *
+ * THE PER-REGION SPLIT, which nobody had written down.  All of the -2 is in
+ * LOOP 2 and nothing else is short:
+ * (16-bit instructions only, `bl` excluded, so the columns sum to 51 and 49)
+ *     prologue + _GetUnit + byte clear            ref 10  ours 10    0
+ *     loop 1, incl. its `b` into the middle and
+ *       BOTH its exit tests                       ref 10  ours 10    0
+ *     LOOP 2, incl. its preheader                 ref 15  ours 13   -2
+ *     found: + Func_80c1ebc + loop 3 preheader    ref  5  ours  5    0
+ *     loop 3                                      ref  8  ours  8    0
+ *     epilogue                                    ref  3  ours  3    0
+ * So this is ONE site of -2, not two of -1, and the index-18 first difference
+ * is phase: ref e017 against ours e015 is the same `b` with its target 4
+ * bytes nearer.
+ *
+ * THE TWO MISSING INSTRUCTIONS, itemised.  The ROM rebuilds the byte offset
+ * every iteration and reloads 0xfe inside the loop; we walk a pointer and
+ * hoist it:
+ *     rom   lsl r3,r1,#1 / mov r2,r3 / add r2,#0x64 / ldrsh r3,[r0,r2]
+ *           ... ldr r3,=0xfe / strh r3,[r0,r2] ... add r1,#1
+ *     ours  mov r0,#0 / ldrsh r3,[r2,r0] ... strh r1,[r2] ... add r2,#2
+ *           with `ldrh r1,.L22` hoisted into the preheader
+ * The ROM's `mov r2, r3` is the two-address `add rd, #imm8` needing a copy
+ * because its source does not die there, and it cannot exist while the giv
+ * does -- which is this park's own reading, re-confirmed.
+ *
+ * CORRECTIONS TO THE BATCH-333 NEGATIVE LIST:
+ *   (1) THE TWO "NAMED INTERMEDIATE" ROWS ARE ONE BODY.  `t = i * 2;
+ *       off2 = t + 0x64;` and the copy-then-modify split `off2 = t;
+ *       off2 += 0x64;` compile BIT-IDENTICALLY, and so does a third spelling
+ *       `off2 = i * 2 + 0x64;` added here.  All three: 35 of 57 with 48
+ *       instructions (THREE short) and aligned 15 in 4 hunks -- so that list
+ *       was measuring one thing, not three, and the body it measured is WORSE
+ *       on the aligned reading (12 -> 15), not just on the stream figure.
+ *   (2) `while (1)` WITH THE OFFSET INLINE WAS NEVER MEASURED.  The list has
+ *       only "`while (1)` with the offset named".  Measured now, on loop 2:
+ *       `while (1)` inline and `do { ... } while (1);` inline are both
+ *       BYTE-IDENTICAL to the body below.  So docs/elevation.md's
+ *       `while (1)` != `for (;;)` lever is CLOSED on this park.
+ *   (3) -fno-strength-reduce IS A PHASE TRAP HERE and autosweep reads it as
+ *       inert.  It gives ndiff 35 of 57 -- the same number as the base -- but
+ *       a DIFFERENT body: stream 57/57 (equal!), instructions 51/52 (ours one
+ *       LONG), first diff at index 0 (ref b560 `push {r5,r6,lr}` against ours
+ *       b5e0 `push {r5,r6,r7,lr}`), and ALIGNED 12 -> 30 in 14 hunks.  Equal
+ *       stream length with a worse aligned residue; the extra callee-saved
+ *       register is still its price, and it does not fold q into the address
+ *       either (`lsl / add r3,r3,r0 / add r3,r3,#100 / mov r7,#0 /
+ *       ldrsh r2,[r3,r7]` against the ROM's `[r0, r2]`).
+ *
+ * ALSO MEASURED AND INERT (byte-identical to the body below, both with and
+ * without -fno-strength-reduce):
+ *     `((short *)q)[i + 0x32]`                     array index, halved stride
+ *     `*(short *)(g + (i * 2 + 0x66))`             q dropped entirely
+ *     `*(short *)((int)q + (i * 2 + 0x64))`        base cast to int
+ * These three make -fno-strength-reduce a NO-OP (49 instructions either way),
+ * which is itself worth knowing: the giv survives that flag at these
+ * spellings.
+ *
+ * AUTOSWEEP, both cheap axes CLOSED (scratch_elev/b346/C/autosweep.log):
+ *   flags: -O1 36, -fno-gcse 35, -fno-schedule-insns2 46, -ffixed-r7 35,
+ *     -fno-strict-aliasing 35, -fno-strength-reduce 35 (see (3) above),
+ *     -fno-rerun-cse-after-loop 34 <- lower but ALIGNED 12 -> 15, not
+ *     progress, -fno-rerun-loop-opt 35.
+ *   anchors: 23 of 23 boundaries, none better than 35; anchor16 and anchor17
+ *     read 34 with dsize -4, i.e. misalignment.
+ *
+ * STILL OPEN, and unchanged: stop loop.c replacing the biv in ONE loop while
+ * leaving loops 1 and 3 reduced. ===
+ *
  * === BATCH 333: LOOP 3 IS NOW BYTE-EXACT, AND THE ONLY RESIDUE IS LOOP 2. ===
  *
  * THE PARK FILE WAS BEHIND ITS OWN HEADER.  The batch-261 progress note below

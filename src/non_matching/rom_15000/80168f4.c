@@ -1,9 +1,12 @@
-/* AdvanceMsgText (0x080168f4) -- PARK CANDIDATE, batch 293 brief H.
- * NON-MATCHING, 212 encodings of 707.  NOT a distance (ref 1592 bytes / 707 encodings against ours 1596 / 708, one instruction and four
- * bytes over).  READ `--align` INSTEAD: 23 instructions in disagreeing regions of 724.  This is a
- * FIRST candidate for a 628-instruction function and everything structural is already right --
- * frame, prologue, the 31-entry jump table, block order, all thirteen cases, both DrawText sites,
- * and all 63 relocations in order until a 2-byte shift.
+/* AdvanceMsgText (0x080168f4) -- PARK, batch 293 brief H; BODY REPLACED by batch 346 brief E.
+ * NON-MATCHING, 110 encodings of 707.  THE INSTRUCTION-COUNT GAP IS CLOSED: ref 610 / ours 610
+ * 16-bit instructions (was 610 / 611).  Still ONE 32-BIT ENTRY OVER -- 90 pool words against 89,
+ * hence 1596 bytes against 1592, so the figure is STILL NOT A DISTANCE.  READ `--align`: 14
+ * instructions in disagreeing regions of 724 (was 23); aligncmp 684 of 707 aligned-equal
+ * (96.7%, was 665 / 94.1%) in 21 hunks.  Everything structural was already right in batch 293 --
+ * frame, prologue, the 31-entry jump table, block order, all thirteen cases, both DrawText
+ * sites, all 63 relocations in order -- and the BATCH 346 section at the end of this header is
+ * what moved it.
  *
  * (The claim line is first on purpose: parkcheck reads the FIRST `N encodings of M` in
  *  the header, and a drop ladder below is full of `N of M` strings whose earliest is the
@@ -201,6 +204,102 @@
  * the __asm__ aliases below are the only wiring needed.  Callee returns: Func_80199ec
  * is the only one whose result is read; every other callee is `void`, which is the
  * direction t3_notes.c predicted for this bank and it held on all eleven.
+ *
+ * ================= BATCH 346 BRIEF E: CLUSTER B IS CLOSED, AND IT WAS ifcvt =====
+ *
+ * THE OLD DIAGNOSIS WAS RIGHT ABOUT THE SYMPTOM AND SILENT ABOUT THE PASS.
+ * "gcc hoists `t = 0x4000` ABOVE `cmp r4,#0xde` and inverts the branch" is exactly
+ * what happens, and the pass is `.14.ce`, IF-CONVERSION -- not gcse and not the
+ * scheduler.  Located by counting `(const_int 16384)` against `(const_int 222)` by
+ * byte offset in every `-da` dump: at `.13.combine` the 222 compare PRECEDES the
+ * 16384 set and at `.14.ce` the order has FLIPPED.  `-fno-gcse` (196) and
+ * `-fno-sched2` (191) could never isolate it, because neither pass is involved.
+ *
+ * THE GATE, with citations.  `ifcvt.c:1651` `find_if_case_1` converts an IF-THEN
+ * whose THEN block has one predecessor, one non-fallthrough successor and an ELSE
+ * block at index+1 -- all three true here.  It is refused by either of two tests:
+ *     ifcvt.c:1681-1683   if (count_bb_insns (then_bb) > BRANCH_COST) return FALSE;
+ *     ifcvt.c:1929-1930   if (for_each_rtx (&PATTERN (insn), find_memory, NULL))
+ *                             return FALSE;        (inside dead_or_predicable)
+ * and BRANCH_COST for Thumb at -O2 is 1 -- `config/arm/arm.h:2413-2414`,
+ * `(TARGET_ARM ? 4 : (optimize > 1 ? 1 : 0))`.  `t = 0x4000` is ONE rtl insn, so
+ * `1 > 1` is false and the conversion goes through.
+ *
+ * THE SOURCE CHANGE IS ONE LINE PER ARM AND COSTS NOTHING: write the arms as
+ * `op |= 0x4000;` / `op |= 0x8000;` instead of assigning a merged `t` and or-ing
+ * after the join.  Thumb's `*thumb_iorsi3` takes no immediate, so combine cannot
+ * fold the constant into the ior and the THEN block is TWO rtl insns --
+ * `(set r3 16384)` and `(set r7 (ior r7 r3))` -- which trips `:1681` and ifcvt
+ * declines.  find_cross_jump then merges the arms' identical `orr r7,r3` tail back
+ * into the join, which is where the ROM has it, and the 0xde arm gets the ROM's
+ * `b .L16df4`.  Three symptoms, one change, exactly as the old header predicted:
+ *       212 of 707   ->  110 of 707
+ *       611 insns    ->  610 == ref
+ *       aligned 665  ->  684 of 707;   tryc --align 23 -> 14 of 724
+ * AND THE ROM'S `.pool_aligned` AFTER THAT `b` IS NOT A COINCIDENCE: with the arm
+ * restored, its own exit branch doubles as the jump over the mid-block literal
+ * pool, so the separate `b` this body used to need disappears with it.
+ *
+ * `int c = (m->f12 + 1) & 0x1ff; m->f12 = c;` IS KEPT, and the reason is in the
+ * FRONT END, not in combine.  `convert_to_integer` (`convert.c:280-320`, cases
+ * PLUS_EXPR / MINUS_EXPR / BIT_AND_EXPR / BIT_IOR_EXPR / BIT_XOR_EXPR) pushes a
+ * narrowing conversion INTO the operands of the arithmetic, so
+ * `(u16)((m->f12 + 1) & 0x1ff)` becomes a HImode AND and 0x1ff gets its own HImode
+ * pool word that cse can never unify with the SImode 0x1ff of the index
+ * computation.  With a plain int carrier the conversion applies to a VAR_DECL and
+ * `case BIT_AND_EXPR` is never reached at all.  Same mechanism as lever D above
+ * (`m->f1c - 1` pooling 0xffff), and worth stating once: THE CARRIER HAS TO BE A
+ * SEPARATE STATEMENT.
+ *
+ * WHAT IS LEFT -- now only TWO things, 14 instructions:
+ *
+ * (1) CLUSTER A, case 7, unchanged at 3 instructions.  The ROM materialises 0xf
+ *     into r2 BEFORE the f18 store; we emit it after.  Not retried this round, so
+ *     its three recorded negatives still stand against the OLD body only.
+ *
+ * (2) THE MERGED BLOCK TRADES ONE INSTRUCTION FOR ONE POOL WORD, and that trade is
+ *     the entire remaining length gap.
+ *       ROM:  orr r7,r3 / ldrh r3,[r6,#0x12] / add r3,#1 / and r3,r2 / strh
+ *             -- RE-READS m->f12 and REUSES the index block's 0x1ff in r2.
+ *       ours: orr r7,r7,r3 / ldr r2,.L99+4 / add r3,r1,#1 / and r3,r3,r2 / strh
+ *             -- reuses the m->f12 LOAD (cse commoned it) and RELOADS the constant,
+ *             which needs a second `.word 511` in pool .L99 beside the HImode one
+ *             at +0.  Same instruction count, one pool word more.
+ *     MEASURED, all on this body, as `i16 / i32 / bytes`:
+ *       this body (the installed one)                610 / 90 / 1596  fig 110  aligned 684
+ *       + `int mask` named and shared by the index
+ *         and the update -- the park's own old
+ *         "60, much worse" negative, RE-MEASURED     609 / 89 / 1588  fig 162  aligned 682
+ *       + `int c = (idx + 1) & 0x1ff` in the update  609 / 90 / 1592  fig 152  aligned 692
+ *     The middle row REUSES the mask register exactly as the ROM does and closes the
+ *     pool word -- and is then one instruction short, missing precisely the ROM's
+ *     `ldrh r3,[r6,#0x12]`.  The last row is the BEST-ALIGNED body measured anywhere
+ *     on this function (692 of 707, 18 differing in 11 hunks, byte size EQUAL at
+ *     1592) and is kept as scratch_elev/b346/E/v3d/w4_idx_in_upd.c.  None of the
+ *     three is simultaneously 610 and 89, and that is the open question.
+ *     WHY THE RE-READ IS HARD: the commoning is cse's, not gcse's.  `cse.c:6637-6643`
+ *     extends a cse basic block ACROSS a conditional jump when
+ *     `LABEL_NUSES (JUMP_LABEL (p)) == 1` and the insn before the target is a BARRIER
+ *     (`cse.c:6652`), which both arms satisfy -- and `-fno-cse-skip-blocks`
+ *     (DIAGNOSTIC ONLY, not a production flag) lands on 610 / 89 exactly.  A
+ *     `goto`-to-a-twice-used-label spelling meant to raise LABEL_NUSES was tried in
+ *     four shapes and every one is BIT-IDENTICAL to this body: the jump pass
+ *     normalises them away long before cse runs.
+ *
+ * RECORDED NEGATIVES FROM THIS ROUND, as `i16 / i32 / bytes`:
+ *     int carrier at the WIDE-GLYPH `& 0x1ff`     610/90/1592 alone; with the arm fix 609/87/1576
+ *     int carrier at the TICK `& 0x1ff`           610/90/1592 alone; with the arm fix 608/85/1564
+ *     carrier at the merged site ALONE (the old
+ *       `v_mk`, recreated from this header)       609/88/1584, fig 213, aligned 666
+ *     `op |= K` arms with NO carrier               612/90/1600, fig 160
+ *     fully duplicated arms, no written merge      609/89/1588, fig 179 -- and the carrier is
+ *       EXACTLY INERT in that form, the two variants being bit-identical
+ *     carriers at all three `& 0x1ff` sites        607/85/1564, fig 185
+ *     `idx + 1` named before the mask              610/90/1596, fig 160, aligned 678
+ * AND THE OLD LADDER'S "`op |= K` inside each arm instead of a merged `t` (37, and
+ * +3 length)" IS REFUTED AS WRITTEN: with the merged cursor update KEPT -- which is
+ * this park's own rule, and which that experiment evidently dropped -- it is the
+ * lever that closes the gap.  A negative is a measurement of ONE body.
  *
  * Verify with:
  *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
@@ -494,13 +593,15 @@ int AdvanceMsgText(struct MsgBox *m)
             next = *(u16 *)(base + o);
         }
         if (next == 0xde)
-            t = 0x4000;
+            op |= 0x4000;
         else if (next == 0xdf)
-            t = 0x8000;
+            op |= 0x8000;
         else
             goto noWide;
-        op |= t;
-        m->f12 = (m->f12 + 1) & 0x1ff;
+        {
+            int c = (m->f12 + 1) & 0x1ff;
+            m->f12 = c;
+        }
     noWide:
         gw = m->f0;
         if ((gw->f16 & 8) == 0 && op > 0x20 && next > 0x20) {

@@ -1,3 +1,82 @@
+/* OvlFunc_924_20097a8 (0x020097a8) -- PARKED.  Batch 346, brief B.
+ *
+ * CURRENT FIGURE: 113 of 151 encodings differ.  UNCHANGED by this batch, and
+ * the figure is NOT a distance.  RE-DERIVED at production flags:
+ *
+ *     16-bit INSTRUCTIONS   ref 134, ours 133      <- ONE SHORT
+ *     32-bit entries        17 / 17   (pool words and `bl`)
+ *     stream encodings      151 / 151
+ *     size                  336 / 336 bytes  -- ours carries a 2-byte PAD that
+ *                           the reference does not, and that pad is absorbing
+ *                           the missing instruction.  The park header's "SAME
+ *                           LENGTH (336 bytes, 151 encodings)" is the STREAM
+ *                           count; the INSTRUCTION count is one short.
+ *     aligned residue       44 differing in 22 hunks, 114 of 151 equal (75.5%)
+ *
+ * Verify with:
+ *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
+ *     goldensun-build python3 tools/objcmp.py src/non_matching/ovl_7ac2d8/20097a8.c \
+ *     asm/overlays/rom_7ac2d8/ovl_f84_c_a_a.s --whole
+ *
+ * SPLIT: NONE.  asm/overlays/rom_7ac2d8/ovl_f84_c_a_a.s is ONE function, no
+ * data; datacheck.py is silent and piece.py reports no non-function exports.
+ * Pin-free (shimcount.py reports nothing).
+ *
+ * ===================================================================
+ * THE -1 IS FIVE SITES, NOT ONE, AND THE PARK'S FOUR-ITEM LIST MISSES THAT
+ * ===================================================================
+ *
+ * Read off the relocation offsets, which drift and then come back (ours - ref,
+ * in bytes, at each of the fifteen relocations):
+ *
+ *   0 0 -2 -2 -2 -4 -6 -6 -4 -4 -2 -2 -2 -2 0
+ *
+ * i.e. per region, in INSTRUCTIONS:
+ *
+ *   __CopyMapTiles#2 -> __Random#1            -1   (z's initialiser, item 4)
+ *   OvlFunc_common0_10c -> __CutsceneWait     -1
+ *   __CutsceneWait -> OvlFunc_924_200bb24     -1
+ *   OvlFunc_924_200bb24 -> __CopyMapTiles#3   +1
+ *   OvlFunc_924_20095e0 -> __CutsceneWait     +1
+ *   __Func_8012350 -> the pool                +1   (the 2-byte pad)
+ *
+ * Net -1.  TEN instructions of error over six regions, three of them positive.
+ * Any single-site fix overshoots in one direction or the other; the park's
+ * "four items" are all read out of ONE side-by-side window and three of the six
+ * regions above are not among them.  THIS IS THE NUMBER TO START FROM.
+ *
+ * MEASURED THIS BATCH, AND RECORDED BECAUSE THEY MEASURE NOTHING:
+ * three spellings of z's initialiser aimed at item 4 (the reference's
+ * `neg r3,r3 / add r2,r3` where ours folds to one `sub`) are **BIT-IDENTICAL**
+ * to the parked body -- same 113, same 44-in-22 aligned residue, same first
+ * differing index 33:
+ *     z = -(int)(i << 20) + 0xb6 * 0x40000;
+ *     z = -(int)(k << 16) + 0xb6 * 0x40000;
+ *     z = (0 - (int)(i << 20)) + 0xb6 * 0x40000;
+ * gcc canonicalises all three to the same RTL before combine sees them, so this
+ * is the same trap as the park whose ten recorded `-1` spellings were
+ * bit-identical: a negative that measured nothing.  Item 4 needs a change to
+ * what `i * 16` IS, not to how the subtraction is written.
+ *
+ * BOTH CHEAP AXES ARE CLOSED: scratch_elev/b346/B/autosweep_p1.txt -- all eight
+ * flag groups and 25 of 25 anchor boundaries, device-free, no --max cap.  The
+ * only flag row below base is -fno-gcse at 109, and the tool itself flags it as
+ * an aligned-residue regression (44 -> 59).
+ *
+ * NEXT, in order of expected value:
+ *  1. Attack the THREE SHORT REGIONS SEPARATELY, and measure each against the
+ *     aligned residue, not the figure.  The two long regions
+ *     (200bb24 -> CopyMapTiles, 20095e0 -> CutsceneWait) are a SEPARATE
+ *     problem and fixing them alone makes the phase worse.
+ *  2. The dead/extra-register class that landed OvlFunc_925_200835c this batch
+ *     is worth a look on the two LONG regions, in reverse: there ours holds an
+ *     extra live value (`mov r3,r8`, `adds r3,r6,#0`, `mov sl,r2` are all
+ *     inserts in the 33-48 window) where the reference does not.
+ *  3. scratch_elev/b346/B/b_deadsave.py is the instrument that cracked p4 --
+ *     it scans the GENERATED half of asm/ for a structural signature and reads
+ *     the .c beside the hit.  It generalises: write the signature of the window
+ *     you cannot reproduce and let the labelled corpus answer.
+ */
 /* OvlFunc_924_20097a8 (0x020097a8) -- NON-MATCHING: 113 encodings of 151 differ (objcmp).
  * SAME LENGTH (336 bytes, 151 encodings, all 15 relocations identical and in order).
  *

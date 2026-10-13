@@ -6,7 +6,10 @@
  *       src/non_matching/rom_15000/801be80.c asm/rom_15000/rom_1aeec_a_a_c_c.s \
  *       --func Func_801be80
  *
- * SIZE 580 == 580 AND INSTRUCTIONS 274 == 274, so 251 IS A TRUE DISTANCE.
+ * SIZE 580 == 580 and the STREAM is 274 == 274, but 274 IS NOT THE INSTRUCTION COUNT
+ * and 251 IS NOT A DISTANCE -- re-measured batch 346 brief E, the stream is 256
+ * instructions + 16 32-bit entries + pads on the reference and 257 + 16 here, so we are
+ * ONE 16-BIT INSTRUCTION LONG with a pad absorbing it in the byte total.
  * tools/aligncmp.py: aligned-equal 147 of 274 (53.6%), 155 differing in 60 hunks.
  * ZERO SHIMS -- no pins, no barriers, no volatile (tools/shimcount.py: 0).
  * The PROLOGUE IS BYTE-EXACT, including all three high-register saves.
@@ -146,6 +149,48 @@
  * NEXT: this is the closest of the five in batch 299 and the only one with no
  * shims at all.  If anything is going to fall to the REG_ALLOC_ORDER rebuild
  * experiment, it is this one -- re-screen it first.
+ *
+ * ================= BATCH 346 BRIEF E: THE GAP IS DIFFUSE, AND IT IS r5 vs r7 ====
+ *
+ * FIGURES RE-DERIVED.  ref 274 stream / 256 instructions / 16 32-bit entries / 580
+ * bytes; ours 274 / 257 / 16 / 580.  aligncmp 147 of 274 (53.6%) in 60 hunks.
+ * tryc --align: rom 279 lines, ours 280, 267 differ.
+ *
+ * THE "TRUE DISTANCE" LABEL CAME FROM READING objcmp's STREAM FIGURE AS AN
+ * INSTRUCTION COUNT.  objcmp prints `274 encodings` for the stream and a separate
+ * `XX INSTRUCTION COUNT ref 256, ours 257` line; the park's banner quoted the first
+ * as if it were the second.  Three of batch 346 brief E's four targets had the same
+ * mis-statement in their headers, so it is a CLASS, not a slip: whenever a park says
+ * "N == N encodings and no SIZE line, therefore a true distance", check the
+ * INSTRUCTION COUNT line above it.  A pad can absorb exactly one 16-bit instruction
+ * and keep both the stream length and the byte size equal.
+ *
+ * WHERE THE +1 IS: NOWHERE IN PARTICULAR, AND THAT IS THE FINDING.  Per-hunk line
+ * deltas (ours minus rom) from tryc --align, running total in brackets:
+ *       rom[5..19]    net  0   entry: `mov r7,r0` where the ROM has `mov r5,r0`
+ *       rom[30..76]   net +3   [+3]  the zero-store cluster and the first list walk
+ *       rom[148..191] net +2   [+5]  the 0x39e / a3ae block
+ *       rom[208..226] net -2   [+3]  the long strh run at the end of the big block
+ *       rom[230..270] net -2   [+1]  tail
+ * No single site owns it.  Twenty-seven hunks, swinging to +14 at rom[211] and back.
+ *
+ * THE DOMINANT RESIDUE IS A PARAMETER ROLE SWAP, not a missing statement: the
+ * `struct W *w` parameter lives in r5 in the ROM and in r7 here, and the list cursor
+ * is the other way round (r7 in the ROM, r5 here).  Essentially every hunk in the
+ * body is `add r3, r5, rN` against `add r3, r7, rN` or `ldr r7,[r7,#0x4]` against
+ * `ldr r5,[r5,#0x4]`.  That is why 53.6% aligned-equal coexists with a structurally
+ * complete reconstruction, and it is also why the +1 cannot be read off any one
+ * hunk: the swap changes which quantity is cheap to copy at each join.
+ *
+ * NOT ATTEMPTED THIS ROUND -- the round went to AdvanceMsgText, which landed its
+ * Cluster B.  NEXT, and it is the only question worth asking first: get `w` into r5.
+ * `w` is parameter 0 and arrives in r0, so the copy out of r0 is made once in the
+ * entry block (`mov r7,r0` here, `mov r5,r0` in the ROM) and everything else
+ * follows; the lever is whichever quantity gets allocated BEFORE it, and the
+ * candidates are the `head2`/`f39e` pointer and the list cursor.  Check which
+ * allocator owns each pseudo before theorising about priority: the shared brief's
+ * warning applies, and a single basic block means `local-alloc.c:1495-1497`'s
+ * QTY_CMP_PRI, not `global.c`'s `allocno_compare`.
  */
 struct O {
     unsigned char pad0[5];
