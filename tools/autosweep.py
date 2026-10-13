@@ -82,6 +82,7 @@ but a bare `__asm__ volatile ("")` is fakematch-class and carries pass-3 debt,
 so prefer the anchor and reach for the barrier only to confirm a mechanism.
 """
 import argparse
+import glob
 import os
 import re
 import shutil
@@ -255,6 +256,30 @@ def body_span(text, fn):
     return None
 
 
+def _skip_blanks(text, p, window=400):
+    """The next real token after `p`, skipping whitespace AND comments.
+
+    Every lookahead test in boundaries() needs this: a declaration in these park
+    bodies is routinely annotated (`vec3_t posA;   /* sp+0xac */`), so the raw
+    text after a `;` is a comment and a test for `int` never sees the `int`.
+    """
+    s = text[p:p + window]
+    while True:
+        t = s.lstrip()
+        if t.startswith("/*"):
+            e = t.find("*/")
+            if e < 0:
+                return ""
+            s = t[e + 2:]
+        elif t.startswith("//"):
+            e = t.find("\n")
+            if e < 0:
+                return ""
+            s = t[e + 1:]
+        else:
+            return t
+
+
 _DECL_MACROS = {}
 
 
@@ -333,7 +358,19 @@ def boundaries(text, i, j):
             # 3 of 8 variants on one park produced no row at all.  If the next
             # thing after this `;` opens with a type keyword, an anchor here
             # would illegally precede a declaration.
-            nxt = text[k + 1:k + 60].lstrip()
+            # LOOK PAST COMMENTS, not just whitespace.  These park bodies
+            # annotate their declarations with the stack slot --
+            #
+            #     vec3_t posA;                 /* sp+0xac */
+            #     vec3_t vin;                  /* sp+0xa0 */
+            #
+            # so the text right after the `;` is a COMMENT and every test below
+            # saw `/* sp+0xac */` instead of the declaration that follows it.
+            # That is why `parse error before 'int'` survived a guard whose whole
+            # job is to match `int`.  Twenty-nine dead variants across four parks,
+            # found only by compiling every variant rather than trusting the
+            # guard.  The window is wide because a comment eats most of it.
+            nxt = _skip_blanks(text, k + 1)
             if re.match(r"(?:const|static|volatile|register|unsigned|signed|"
                         r"struct|union|enum|void|char|short|int|long|float|"
                         r"double|u8|u16|u32|s8|s16|s32|vu8|vu16|vu32|vs32)\b",
@@ -556,6 +593,25 @@ def main():
                       f"--max {len(pts)} before recording this axis as closed.")
             d = tempfile.mkdtemp(prefix="autosweep_", dir=os.path.join(ROOT, "scratch_elev"))
             try:
+                # CARRY THE PARK'S SIBLING HEADERS INTO THE VARIANT DIRECTORY.
+                # A variant is written here, not beside the park, so a
+                # `#include "decls.h"` naming a header that lives in the PARK'S
+                # OWN directory cannot be found and EVERY variant fails to
+                # compile.  The axis then reports "all N produced NO ROW", which
+                # is honest but means the park has no anchor axis at all.
+                #
+                # Seven parks are in that state -- the rom_c9000 Anim family
+                # (ParticleCloud, Heal, StatUp, TitanBlade, SpecialAttack,
+                # RapidSlash, Nova), all including src/non_matching/rom_c9000/decls.h.
+                #
+                # Copying is right rather than adding -I: the park's directory
+                # also holds the OTHER parks' .c files, and putting it on the
+                # include path would let a variant pick up a header by a name it
+                # only resolves there, which is a different compile from the one
+                # objcmp performs.
+                for h in glob.glob(os.path.join(os.path.dirname(
+                        os.path.join(ROOT, park)), "*.h")):
+                    shutil.copy(h, d)
                 names = []
                 for n, p in enumerate(pts[:a.max]):
                     v = text[:p] + snippet + text[p:]
