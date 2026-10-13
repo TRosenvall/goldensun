@@ -232,6 +232,13 @@
  * three-insn one-call tail at the same site, which would land this function
  * outright, or (b) treat the 3 as bounded on the two-basic-blocks fact above.
  * Do NOT re-propose a reordering of the three movs: they are not in one block.
+ * BOTH MECHANICAL AXES ARE CLOSED -- measured batch 347 harvest pass, no agent.
+ *   base 3 of 48, all three length dimensions EQUAL, so this
+ *   figure IS a real distance.  FLAG AXIS: eight groups, none improves the
+ *   aligned residue.  ANCHOR AXIS: all 10 boundaries at every depth, all inert
+ *   or worse.  Nothing capped, nothing failed to compile.
+ *   DO NOT RE-SCREEN.  The residue is a register choice, a tie or a pass-level
+ *   effect, not a placement or flag question.  Read as "inert against THIS body".
   */
 extern unsigned char *iwram_3001f2c;
 extern void *Func_80b2778(int a, int b);

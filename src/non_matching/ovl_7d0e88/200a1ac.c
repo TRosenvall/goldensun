@@ -213,6 +213,19 @@
  * fail to get a hard register -- and NOT a spelling question.  Do not re-sweep
  * the call's spelling; the park's thirty-four inert rows stand and this batch
  * adds no reason to doubt them.
+ * BOTH MECHANICAL AXES ARE CLOSED -- measured batch 347 harvest pass, no agent.
+ *   base 2 of 57, instruction counts EQUAL, byte size and pool
+ *   count equal too, so this figure IS a real distance.
+ *   FLAG AXIS: all eight per-file groups measured, none improves the aligned
+ *   residue.  ANCHOR AXIS: all 19 statement boundaries at every brace depth
+ *   measured, all inert or worse.  Nothing capped, nothing failed to compile.
+ *
+ *   SO DO NOT RE-SCREEN THESE.  The residue is NOT a placement or flag question;
+ *   it is a register choice, a tie, or a pass-level effect, and it needs a
+ *   hypothesis.
+ *
+ *   Read as "inert against THIS body" -- a recorded negative expires silently
+ *   when the body changes.
 */
 extern unsigned char *__MapActor_GetActor(int slot);
 extern void __Actor_TravelTo(unsigned char *a, int x, int y, int z);

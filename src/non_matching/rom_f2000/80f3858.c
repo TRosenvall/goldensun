@@ -238,6 +238,22 @@ void Func_80f3858(int frames)
  * -- which needs the count of reload-register allocations before the argument
  * block to change by one, with the instruction count unchanged.  Nothing in the
  * source space above does that.
+ * BOTH MECHANICAL AXES ARE CLOSED -- measured batch 347 harvest pass, no agent.
+ *   base 2 of 29, instruction counts EQUAL, byte size and pool
+ *   count equal too (this park is in phase on all three length dimensions, so
+ *   its figure IS a real distance).
+ *   FLAG AXIS: all eight per-file groups measured, none improves the aligned
+ *   residue.  ANCHOR AXIS: all 5 statement boundaries at every brace depth
+ *   measured, all inert or worse.  No variant was capped and none failed to
+ *   compile.
+ *
+ *   SO DO NOT RE-SCREEN THESE.  Every brief so far has spent part of a round on
+ *   exactly that.  The residue here is NOT a placement or flag question; it is a
+ *   register choice, a tie, or a pass-level effect, and it needs a hypothesis.
+ *
+ *   Read as "inert against THIS body".  A recorded negative expires silently
+ *   when the body changes -- six batches running, the decisive lever has turned
+ *   up inside a park's own negative list.
  */
 extern char *iwram_3001ed0;
 extern void Func_80f2ebc(void *a, void *b, void *c, int n);

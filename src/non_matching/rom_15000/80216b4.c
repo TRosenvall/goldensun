@@ -190,10 +190,27 @@
  * reproduces EXCEPT the three things the section above names: the
  * `x = a[8]` negative, the alias-set claim, and the attribution of indices
  * 10-13 to sched2 priority.
+ * BOTH MECHANICAL AXES ARE CLOSED -- measured batch 347 harvest pass, no agent.
+ *   base 7 of 24, instruction counts EQUAL, byte size and pool
+ *   count equal too (this park is in phase on all three length dimensions, so
+ *   its figure IS a real distance).
+ *   FLAG AXIS: all eight per-file groups measured, none improves the aligned
+ *   residue.  ANCHOR AXIS: all 9 statement boundaries at every brace depth
+ *   measured, all inert or worse.  No variant was capped and none failed to
+ *   compile.
+ *
+ *   SO DO NOT RE-SCREEN THESE.  Every brief so far has spent part of a round on
+ *   exactly that.  The residue here is NOT a placement or flag question; it is a
+ *   register choice, a tie, or a pass-level effect, and it needs a hypothesis.
+ *
+ *   Read as "inert against THIS body".  A recorded negative expires silently
+ *   when the body changes -- six batches running, the decisive lever has turned
+ *   up inside a park's own negative list.
  */
 /* Func_80216b4  --  0x080216b4   [rom_15000]
  *
- * NON-MATCHING, 9 of 24 encodings, 24 against 24, 52 bytes against 52,
+ * NON-MATCHING, 7 of 24 encodings, 24 against 24, 52 bytes against 52,
+ * (was 9 -- corrected in the batch 347 harvest pass, which re-measured it.)
  * 2 relocations identical.  (Earlier bodies of this park stood at fourteen and
  * then at twelve differing; both of those numbers are dead -- see batch 330's
  * section at the end for what moved.)

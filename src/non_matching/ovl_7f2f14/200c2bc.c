@@ -276,6 +276,22 @@
  * park's "STOP THE COPY BEING A HOIST" is superseded -- the copy is a hoist in
  * the ROM too, since the ROM's own `mov r10,r9' is a preheader copy of a
  * live-in value with the same roles.
+ * BOTH MECHANICAL AXES ARE CLOSED -- measured batch 347 harvest pass, no agent.
+ *   base 2 of 271, instruction counts EQUAL, byte size and pool
+ *   count equal too (this park is in phase on all three length dimensions, so
+ *   its figure IS a real distance).
+ *   FLAG AXIS: all eight per-file groups measured, none improves the aligned
+ *   residue.  ANCHOR AXIS: all 55 statement boundaries at every brace depth
+ *   measured, all inert or worse.  No variant was capped and none failed to
+ *   compile.
+ *
+ *   SO DO NOT RE-SCREEN THESE.  Every brief so far has spent part of a round on
+ *   exactly that.  The residue here is NOT a placement or flag question; it is a
+ *   register choice, a tie, or a pass-level effect, and it needs a hypothesis.
+ *
+ *   Read as "inert against THIS body".  A recorded negative expires silently
+ *   when the body changes -- six batches running, the decisive lever has turned
+ *   up inside a park's own negative list.
  */
 /* BODY REPLACED IN BATCH 300.  parkcheck caught this park's header lying about its
  * own body: the header claimed 2 of 271 while the body measured 271.  The 2-of-271

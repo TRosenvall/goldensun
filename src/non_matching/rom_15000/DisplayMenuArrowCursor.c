@@ -107,6 +107,22 @@
  * THE TWO PRIOR HEADERS FOLLOW IN FULL, CARRIED FORWARD UNCHANGED: batch 329's
  * (the barrier sweep and the 5/6 pair) and the batch-326/327 one (the
  * local-alloc reading, the quantity table and the two-sided arithmetic).
+ * BOTH MECHANICAL AXES ARE CLOSED -- measured batch 347 harvest pass, no agent.
+ *   base 5 of 133, instruction counts EQUAL, byte size and pool
+ *   count equal too (this park is in phase on all three length dimensions, so
+ *   its figure IS a real distance).
+ *   FLAG AXIS: all eight per-file groups measured, none improves the aligned
+ *   residue.  ANCHOR AXIS: all 19 statement boundaries at every brace depth
+ *   measured, all inert or worse.  No variant was capped and none failed to
+ *   compile.
+ *
+ *   SO DO NOT RE-SCREEN THESE.  Every brief so far has spent part of a round on
+ *   exactly that.  The residue here is NOT a placement or flag question; it is a
+ *   register choice, a tie, or a pass-level effect, and it needs a hypothesis.
+ *
+ *   Read as "inert against THIS body".  A recorded negative expires silently
+ *   when the body changes -- six batches running, the decisive lever has turned
+ *   up inside a park's own negative list.
  */
 /* DisplayMenuArrowCursor -- PARK AT 5 differing encodings of 133.
  * Batch 329 brief B.  WAS 6.  ref 133, ours 133; size and relocations equal;

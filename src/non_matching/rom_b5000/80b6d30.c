@@ -538,6 +538,22 @@
  *      removed before insn 200, or r0 into `used_spill_regs`.  Every edit that
  *      changes the instruction count is disqualified by construction, which is
  *      what makes this hard -- a reload emits a `mov`.
+ * BOTH MECHANICAL AXES ARE CLOSED -- measured batch 347 harvest pass, no agent.
+ *   base 4 of 119, instruction counts EQUAL, byte size and pool
+ *   count equal too (this park is in phase on all three length dimensions, so
+ *   its figure IS a real distance).
+ *   FLAG AXIS: all eight per-file groups measured, none improves the aligned
+ *   residue.  ANCHOR AXIS: all 25 statement boundaries at every brace depth
+ *   measured, all inert or worse.  No variant was capped and none failed to
+ *   compile.
+ *
+ *   SO DO NOT RE-SCREEN THESE.  Every brief so far has spent part of a round on
+ *   exactly that.  The residue here is NOT a placement or flag question; it is a
+ *   register choice, a tie, or a pass-level effect, and it needs a hypothesis.
+ *
+ *   Read as "inert against THIS body".  A recorded negative expires silently
+ *   when the body changes -- six batches running, the decisive lever has turned
+ *   up inside a park's own negative list.
  */
 extern unsigned char *_GetUnit(int id);
 extern int Func_80c23c0(int a);

@@ -141,6 +141,19 @@
  * value-first sum) costs four or more because it also changes which register
  * the sum accumulates into.  A `define_peephole`-style fusion is not available:
  * `arm.md` has no pattern over `add`+`str`.
+ * BOTH MECHANICAL AXES ARE CLOSED -- measured batch 347 harvest pass, no agent.
+ *   base 2 of 46, instruction counts EQUAL, byte size and pool
+ *   count equal too, so this figure IS a real distance.
+ *   FLAG AXIS: all eight per-file groups measured, none improves the aligned
+ *   residue.  ANCHOR AXIS: all 14 statement boundaries at every brace depth
+ *   measured, all inert or worse.  Nothing capped, nothing failed to compile.
+ *
+ *   SO DO NOT RE-SCREEN THESE.  The residue is NOT a placement or flag question;
+ *   it is a register choice, a tie, or a pass-level effect, and it needs a
+ *   hypothesis.
+ *
+ *   Read as "inert against THIS body" -- a recorded negative expires silently
+ *   when the body changes.
 */
 extern int __cos(int a);
 extern int __sin(int a);
