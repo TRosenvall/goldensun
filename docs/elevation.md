@@ -35898,3 +35898,139 @@ The cure there was `extern volatile int gKeyRepeat;`, and it is **evidence, not 
 device**: the tree carries 47 volatile declarations of that symbol against 10
 non-volatile, **18 of the volatile ones in landed byte-identical files**, and a
 hardware key register is genuinely volatile memory. Checked, not asserted.
+
+# Batch 346 — A HUNDRED PARKS ASSERT A DISTANCE THEY DO NOT HAVE
+
+The single most widespread defect found in this project's park corpus.
+
+## The claim, and why it is wrong
+
+A park header routinely says some version of **"this figure IS a true distance"**,
+and justifies it as *"N == N encodings and objcmp prints no SIZE line"*. That
+reasoning reads `objcmp`'s **stream** figure as an instruction count. The stream
+includes 32-bit entries (pool words *and* `bl` calls) and pads, so **a pad can
+absorb exactly one 16-bit instruction and leave both the stream length and the
+byte size equal** while the instruction counts differ by one.
+
+`objcmp` prints the instruction counts on the line *directly above* the figure,
+and prints its own note saying a pad is absorbing the difference. Four of batch
+346's twenty targets asserted the opposite anyway, in prose, with the
+contradicting line visible in the same output.
+
+## The incidence, measured
+
+    256 parks assert a distance in prose
+    100 OF THEM ARE OUT OF PHASE
+
+That is not a few slips. And the claim is **load-bearing**: it is the sentence
+that tells the next agent the figure can be trusted, and every targeting
+instrument in this tree ranks on that figure.
+
+`tools/parkcheck.py` now cross-checks the header's prose against the measured
+counts and says so loudly. What no tool did before was notice that **the park
+says the opposite of the measurement** — `objcmp` warned, and the warning was
+written down inverted.
+
+## The general lesson, which is the eighth instance of one pattern
+
+Eight instruments here have produced a clean-looking answer that was really an
+unmeasured axis: `piece.py` (twice — prose-as-machinery, then exported data),
+`parkcheck.py`, `directory.py`, `shimcount.py`, `autosweep.py` (six separate
+causes), `gapscan.py`, and `aligncmp` usage. Every time, the tool answered the
+question it was asked and **the question was narrower than the decision resting
+on it.**
+
+# Batch 346 — mechanisms
+
+## A dead store to HALF of a two-word aggregate is not dead
+
+`.18.greg` prints `32 (2)` for an allocno needing **two consecutive hard
+registers**, and the pair is forced to **(r5, r6)** when the counter is in it.
+That is a reference's `push {r5, r6, lr}` together with its apparently dead
+`mov r6, #0`: the loop runs on `n[0]` with `n[1] = 0`.
+
+**CORRECTION to the class file that documents this:** it states the dead half
+must be **read**. That holds only when the live half is a propagatable constant.
+With a loop counter as the live half, reading it (`n[0] | n[1]`) costs a real
+`orrs r0, r6` and makes the body one instruction **long**. Initialisation order
+matters too.
+
+## `lang_get_alias_set` returns 0 for a reference made through a UNION
+
+`c-common.c:3340-3345`. So spelling a store as a union member **restores a
+dependence** the scheduler needs. Why that matters: `rank_for_schedule`'s first
+rung is `INSN_PRIORITY` (`haifa-sched.c:4061-4064`), so a store with no
+dependents can never outrank the insn feeding a compare — the reference's order
+is only reachable if the store genuinely *depends* on the load. Preferred over
+`-fno-strict-aliasing`, which reaches the same figure but as a whole-file flag.
+
+## `convert_to_integer` pushes a narrowing INTO the operands
+
+`convert.c:280-320`, for `PLUS`/`MINUS`/`BIT_AND`/`BIT_IOR`/`BIT_XOR`. So a `u8`
+destination turns `0xf0` into `-16` (`mov #0x10 / neg / mov`) against the ROM's
+`mov r2, #0xf0`. A carrier local makes the conversion see a `VAR_DECL` instead —
+and **the carrier must be a separate statement.**
+
+This is a front-end effect, not combine. Worth knowing because it is the second
+constant-narrowing site in this compiler after `force_to_mode`
+(`combine.c:6855-6860`), and they are reached by different spellings.
+
+## `ifcvt` declines when the THEN block is two rtl insns
+
+`find_if_case_1` (`ifcvt.c:1651`) accepts an arm because
+`count_bb_insns (then_bb) > BRANCH_COST` is `1 > 1` → **false**
+(`ifcvt.c:1681-1683`; `BRANCH_COST` is **1** for Thumb at `-O2`,
+`arm.h:2413-2414`). Keep the block at two insns and ifcvt declines, after which
+`find_cross_jump` puts the shared tail back where the ROM has it. `*thumb_iorsi3`
+takes no immediate, so `op |= 0x4000;` **inside each arm** achieves this where a
+merged value or-ed after the join does not.
+
+## A pooled SMALL value is the `.sym` signature
+
+gcc-2.96 never pools a value `mov` can build. So a reference's `ldr r1, =0x1b`
+for a small constant means the original referenced a **symbol**, not a literal.
+The discriminator can be in the same function: one function passes a literal
+`0x1b` to a callee and gets `mov r0, #0x1b`, while the pooled one is a file id.
+
+Refinement of the pool-load rule: a **`ldrh`** pool load means a bare literal; an
+**`ldr`** pool load **feeding a halfword store** means an `int`.
+
+## local-alloc coalesces into a hard argument register; global-alloc does not
+
+`local-alloc.c:1684-1687`, `:1344-1348`, `:2010-2016`. A **single-block** pseudo
+can be coalesced into the hard register an argument already occupies; a
+multi-block one cannot. So one shared local across two call sites makes **both**
+global — which can be right at one site and wrong at the other, and the cure is
+**two spellings at once**, not a single "register-allocation input".
+
+## Two more allocation notes
+
+- **MOVE A DEFINITION *LATER*** is a first-class lever. The standing five-route
+  table had only the opposite direction.
+- A redundant **`& 0xff`** on a byte-loaded value manufactures exactly one
+  surviving register move: `simplify_and_const_int` drops the AND when
+  `nonzero_bits == 0xff`, leaving the copy behind.
+
+# Batch 346 — two cautions worth as much as the mechanisms
+
+## A SWEEP'S SCORE IS NOT A PROOF OF EQUIVALENCE
+
+A mechanical position sweep produced **two wrong programs that compiled and read
+better on hunk count.** Nothing in `autosweep`, `sweep_variants` or `aligncmp`
+checks that a variant is still the same program — they compare encodings. A
+placement that moves a statement across a dependence can score well and be
+incorrect.
+
+So a winning sweep row is a **candidate**, not a result, until the change is read
+as source.
+
+## THE PRIORITY FLIP IS NOT NECESSARILY THE REGISTER YOU WANT
+
+One brief computed the exact two-insn live-length change, **verified in `.18.greg`
+that the allocno order flipped** — and the pseudo stayed on r0. Winning the
+comparison and getting the register are two different events; `find_reg` still
+has to hand it over, and `REG_ALLOC_ORDER` plus the existing spill set decide
+that.
+
+Compare the standing rule about preconditions: here the precondition held, the
+arithmetic was right, the flip happened, and the outcome still did not follow.
