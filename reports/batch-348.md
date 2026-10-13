@@ -68,8 +68,22 @@ a clean sweep.
 - It **partly explains the harvest pass's zero landings**, which I had attributed
   to those parks being hand-worked. True, but the axis relied on was also
   covering a third of the space its count implied.
-- Read the other way: **six landings came from this axis anyway**, so the
-  remaining two thirds are unexplored rather than exhausted.
+- Read the other way: **six landings came from this axis anyway**, so it pays
+  despite a low distinct-program count.
+
+**CORRECTION to my first reading, same day.** I wrote that the remaining two
+thirds are "unexplored rather than exhausted". That inverts the conclusion: a
+byte-identical object is the **strongest** negative, not an untried point — the
+compiler emitted the same program, so that placement provably cannot be the
+lever. The three parks whose every placement was bit-identical have an anchor
+axis closed *more* firmly than a figure-based sweep could close it.
+
+What the 62% corrects is the **instrument**, not the search space: "61 placements
+swept" sounds like 61 chances and was 13 programs, so cross-park comparisons must
+use the distinct count. And a high bit-identical rate is a steer **away** from a
+park — it means gcc's own canonicalisation dominates that body's scheduling, so
+placement levers of any kind are unlikely to reach it. Those parks need a
+different axis, not more anchors.
 
 **The rule, now in `elevation.md`:** a variant producing a byte-identical object
 is **not a negative, it is a non-measurement**. Record the distinct-program

@@ -10,7 +10,7 @@
  *
  * ===== BATCH 347 BRIEF A: THE SENTENCE BELOW WAS FALSE AND IS NOW GONE ====
  * The header used to read, two lines after correctly saying the counts differ,
- * "Re-classified in batch 322; the figure IS a distance."  It is not, it never
+ * "Batch 322's re-classification of this figure is WITHDRAWN. *** THAT CLAIM WAS FALSE HERE. *** Re-measured by the coordinator after batch 348: ref 57 / ours 55 16-bit instructions, a gap of -2, so this figure is a POSITIONAL count measuring PHASE, not distance. Batch 322's re-classification sweep made this claim on 54 parks and was WRONG ON 34 OF THEM, this one included; the 18 it got right keep the claim. Close the length gap before reading the figure, then rank on tools/aligncmp.py rather than on the raw count."  It is not, it never
  * was, and it is what told three successive agents that 49-of-60 described the
  * residue.  objcmp prints the instruction counts on the same line as the figure.
  *

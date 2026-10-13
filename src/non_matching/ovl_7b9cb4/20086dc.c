@@ -3,7 +3,7 @@
  * NON-MATCHING, 42 of 107 encodings  (MEASURED, batch 319 recipe backfill).
  *   RELOCATIONS differ, but THE SAME SYMBOLS AT A SHIFTED OFFSET -- which
  *   this project treats as a CONSEQUENCE of the length difference, not a
- *   separate blocker.  Re-classified in batch 322; the figure IS a distance.
+ *   separate blocker.  Batch 322's re-classification of this figure is WITHDRAWN. *** THAT CLAIM WAS FALSE HERE. *** Re-measured by the coordinator after batch 348: ref 79 / ours 78 16-bit instructions, a gap of -1, so this figure is a POSITIONAL count measuring PHASE, not distance. Batch 322's re-classification sweep made this claim on 54 parks and was WRONG ON 34 OF THEM, this one included; the 18 it got right keep the claim. Close the length gap before reading the figure, then rank on tools/aligncmp.py rather than on the raw count.
  *
  * Verify with:
  *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \

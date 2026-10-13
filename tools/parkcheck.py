@@ -399,10 +399,15 @@ def check(path):
             claimed_distance = True
             break
         if claimed_distance:
-            extra_note += ("  !!! HEADER ASSERTS THIS IS A TRUE DISTANCE AND IT IS"
-                           " NOT -- the instruction counts above disagree with the"
-                           " park's own prose.  Fix the header before anyone"
-                           " targets on it")
+            extra_note += ("  !! CHECK: the header contains an AFFIRMATIVE"
+                           " distance claim while the instruction counts above"
+                           " disagree.  THIS IS A FLAG, NOT A VERDICT -- two"
+                           " legitimate shapes trip it: prose QUOTING the phrase"
+                           " (a header discussing a brief's wording), and a claim"
+                           " about a DIFFERENT body (a flag variant or an"
+                           " instrument-only state reached at equal length). If"
+                           " the claim really is about this park's own figure,"
+                           " fix the header before anyone targets on it")
     if not cm:
         return ("NO CLAIM", f"measures {got[0]}{extra_note}", None, got[0])
     claimed = int(cm.group(1))

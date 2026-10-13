@@ -36218,8 +36218,37 @@ passed everything. The fingerprint has to come from the **object**.
   the parks having been hand-worked, which is true, but the axis being relied on
   was also covering about a third of the search space its count implied.
 - **Six landings came from this axis anyway**, which is the other way to read the
-  number: it pays despite testing a fraction of what it claimed, so the remaining
-  two thirds are unexplored rather than exhausted.
+  number: it pays despite testing a fraction of what it claimed.
+
+## CORRECTION, SAME DAY: "UNEXPLORED" WAS THE WRONG WORD AND I USED IT
+
+The first write-up of this finding said the remaining two thirds are *"unexplored
+rather than exhausted"*. **That is wrong, and it inverts the conclusion.**
+
+A variant whose object is **byte-identical to the base** is not an untried point
+in the search space. It is the strongest possible negative: that placement
+provably cannot be the lever, because the compiler emitted the same program. So
+the three parks whose every placement was bit-identical do not have an untested
+anchor axis — **theirs is closed more firmly than a figure-based sweep could ever
+close it.** An anchor cannot affect those functions at all.
+
+What the 62% actually corrects is narrower, and it is about the INSTRUMENT rather
+than the search space:
+
+* **the axis is a weaker instrument than its boundary count implies.** "61
+  placements swept" sounds like 61 chances; it was 13 programs. Cross-park
+  comparisons, and any decision about whether an axis is worth running, must use
+  the distinct count.
+* **a bit-identical row must not be reported as a tried spelling**, because that
+  inflates the apparent breadth of a search — "we tried 61 things" when the
+  honest claim is "we tried 13, and 48 placements are provably inert."
+* **and it says something real about the body**: a high bit-identical rate means
+  gcc's own canonicalisation dominates that function's scheduling, so placement
+  levers of every kind are unlikely to reach it.
+
+So the practical consequence is the OPPOSITE of what the first write-up implied.
+A high bit-identical rate is a steer **away** from a park, and those parks need a
+**different axis**, not more anchors.
 
 ## The rule
 

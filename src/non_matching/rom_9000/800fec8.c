@@ -5,7 +5,7 @@
  *   MISALIGNMENT, not distance.  Read the count before the figure.
  *   RELOCATIONS differ, but THE SAME SYMBOLS AT A SHIFTED OFFSET -- which
  *   this project treats as a CONSEQUENCE of the length difference, not a
- *   separate blocker.  Re-classified in batch 322; the figure IS a distance.
+ *   separate blocker.  Batch 322's re-classification of this figure is WITHDRAWN. *** THAT CLAIM WAS FALSE HERE. *** Re-measured by the coordinator after batch 348: ref 62 / ours 69 16-bit instructions, a gap of +7, so this figure is a POSITIONAL count measuring PHASE, not distance. Batch 322's re-classification sweep made this claim on 54 parks and was WRONG ON 34 OF THEM, this one included; the 18 it got right keep the claim. Close the length gap before reading the figure, then rank on tools/aligncmp.py rather than on the raw count.
  *   SIZE ref 140 bytes, ours 156.
  *
  * Verify with:

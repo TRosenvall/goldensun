@@ -141,6 +141,29 @@
  * get_alias_set escape on this same OAM-entry struct family.
  *
  * ---------------- WHAT IS NOT THE TRIGGER (measured) ----------------
+ * THE MODE OF THE INSERTED VALUE IS NOT THE TRIGGER EITHER -- coordinator,
+ * batch 348 follow-up.  The six shapes below are all DECLARATION shapes; the
+ * VALUE side was untried, and the landed twin differs there in a way that looked
+ * decisive: it inserts values that are ALREADY NARROW
+ * (`e->tile = s->tilebase + (unsigned short)*p++;` and a short variable) where
+ * this body inserts a FUNCTION RESULT and an `int` expression.  Measured:
+ *
+ *   (unsigned short) cast on both inserted expressions   BIT-IDENTICAL to base
+ *   `unsigned short ht` local for the tile value only    49   (dsize -4)
+ *   `unsigned short` locals for both values             102   (dsize -12)
+ *   `unsigned short hx` local for the x value only       98   (dsize -4)
+ *
+ * The cast row is recorded separately because IT MEASURED NOTHING -- gcc
+ * canonicalises it away before the back end, so it is NOT a negative.  Caught by
+ * sweep_variants' object fingerprinting, new in batch 348, which is also why the
+ * three rows under it are trustworthy where the cast row is not.
+ *
+ * Those three are decisively WORSE and LOSE instructions, so narrowing the value
+ * does not reach the combine choice at all.  What remains is the combine-order /
+ * LOG_LINK question stated above, which is a property of the SURROUNDING
+ * FUNCTION rather than of this statement -- so the next probe is the basic-block
+ * structure around the insert, not another spelling of it.
+ *
  * THE DECLARATION IS NOT THE TRIGGER.  Six shapes, all SImode `ldr`
  * (`scratch_elev/b348/C/probe/pb1.c`, `pb2.c`): the twin's `struct Drop`
  * verbatim; this file's `union Ent`; the same struct WITHOUT the union wrapper;

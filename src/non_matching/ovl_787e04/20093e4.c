@@ -7,7 +7,7 @@
  *   28 in 18 hunks.
  *   The old header contained BOTH claims, four lines apart: "COUNT DIFFERS (ref
  *   144, ours 142) -- so this positional figure measures MISALIGNMENT, not
- *   distance" and then "Re-classified in batch 322; the figure IS a distance."
+ *   distance" and then "Batch 322's re-classification of this figure is WITHDRAWN. *** THAT CLAIM WAS FALSE HERE. *** Re-measured by the coordinator after batch 348: ref 111 / ours 109 16-bit instructions, a gap of -2, so this figure is a POSITIONAL count measuring PHASE, not distance. Batch 322's re-classification sweep made this claim on 54 parks and was WRONG ON 34 OF THEM, this one included; the 18 it got right keep the claim. Close the length gap before reading the figure, then rank on tools/aligncmp.py rather than on the raw count."
  *   The second is false and is removed.  The first was right in substance and
  *   wrong in evidence: 144/142 is the stream, the instruction counts are 111/109.
  *
