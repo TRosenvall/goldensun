@@ -1,7 +1,43 @@
 /* Func_80b6d30 (AssignBattlePositions)  --  0x080b6d30
  *
- * STILL NON-MATCHING, **4 differing encodings of 119** (ref 119 / ours 119,
- * 118 real instructions on both sides, first differing index 23).  PIN-FREE,
+ * STILL NON-MATCHING, **3 differing encodings of 119** (ref 119 / ours 119,
+ * 109 real instructions on both sides, first differing index 82).  PIN-FREE,
+ *
+ * ===== 4 -> 3, NEGATIVE-LIST RE-TEST PASS, no agent =====
+ * The lever is A SECOND DEFINITION OF `j` -- `j = 0;` as its own statement, which
+ * is a DEAD STORE because the loop then assigns `j = ret`.  That is allocation
+ * ROUTE 3 from the standing table ("add a definition so the range splits, and the
+ * value leaves the race"), and the measurements say exactly that:
+ *
+ *   `j = 0;` before `ret = 0`            3 of 119
+ *   `j = 0;` after the Func_80c2384 call 3 of 119   bit-identical to the above
+ *   both, plus the loop at `j = 0`       3 of 119   bit-identical to the above
+ *   THE CLEAN FORM, loop `j = 0` only    4 of 119   BIT-IDENTICAL TO BASE
+ *
+ * So POSITION IS IRRELEVANT and the VALUE is irrelevant -- the clean rewrite that
+ * removes the dead store is the same program as the base.  What the compiler
+ * reacts to is the EXISTENCE of a second definition.  It fixed the first
+ * differing encoding: index 23 -> 82.
+ *
+ * AND FIVE OF THE SIX INERT-LIST ROWS I RE-TESTED WERE BIT-IDENTICAL TO THE BASE,
+ * i.e. they measured NOTHING: `for (j = ret; j < 2; ...)`, `ret = j = 0`,
+ * declaration order with `ret` last, `i` before `j`, and `(i << 1)` for `i * 2`.
+ * The park's carried-forward list reads as fourteen tried spellings; the ones
+ * re-tested here are a far smaller number of distinct programs.  Object
+ * fingerprinting (sweep_variants, new in batch 348) is what separates them.
+ *
+ * WHAT IS LEFT, and it is now one question.  Index 82 is `ref 032b`
+ * (`lsls r3, r5, #12`) against `ours 032a` (`lsls r2, r5, #12`) -- a REGISTER
+ * CHOICE on the shift result, nothing else.  Five spellings of that expression
+ * were measured on the improved body:
+ *   block-local name for the shift      3   BIT-IDENTICAL
+ *   split the OR into its own name      3   BIT-IDENTICAL
+ *   commuted `v | (i << 12)`            3   BIT-IDENTICAL
+ *   shift through the long-lived `a`  103   (reloc differs, +8 bytes)
+ *   shift through the long-lived `off` 106   (reloc differs, +12 bytes)
+ * So NO SPELLING OF THE EXPRESSION REACHES THE ALLOCATOR DIFFERENTLY -- the three
+ * naming forms are one program -- and reusing a long-lived local is catastrophic.
+ * The remaining lever is not in this statement.  PIN-FREE,
  * SHIM-FREE, FLAG-FREE.  RE-DERIVED batch 326 brief F -- objcmp --func AND
  * --whole both read 4 of 119 with SIZE, INSTRUCTION COUNT and RELOCATIONS all
  * silent, so no pad is absorbing a length difference.  Batch 321 brief E
@@ -581,6 +617,7 @@ int Func_80b6d30(int slot)
     flag = Func_80c23c0(u[0x128]);
     ret = 0;
     v = Func_80c2384(u[0x128]);
+    j = 0;
     for (j = ret; j <= 1; j++) {
         if (u[0x129] != 0)
             continue;

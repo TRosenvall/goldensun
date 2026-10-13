@@ -3,6 +3,42 @@
  * instructions are 159/159`, index 98, ref dbc9 (blt) against ours d1c9 (bne).
  * Still the closest park in the tree.  PIN-FREE, DEVICE-FREE.
  *
+ * ***THE LITERAL-COMPARISON CLASS IS CLOSED BY THE COMPILER SOURCE.***
+ * Coordinator, negative-list re-test pass after batch 348.  The one differing
+ * encoding is index 98, ref `dbc9` (blt) against ours `d1c9` (bne), so the
+ * question is only how to make a SIGNED LESS-THAN survive to the branch while
+ * the compare stays against 11.  It cannot be done with a literal:
+ *
+ *     combine.c:10140-10145
+ *       case LT:
+ *         /\* < C is equivalent to <= (C - 1) *\/
+ *         if (const_op > 0)
+ *           { const_op -= 1; op1 = GEN_INT (const_op); code = LE; ... }
+ *
+ * LT against a POSITIVE constant is rewritten to LE (C-1) UNCONDITIONALLY, and
+ * the reverse conversion at :10152-10158 fires ONLY when the constant is
+ * NEGATIVE.  So gcc-2.96 cannot emit `blt` against a positive immediate from any
+ * literal comparison, and the ROM's `cmp r7,#0xb` + `blt` therefore CANNOT have
+ * come from a literal bound at all: the 11 must have been a REGISTER at combine
+ * time and become an immediate only later.
+ *
+ * MEASURED, five spellings, and they are ONE PROGRAM not five -- all four of the
+ * alternatives are BIT-IDENTICAL to the first (object fingerprint, not .s text):
+ *     i < 11   /   i <= 10   /   (int)i < 11   /   11 > i   /   !(i > 10)
+ *         all -> 2 of 191, 159/159 insns, first at index 97,
+ *                `ref 2f0b (cmp r7,#0xb)` against `ours 2f0a (cmp r7,#0xa)`
+ * which is the canonicalisation above, visible in the encoding: the compare
+ * moved to 10 and took the branch with it.  The existing `i != 11` body is
+ * strictly better because it keeps the compare on 11.
+ *
+ * SO THE REMAINING SEARCH IS NARROW AND NAMED: the bound must be a pseudo that
+ * combine sees as a REGISTER (so LT survives) and that a post-reload pass folds
+ * back to #11 -- reload_cse_move2add (reload1.c:8840-8990) is the candidate, and
+ * its precondition is the same hard register.  The rows below show the obstacle:
+ * every named-bound form so far keeps the pseudo LIVE ACROSS SEVEN CALLS and
+ * costs five instructions.  What has NOT been tried is a bound that is a
+ * register at combine time WITHOUT being live across those calls.
+ *
  * ONE NEW DIMENSION TRIED AND REFUTED, and it was the right one to try.
  * Every bound row below is a BODY ASSIGNMENT (`n = 11;` as a statement, in five
  * positions).  Batch 310c's landed finding -- recorded in
