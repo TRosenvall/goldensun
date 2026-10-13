@@ -1,3 +1,97 @@
+/* Func_80ab1f4 -- park.  The subject line must stay FIRST (piece.py,
+ * autosweep.py, shortrefs.py, scratchfill.py read line 1).
+ */
+/* PARK HOLDS AT **4 of 19**.  Batch 349 brief C -- NEGATIVE-LIST RE-TEST.
+ *
+ * FOUR NUMBERS, re-derived first: 4 differing encodings of a 19-entry stream
+ * (ref 19 / ours 19) = 18 instructions plus one 32-bit entry, size equal, no
+ * objcmp INSTRUCTION COUNT line, first differing index 9 (ref 3001, ours
+ * 9b04).  The 4 IS a distance.  PINS 0.  `--whole` is NOT a figure here: the
+ * reference TU holds three functions.  Use --func.
+ *
+ * Verify with:
+ *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
+ *     goldensun-build python3 tools/objcmp.py \
+ *     src/non_matching/rom_a1000/rom_ab1f4.c \
+ *     asm/rom_a1000/rom_aa538_c_c_a_c_c_a.s --func Func_80ab1f4
+ * SPLIT SHAPE (for when it lands, NOT run now): datacheck.py CLEAN;
+ * split_s.py --dry-run would write rom_aa538_c_c_a_c_c_{a,b,c}.s and this
+ * function is the `_b` (1 function, 26 lines).
+ *
+ * ===== THE NEGATIVE LIST, RE-TESTED WITH OBJECT FINGERPRINTING =====
+ * THE PARK RECORDS **13 SPELLINGS AS INERT AT 4**.  THEY ARE **2 DISTINCT
+ * PROGRAMS**.  Eleven rebuilt rows read 4; ten of them are BIT-IDENTICAL TO
+ * THE BASE OBJECT:
+ *     `s32 last = a6;` named before the call        bit-identical
+ *     `s32 d = a4;` named                           bit-identical
+ *     `s32 p = a5;` named                           bit-identical
+ *     `const struct Window *window`                 bit-identical
+ *     both sums named in locals, COL first          bit-identical
+ *     pad_00[0x0c] replaced by declared members     bit-identical
+ *     the callee with NO prototype                  bit-identical
+ *     `a5` cast at the call site                    bit-identical
+ *     col/row as a `u16 pos[2]` array               bit-identical
+ *     `1 + window->col + x`                         bit-identical
+ * The eleventh, `void` on the callee prototype AND our definition together,
+ * reads 4 and is **NOT** bit-identical -- it is the one real distinct program
+ * in the park's inert list, and the park is right that it is a genuine
+ * prerequisite with a dump-visible effect (deps(25) 2 -> 3, the t=11 ready
+ * list going `33 39 25 31 12` -> `33 39 31 25 12`).
+ * The WORSE rows reproduce exactly as recorded: `void` on the definition only
+ * = 6; named sums ROW first = 13 (first index moves to 1); `x + window->col +
+ * 1` = 17 with +4 bytes and RELOCDIFF, i.e. a LENGTH defect and so not a
+ * distance at all.
+ *
+ * >> *** A CAUTION ABOUT THE METHOD ITSELF, AND THIS PARK IS THE COUNTEREXAMPLE
+ * >> THAT ESTABLISHES IT.  A BIT-IDENTICAL ROW MEANS "DID NOT CHANGE THE
+ * >> OUTPUT", NOT "THE COMPILER NEVER SAW A DIFFERENCE." ***  The `void` row
+ * >> here is the opposite case -- a row that is NOT bit-identical while being
+ * >> inert on the figure, because it emits a DIFFERENT WRONG ORDER at the same
+ * >> four indices.  Fingerprinting separates the ten rows that tested nothing
+ * >> from the one that tested something and lost; it does not promote
+ * >> bit-identity into a statement about passes.  Where a row's argument is
+ * >> about an RTL quantity (a dependence count, a ready list), the dump is
+ * >> still the authority and bit-identity is not a refutation of it. <<
+ *
+ * ===== THE BOUND SURVIVES, AND THE RUNG LIST IS NOW CONFIRMED FROM SOURCE =====
+ * `rank_for_schedule` read out in full at haifa-sched.c:4028-4116, so the
+ * park's rung numbering is checkable in one command and is CORRECT:
+ *   :4040-4043  priority         `INSN_PRIORITY(tmp2) - INSN_PRIORITY(tmp)`
+ *   :4045-4048  reg pressure     DEAD, gated `!reload_completed`
+ *   :4050-4067  interblock       same bb here, skipped
+ *   :4069-4096  CLASS vs last_scheduled_insn, three classes
+ *   :4098-4110  dependent count  `depend_count2 - depend_count1`
+ *   :4113-4115  `return INSN_LUID (tmp) - INSN_LUID (tmp2)` -> LOWER LUID WINS
+ * There is NO rung earlier than priority, so nothing is omitted above it, and
+ * the sort direction is confirmed: `SCHED_SORT` (haifa-sched.c:4016-4021) runs
+ * `qsort` for N_READY > 2 and the scheduler takes the LAST element, which is
+ * why the printed ready list's tail is the pick.
+ * Rungs 1, 3, 4, 5 and readiness all reproduce as the park records them.
+ * deps(25) <= 3 (it is excluded from the epilogue's last-writer set because the
+ * call re-writes r0, and from `add sp,#4` because it does not read sp) against
+ * deps(12) = 4 ({42 call, 65 add sp, 66 use sp, 67 epilogue}), and LUID(12) <
+ * LUID(25) loses the tie as well.  Insn 12 is `ldr r3,[sp,#16]`, the a5 load:
+ * a5 is our 5th parameter so it MUST read the frame, and it is the callee's
+ * 4th argument so it MUST be r3's last writer -- both halves of deps(12) are
+ * fixed by the ROM's own instruction.
+ *
+ * ONE THING CHECKED THIS BATCH THAT THE PARK DID NOT STATE: the batch-337
+ * ASM_OPERANDS lever (an asm with a colon section fences combine --
+ * combine.c:1183-1188 via rtlanal.c:1637/1648) cannot reach this park either,
+ * because there is nothing for combine to fence.  The four contested insns are
+ * `add r0,#1`, `ldr r3,[sp,#16]`, `add r1,#1` and `mov r2,r6`; none is a
+ * constant materialisation and none is created by reload.  That was the
+ * mechanism that refuted the equivalent "terminal" verdict on Func_80a96d8 in
+ * this same brief, so it is recorded here as checked and inapplicable rather
+ * than left for a future round to try.
+ *
+ * Blocker class unchanged: sched2 `rank_for_schedule` rung 4 with a STRUCTURAL
+ * CAP on the quantity, plus a rung-5 LUID loss behind it.  Park terminal at 4
+ * for any body with the ROM's 19-entry stream.
+ *
+ * ---------------------------------------------------------------------------
+ * THE PRIOR HEADERS FOLLOW IN FULL AND UNCHANGED.
+ */
 /* Func_80ab1f4 -- park. The subject line must stay FIRST: tools that identify a
  * park by its subject (piece.py, autosweep.py, shortrefs.py, scratchfill.py)
  * read line 1, and a note prepended above it makes them resolve the wrong

@@ -1,418 +1,151 @@
-/* ===== BATCH 348 BRIEF A: STILL 3 of 85.  THE PARK'S NEXT ACTION IS NAMED WRONG. =====
+/* OvlFunc_896_200c260 -- 0x0200c260 -- PARK at 2 differing encodings of 85
+ *   (WAS 3).  PIN-FREE, DEVICE-FREE, FLAG-FREE.  BODY CHANGED THIS BATCH.
  *
- * CURRENT FIGURE, in stream terms: **3 differing encodings of 85** (ref 85 /
- * ours 85), first differing index 6.  16-BIT INSTRUCTIONS 70 / 70, POOL /
- * 32-BIT ENTRIES 15 / 15, BYTES 200 / 200 -- all three length dimensions agree,
- * so the figure is a real distance.  ALIGNED RESIDUE 2 (the three encodings
- * include one transposition, which alignment forgives).  RELOCATIONS CLEAN.
- * PIN-FREE, DEVICE-FREE, FLAG-FREE.  BODY UNCHANGED this batch.
+ * ===== BATCH 349 BRIEF D: 3 -> 2, BY INSTALLING THE PARK'S OWN RECORDED-BUT-
+ * ===== UNINSTALLED ANCHOR.  AND THE "-1 DISCOUNT" LEVER IS NOW CLOSED BY
+ * ===== reload1.c's OWN abort().
+ *
+ * THE FOUR NUMBERS, measured this batch (not inherited):
+ *   ENCODINGS           2 differing of 85   (ref 85 / ours 85), first index 6
+ *   16-BIT INSTRUCTIONS 70 / 70
+ *   BYTES               200 / 200
+ *   POOL / 32-BIT       15 / 15
+ *   RELOCATIONS         clean.   PINS 0 (tools/shimcount.py).
+ * All three length dimensions agree, so the figure IS a real distance.
+ * ALIGNED RESIDUE 2 in 1 hunk (tools/aligncmp.py) -- DOWN from the park's
+ * 3 in 2 hunks, so this is progress on BOTH scales, not a phase artefact.
  *
  * Verify with:
  *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
  *     goldensun-build python3 tools/objcmp.py src/non_matching/ovl_78ef88/200c260.c \
  *     asm/overlays/rom_78ef88/ovl_314_c_c_c_c_a.s --func OvlFunc_896_200c260
  *
- * SPLIT: NONE NEEDED.  tools/piece.py: the reference .s holds exactly ONE
- * function and reports no non-function exports, so it would convert whole.
- * tools/datacheck.py CLEAN.  MANIFEST carries "split": null (this is a park).
+ * SPLIT: NONE NEEDED.  tools/piece.py: asm/overlays/rom_78ef88/ovl_314_c_c_c_c_a.s
+ * holds exactly ONE function and reports NO non-function exports, so it would
+ * convert whole.  tools/datacheck.py silent (exit 0).  MANIFEST "split": null --
+ * this is a park, not a landing.
  *
- * ===== THE MECHANISM, SHARPENED: THE GATE IS spill_cost, NOT bad_spill_regs =====
+ * ===== WHAT CHANGED: THE SECOND ANCHOR, WHICH THIS PARK HAD ALREADY MEASURED
+ * ===== AND THEN DECLINED TO INSTALL
  *
- * Batch 336 closed with: "what is required is ONE insn at which r3, r2 AND r1
- * are all in bad_spill_regs".  THAT NAMES THE WRONG SET, and the distinction
- * matters because the two sets are reached by different things:
+ * The batch-338 note in this header reads, verbatim: "tools/autosweep.py (with
+ * its nested-boundary fix) finds a single `do { } while (0);' at statement
+ * boundary 4 that takes this park from 3 of 85 to 2 of 85 ... NOT installed
+ * here -- the body below is unchanged and still reads 3 -- because the anchor is
+ * worth recording as a MEASURED ROUTE rather than shipped for one encoding
+ * before the remaining residue is understood."
  *
- *   bad_spill_regs (reload1.c:1529-1538) = fixed_reg_set
- *       | HARD regs in chain->live_throughout | HARD regs in chain->dead_or_set.
- *     It is about HARD registers being live, and it makes a register `not_usable`
- *     outright at reload1.c:1604-1606.  Reaching it for r1, r2 AND r3 at one insn
- *     means three hard registers simultaneously live across a non-call insn,
- *     which this function never has.
+ * IT REPRODUCES, it is the second `do { } while (0);' below (after `z = 0;'),
+ * and it is now installed.  The reason to install it rather than keep deferring:
+ * it does not merely shave one encoding, it REMOVES ONE OF THE TWO HUNKS.  The
+ * park's 3 were a register pair PLUS a transposition; the 2 are the register
+ * pair ALONE.  Measured side by side (tools/objcmp.py encodings, disassembled):
  *
- *   spill_cost[regno] (reload1.c:1481, set by count_pseudo at reload1.c:1495-1512
- *     as `spill_cost[r] += REG_N_REFS (reg)`) is about PSEUDOS ALLOCATED to that
- *     hard register being live at the insn.  find_reg reads it at reload1.c:1625
- *     and the REG_ALLOC_ORDER tie-break at reload1.c:1641-1651 only runs among
- *     EQUAL costs, so r0 is picked exactly when
- *         spill_cost[0] == 0  AND  spill_cost[1], [2], [3] are all > 0.
- *     That is a much weaker and genuinely reachable-looking condition, and it is
- *     the one to aim at.
+ *     idx   REF                | PARK BODY (3)      | NOW (2)
+ *      5    4682 mov sl, r0    | 4682 mov sl, r0  ok| 4682 mov sl, r0  ok
+ *      6    2000 mov r0, #0    | 2200 mov r2, #0  XX| 2200 mov r2, #0  XX
+ *      7    4680 mov r8, r0    | 2016 mov r0, #22 XX| 4690 mov r8, r2  XX
+ *      8    2016 mov r0, #22   | 4690 mov r8, r2  XX| 2016 mov r0, #22 ok
  *
- * MEASURED ON THIS BODY, .18.greg:
+ * So the CreateActor argument fill no longer wedges between the pair.  This is
+ * batch 336's claim -- "index 7 is NOT a second question ... there is exactly
+ * one: get r0 as the reload scratch at insn 30, and all three encodings follow"
+ * -- CONFIRMED FROM THE OTHER DIRECTION: fix the schedule and the residue
+ * collapses to exactly the register, with nothing else left in it.  The anchor
+ * is device-free (it emits nothing and shimcount does not count it), so it
+ * carries no pass-3 debt.
+ *
+ * ===== THE ANCHOR AXIS WAS NEVER FINGERPRINTED, AND 15 OF 27 ROWS MEASURED
+ * ===== NOTHING
+ *
+ * This park is the one of batch 349 brief D's four that did NOT carry a
+ * "BOTH MECHANICAL AXES ARE CLOSED" block -- the brief said it did, and it does
+ * not; grep for the string.  So the axis was re-run here WITH object
+ * fingerprinting (tools/sweep_variants.py), which autosweep.py does not do:
+ *
+ *     27 anchor placements swept on the park body
+ *     12 BIT-IDENTICAL TO THE BASE          -- measured NOTHING
+ *      3 bit-identical to another variant   -- measured nothing new
+ *     12 DISTINCT PROGRAMS actually tested
+ *
+ * One of those 12 is the 2 above.  THE AXIS IS NOW SATURATED: a THIRD anchor was
+ * swept over all 28 boundaries of the 2-body (14 bit-identical to base, 3 to
+ * each other, 11 distinct programs) and NOTHING READS BELOW 2.  Worse rows, for
+ * the record, all at 70/70 instructions and relocations clean: 4 (after
+ * `has = ...', and after each of the three byte/word stores), 6, 7, 8, 9.
+ *
+ * ===== THE REMAINING 2: ONE CAUSE, AND ONE OF ITS TWO PROPOSED LEVERS IS NOW
+ * ===== CLOSED BY COMPILER SOURCE
+ *
+ * The cause is unchanged and is stated correctly by batch 348: the reload
+ * scratch for `mov r8, #0' at insn 30 is r2 where the ROM has r0.  .18.greg on
+ * THIS body is byte-for-byte the park's recorded dump -- the anchor changes the
+ * schedule, not the allocation:
  *     ;; 8 regs to allocate: 34 43 46 33 35 37 32 36
- *     ;; Register dispositions:
- *     ;;   32 in 10  33 in 6  34 in 5  35 in 7  36 in 9  37 in 8
- *     ;;   41 in 1   43 in 3  46 in 3  48 in 2  50 in 3  53 in 2
- *     ;;   56 in 3   58 in 3  59 in 3  60 in 0  62 in 2
  *     Spilling for insn 30.  / Using reg 3 for reload 0
- *     Spilling for insn 77.  / Using reg 2 for reload 2
- *     Spilling for insn 85.  / Using reg 2 for reload 2
+ *     Spilling for insn 89.  / Using reg 2 for reload 2
+ *     Spilling for insn 97.  / Using reg 2 for reload 2
+ *     41 in 1  43 in 3  46 in 3  48 in 2  50 in 3  53 in 2
+ *     56 in 3  58 in 3  59 in 3  60 in 0  62 in 2
+ *     ;; Hard regs used:  0 1 2 3 5 6 7 8 9 10 14 25 26
+ * Insns 89 and 97 are the two byte stores `o[0x26] = z; o[0x27] = z;', each
+ * `(set (mem:QI (reg:SI 3 r3)) (reg:QI 2 r2))' -- .19.flow2, verbatim.
  *
- * SO PSEUDOS ALREADY EXIST IN r1 (41), r2 (48/53/62), r3 (43/46/50/56/58/59) AND
- * r0 (60).  The barrier is not that r1/r2/r3 are empty -- it is WHERE the
- * reloads are:
- *   - insn 30 is the FUNCTION'S FIRST reload and sits in the prologue, where none
- *     of those pseudos is live yet, so all four of r0..r3 cost 0 and
- *     REG_ALLOC_ORDER {3,2,1,0,...} (arm.h:989-995) hands it r3;
- *   - at insns 77 and 85 r3 IS costly (one of its six pseudos is live) but r2 is
- *     still free, so r2 wins and the scan never reaches r1 or r0.
- * THE NARROWED QUESTION, which is the one to take forward: find a reload site at
- * which an r2 pseudo (48, 53 or 62) is live AT THE SAME INSN as an r3 pseudo and
- * an r1 pseudo (41), with pseudo 60 dead.  Two of the three already co-occur.
+ * BATCH 336 PROPOSED A SECOND, CHEAPER SUFFICIENT CONDITION: "find an insn in
+ * this function whose RELOAD OPERAND is hard register r0, which buys the -1
+ * discount at reload1.c:1641-1646 and needs no pressure at all."  Batch 348
+ * argued its PRECONDITION fails on Thumb (no insn can present r0 as a reload
+ * operand, because every `l' constraint accepts r0).  That argument is sound but
+ * it is not the strongest one available, and the strongest one was sitting
+ * eleven lines further down the same function.
  *
- * ===== AND THE PARK'S STATED NEXT ACTION IS ALMOST CERTAINLY CLOSED =====
+ * find_reg ENDS WITH AN ASSERTION THAT THE WINNER COST ZERO -- reload1.c:1683-1685:
+ *       if (spill_cost[best_reg + i] != 0
+ *           || spill_add_cost[best_reg + i] != 0)
+ *         abort ();
+ *       SET_HARD_REG_BIT (used_spill_regs_local, best_reg + i);   [:1686]
  *
- * Batch 336 ended with: "find an insn in this function whose RELOAD OPERAND is
- * hard register r0, which buys the -1 discount at reload1.c:1641-1646 and needs
- * no pressure at all."  The arithmetic is right -- the two discounts are
- *     if (rl->in  && GET_CODE (rl->in)  == REG && REGNO (rl->in)  == regno) this_cost--;
- *     if (rl->out && GET_CODE (rl->out) == REG && REGNO (rl->out) == regno) this_cost--;
- * so a reload whose in or out IS r0 scores -1 and beats r3's 0 outright.
- * BUT THE PRECONDITION LOOKS UNREACHABLE ON THUMB, and that is the thing to
- * check before spending a round on it: `rl->in` is a bare `(reg:SI 0)` only when
- * an operand is already hard r0 and the chosen alternative REFUSES it.  r0 is a
- * LO_REGS member, every `l` constraint accepts it, and the one Thumb constraint
- * that does not (`h`) appears in *thumb_movsi_insn's `*lh / *lh` alternative,
- * which accepts an `l` source for an `h` destination without any reload.  So no
- * insn in this function can present r0 as a reload operand.
- * Checking the PRECONDITION of that comparison rather than its arithmetic is the
- * standing discipline, and here the precondition is what fails.
+ * In any compile that does not ICE, therefore, `best_reg' ALWAYS has
+ * spill_cost 0.  The two discounts at :1641-1646 can only ever move a register
+ * from cost 0 to cost -1; a register they promote from cost >= 1 to winning
+ * would trip this abort.  SO THE DISCOUNT CANNOT SUBSTITUTE FOR FREEING r0 --
+ * it can only break a tie BETWEEN ALREADY-FREE REGISTERS.  Batch 336's "needs
+ * no pressure at all" is false as stated, and the lever is closed here by the
+ * allocator's own invariant rather than by a Thumb-constraint argument.
  *
- * ===== EIGHT MORE VARIANTS, A STRUCTURALLY NEW FAMILY, ZERO HITS =====
+ * WHAT THAT LEAVES, and it is now exact.  Since the winner must cost 0 and the
+ * equal-cost tie-break is inv_reg_alloc_order over REG_ALLOC_ORDER
+ * = { 3, 2, 1, 0, ... } (config/arm/arm.h:989-995), r0 is picked at an insn IF
+ * AND ONLY IF each of r3, r2, r1 is, at that insn, either in `not_usable'
+ * (bad_spill_regs | bad_spill_regs_global | outside the reload class), or in
+ * `used_by_other_reload', or of spill_cost > 0 -- while r0 is none of those.
+ * Nothing weaker reaches it.  At insn 30 (the prologue) all four of r0..r3 cost
+ * 0, so r3 wins outright; at insns 89 and 97 r3 is held by the address reload
+ * and r2 is simply the next free register in REG_ALLOC_ORDER, so the scan never
+ * reaches r1 or r0.
  *
- * Batch 336 screened sixteen variants that all NAMED a value, and found the pick
- * set a subset of {2,3} every time with four collapsing it to the empty set.
- * This batch screened eight that go the other way -- shortening live ranges and
- * REMOVING names so global-alloc is pushed toward the call-clobbered registers.
- * The screen prints the whole pick set and the dispositions, not a boolean:
+ * MEASURED THIS BATCH, the park's own cheap boolean screen (compile -da, collect
+ * every `Using reg N' in .18.greg, print the WHOLE pick set), on the 2-body:
+ *     base (this body)                                      picks {2,3}
+ *     address temp `unsigned char *q = o + 0x26' for the
+ *       two byte stores, stores through q[0] / q[1]          picks {2,3}
+ *     the zero routed through the `o[5] &= m' mask           picks {2,3}
+ *     g1's range lengthened across the byte stores           picks {2,3}
+ *     the act pointer kept live past the `o' load            picks {2,3}
+ *     a byte store indexed by the zero                       picks {2,3}
+ *     the two byte stores PERMUTED                           picks {2,3}
+ * SIX more variants, ZERO hits, which takes this direction to roughly THIRTY
+ * measured variants across batches 336, 348 and 349 with no r0 anywhere.  Three
+ * of the six above are greg screens only and are NOT candidate bodies (two are
+ * value-preserving but device-flavoured, one is a self-assignment); they are
+ * recorded because a pick set is all they were run for.
  *
- *   base                                               3 of 85   picks {2,3}
- *   `o` assigned late, just before its first use        3        picks {2,3}
- *   `item` saved into a local `it` first                3        picks {2,3}
- *   `o` recomputed a second time before UploadSpriteGFX 79, 67 OF 70 INSNS  {3}
- *   `o` deleted and *(act+0x50) dereferenced at all five uses
- *                                                      68, 69 of 70 insns  {3}
- *   a separate `zz` for the zero, `z` only for galloc   78, 69 of 70 insns  {3}
- *   a properly typed `unsigned char *buf` for galloc    78, 69 of 70 insns  {3}
- *   `has` computed late, just before __Func_8078948     82, 65 of 70 insns  {3}
- *
- * THE DIRECTION MEASURABLY RUNS THE WRONG WAY A SECOND TIME, from the opposite
- * end: shortening a range removes the reload rather than concentrating pressure,
- * exactly as naming a value did.  Five of the eight are also LENGTH defects
- * (65-69 instructions against 70), so they are not near-misses.
- *
- * STILL 3 of 85, pin-free, device-free, flag-free.  DECLINING TO CLOSE, with the
- * set name corrected, the stated next action shown to have a failing
- * precondition, and the live question narrowed to one measurable co-liveness
- * condition.
- *
- * CORRECTION TO THE BATCH-348 SELECTION: this park was advertised to brief A as
- * having "no recorded batch work at all".  Its own header records batches 329,
- * 336 (brief H) and 338, roughly sixty measured variants.  The criterion did not
- * hold for ANY of brief A's four targets; see scratch_elev/b348/A/FINDINGS.md.
- */
-
-/* ===== PARK HEADER CARRIED FORWARD VERBATIM (batch 348) ===== */
-/* ===== BATCH 338 POST-PASS: THE ANCHOR AXIS REACHES 2, NOT 3 =====
- *
- * tools/autosweep.py (with its nested-boundary fix) finds a single
- * `do { } while (0);` at statement boundary 4 that takes this park from
- * 3 of 85 to 2 of 85, first differing index moving to 6.  NOT installed here --
- * the body below is unchanged and still reads 3 -- because the anchor is worth
- * recording as a MEASURED ROUTE rather than shipped for one encoding before the
- * remaining residue is understood.
- *
- * Whoever takes this next: start from that variant, not from the body below.
- * Reproduce with:
- *   python3 tools/autosweep.py src/non_matching/ovl_78ef88/200c260.c --anchor
- *
- * Note the anchor is device-free -- it emits nothing and shimcount does not
- * count it -- so unlike a bare barrier it costs no pass-3 debt if it does end up
- * in the landing.
- */
-/* OvlFunc_896_200c260 -- 0x0200c260
- *
- * STILL NON-MATCHING, **3 differing encodings of 85** (ref 85 / ours 85, first
- * differing index 6).  WAS 4 of 85.  Sizes equal, relocations clean, no
- * INSTRUCTION COUNT line and no POOL WORD COUNT line.  PIN-FREE, SHIM-FREE,
- * FLAG-FREE, DEVICE-FREE.
- *
- * Verify with: python3 tools/objcmp.py src/non_matching/ovl_78ef88/200c260.c asm/overlays/rom_78ef88/ovl_314_c_c_c_c_a.s --func OvlFunc_896_200c260
- *
- * SPLIT: NONE NEEDED.  grep -c func_start = 1, tools/datacheck.py CLEAN.
- *
- * ===== WHAT CHANGED: ONE do { } while (0) AT THE TOP, 4 -> 3 =====
- *
- * The park's four differing encodings were indices 5-8 and it read them as ONE
- * reload-scratch-register choice with three transposed neighbours.  Half of
- * that is right.  They are TWO causes, and one of them is a scheduling hoist
- * that a source-level barrier removes:
- *
- *     idx  REF              | BEFORE (4)         | NOW (3)
- *      5   mov sl, r0       | mov r2, #0      XX | mov sl, r0      ok
- *      6   mov r0, #0       | mov sl, r0      XX | mov r2, #0      XX
- *      7   mov r8, r0       | mov r0, #22     XX | mov r0, #22     XX
- *      8   mov r0, #22      | mov r8, r2      XX | mov r8, r2      XX
- *
- * `do { } while (0)` as the first statement (haifa's two total barriers) stops
- * sched2 hoisting the independent `mov r2, #0` above the parameter save, so the
- * parameter save lands first, as the ROM has it.  `__asm__ volatile ("")` in the
- * same place is byte-identical at 3.  The park had ALREADY SEEN this effect and
- * attributed it to a flag it then rejected -- "with -fno-schedule-insns2 the
- * first difference MOVES to index 6 ... the order is then right and only the
- * register is wrong".  It is reachable WITHOUT the flag, from source.
- *
- * ===== THE PARK'S BOUND: ITS EVIDENCE IS REFUTED, THE BOUND IS NOT =====
- *
- * The park closes on this discriminator:
- *
- *     "Count `Using reg N` in .18.greg.  This body: reg 3 once, reg 2 twice --
- *      the SPILL SET IS {r2, r3}, and r0 IS NOT IN IT.  Round robin over a
- *      two-element set cannot ever emit the ROM's `mov r0, #0`, at any site,
- *      under any spelling."
- *
- * THAT MEASUREMENT IS INVALID, and the invalidity is already documented:
- * *the register find_reg prints is not necessarily the one emitted.*  Measured
- * on this body:
- *
- *     .18.greg    Spilling for insn 30. / Using reg 3 for reload 0
- *     .19.flow2   (insn 219 (set (reg:SI 2 r2) (const_int 0)))
- *                 (insn 30  (set (reg/v:SI 8 r8) ...))
- *
- * greg PRINTS 3 and the EMITTED register is 2, at the one site the whole bound
- * rests on.  So the park's "fresh picks in stream order are r2, r3, r2, r3, r3,
- * r3 -- exactly spill_regs[i mod 2] over [2,3]" mixes printed with emitted
- * values, and "the round-robin model is confirmed on this function" does not
- * follow.  The bound is NOT thereby broken -- I did not reach r0 -- but it is
- * no longer evidenced, and anyone continuing here should count FREE REGISTERS
- * at insn 30 in .19.flow2 rather than greg's printf.
- *
- * ===== MODULE-MATE EVIDENCE, WHICH CONTRADICTS THE PARK'S "CONDITION" =====
- *
- * The park concluded the condition for r0 is REGISTER PRESSURE -- "a construct
- * that forces a reload where r1, r2 and r3 are all busy" -- from CheckLure in
- * src/rom_77000/rom_77320_a_c_a_b.c, whose r0 enters the set from a reload deep
- * inside a doubly-nested loop.  Scanning all 454 LANDED SIBLINGS of this
- * function's upstream module (overlays/ovl_314.s, via tools/upstream_module.py)
- * for the ROM's exact `mov r0, #imm / mov rHI, r0` shape finds TWO, and NEITHER
- * has any pressure:
- *
- *   asm/overlays/rom_7eaf28/ovl_314_c_c_c_c_a.s  (twice, both in the prologue)
- *       push {r5,r6,r7,lr} / mov r7,r8 / push {r7} / mov r0,#0 / mov r8,r0 /
- *       ldr r0,.L73 / bl __GetFlag
- *   asm/overlays/rom_7a5214/ovl_314_c_c_c_c_b.s
- *       push {r7} / ldr r7,.L19 / ldr r5,[r7] / mov r0,#0 / mov fp,r0
- *
- * Both are `void` functions -- no incoming parameter, so r0 is free at entry
- * and the FIRST reload in the function takes it.  That is a far cheaper
- * condition than a doubly-nested loop, and it is NOT satisfiable here: this
- * function takes `int item` in r0.  The ROM nonetheless gets r0, after saving
- * the parameter to sl, so the real question is narrower than either account:
- * why is r0 excluded at insn 30 in OUR build when the parameter save at insn 4
- * already freed it.  That is the question to take to pass 3.
- *
- * ===== MEASURED THIS BATCH, ALL AGAINST THE 3-DIFFERING BASE =====
- *
- * Every one of the park's recorded inert rows is STILL EXACTLY INERT crossed
- * with the barrier -- they are not missing prerequisites:
- *
- *     z as unsigned char * instead of int                         3  inert
- *     declaration order, z first                                  3  inert
- *     g1 literal at the use                                       3  inert
- *     named local for the gfx selector o[0x1c]                    3  inert
- *     named local for the (0x80 << 3) offset                      3  inert
- *     declz-first x g1-literal (crossed)                          3  inert
- *     `int it = item;` as the first statement                     3  inert
- *     `int it = item;` WITHOUT the barrier                        4  (so the
- *                                        barrier is the whole 4 -> 3)
- * and the regressions:
- *     m as a literal at the use                                  58  RELOCDIFF
- *     m-literal x g1-literal                                     58  RELOCDIFF
- *     two variables: `z` for the zero, `unsigned char *buf` for
- *       the galloc result (properly typed, 4 spellings)           78  RELOCDIFF
- *     `z = 0` moved after call 1 / 2 / 3 / to just before the
- *       byte stores                                       75-76  RELOCDIFF,
- *                                                         4 BYTES SHORTER
- *     INSTRUMENT (device): register int q0 __asm__("r0") feeding z
- *                                                         76  RELOCDIFF, -4 bytes
- *
- * CORRECTION CARRIED FORWARD: the park's own note that its recorded "78" for
- * the two-local spelling "is NOT A DISTANCE: that variant has DIRTY
- * RELOCATIONS" is CONFIRMED, and it survives giving `buf` its proper pointer
- * type -- so the two-variable dimension is genuinely closed, not merely
- * mis-measured.  And the r0 pin still does not reproduce the ROM's shape even
- * on the better base: the pinned figure is WORSE than the pin-free one.
- *
- * DECLINING TO CLOSE at 3.  Remaining cause, NAMED: the reload scratch register
- * for `mov r8, #0` at insn 30 is r2 where the ROM has r0, and the two insns
- * that carry it plus sched2's hoist of `mov r0, #22` past it are the three
- * encodings.  Not a spelling of indices 6-8.
- *
- * ========== BATCH 329: THE PASS-3 QUESTION IS ANSWERED.  IT IS REG_ALLOC_ORDER ==========
- *
- * RE-DERIVED AS FOUND: 3 differing encodings of 85, first differing index 6,
- * counts equal, relocations clean.  The greg-versus-flow2 correction above is
- * reproduced exactly on this body: .18.greg prints
- *     Spilling for insn 30. / Using reg 3 for reload 0
- * and .19.flow2 emits `(insn 219 (set (reg:SI 2 r2) (const_int 0)))` ahead of
- * insn 30.  Printed 3, emitted 2, same insn.
- *
- * THE QUESTION THIS PARK LEFT FOR PASS 3 -- "why is r0 excluded at insn 30 when
- * the parameter save at insn 4 already freed it" -- HAS AN ANSWER, and it is
- * neither account recorded above.  r0 is not excluded because it is live and not
- * because the function takes a parameter.  It is FOURTH IN LINE.
- *
- * (1) order_regs_for_reload (reload1.c:1525-1537) builds, per insn,
- *         bad_spill_regs = fixed_reg_set
- *                        | hardregs (chain->live_throughout)
- *                        | hardregs (chain->dead_or_set)
- *     r0 is in none of those at insn 30.
- * (2) find_reg (reload1.c:1616-1655) then scans regno 0 upward, scoring each
- *     candidate `spill_cost[regno]` -- zero for a register holding no live
- *     pseudo -- and breaks an EQUAL-COST tie with
- *         inv_reg_alloc_order[regno] < inv_reg_alloc_order[best_reg]
- *     config/arm/arm.h:989-995 defines
- *         REG_ALLOC_ORDER = { 3, 2, 1, 0, 12, 14, 4, 5, 6, 7, 8, 10, 9, 11, ... }
- *     so among equally free low registers find_reg takes r3 FIRST, then r2, then
- *     r1, and r0 LAST.  That is the whole reason greg prints 3.
- * (3) The pick sets used_spill_regs_local (reload1.c:1686), which is ORed into
- *     the function-global used_spill_regs (reload1.c:1754).
- * (4) reload1.c:3529-3532 rebuilds spill_regs[] from that global set in
- *     ASCENDING REGISTER ORDER, and allocate_reload_reg (reload1.c:5003-5013)
- *     starts its round robin at last_spill_reg + 1, which is 0 for the first
- *     reload in the function (last_spill_reg is -1 at reload1.c:821).
- *     THE FUNCTION'S FIRST RELOAD THEREFORE GETS THE LOWEST-NUMBERED MEMBER OF
- *     THE GLOBAL SPILL SET.  Ours is {2,3}, so insn 30 emits r2.  If r0 were in
- *     the set it would be spill_regs[0] and insn 30 would emit r0 -- the ROM.
- *     So the park's round-robin model is right and its membership evidence was
- *     the only broken part.
- *
- * CONTROL, and it refutes BOTH accounts recorded above.  The two landed
- * siblings this park cites were dumped with -da:
- *     src/overlays/rom_7eaf28/ovl_314_c_c_c_c_a.c   .18.greg:
- *         Spilling for insn 10.  / Using reg 3 for reload 0
- *         ... Using reg 0 for reload 0   at insn 317 AND at insn 319
- *     src/overlays/rom_7a5214/ovl_314_c_c_c_c_b.c   .18.greg:
- *         Using reg 3, then Using reg 2, then Using reg 0 for reload 0 at insn 131
- * In BOTH, the FIRST reload reserves r3 exactly as ours does, and r0 is reserved
- * only at an insn DEEP IN THE FUNCTION.  Their prologue `mov r0, #0 / mov rHI, r0`
- * is then produced by step (4), not by r0 being free at entry.  So:
- *   - "both are void, so r0 is free at entry and the FIRST reload takes it" is
- *     FALSE as stated -- their first reload takes r3;
- *   - "the condition is register pressure" is RIGHT IN SUBSTANCE and wrong in
- *     scale: what is required is ONE insn at which r3, r2 AND r1 are all in
- *     bad_spill_regs, not a doubly-nested loop.
- *
- * THE ACTION, stated so it can be executed: make SOME insn anywhere in this
- * function need a reload while r1, r2 and r3 are all live across or set at that
- * insn.  Nothing written at indices 6-8 can do it; the lever is elsewhere in the
- * body.  The screen is cheap and needs no objcmp run -- compile with -da and
- * grep the .18.greg dump for a line reading "Using reg 0".  That is a boolean
- * test on exactly the condition, and it costs one compile per candidate.
- *
- * STILL AT 3 pin-free, device-free, flag-free.  Declining to close, with the
- * cause now named to the line and the next test made cheap.
-
- * ========== BATCH 336 (brief H): THREE ENCODINGS, ONE CAUSE -- AND THE ACTION IS SCREENED ==========
- *
- * RE-DERIVED AS FOUND: 3 differing ENCODINGS of an 85-ENTRY STREAM (ref 85,
- * ours 85), first differing index 6, ref 2000 ours 2200, instructions 70 = 70,
- * relocations clean, PIN COUNT 0 (tools/shimcount.py).
- *
- * ----- THE PARK'S "TWO CAUSES" IS NOW ONE CAUSE -----
- *
- * The park, writing before the barrier was found, says indices 5-8 "are TWO
- * causes, and one of them is a scheduling hoist".  On the 3-differing base
- * there is only ONE.  The windows are
- *     ref   mov sl,r0 | mov r0,#0  | mov r8,r0  | mov r0,#22
- *     ours  mov sl,r0 | mov r2,#0  | mov r0,#22 | mov r8,r2
- * and the wedge is a CONSEQUENCE of the register, not an independent defect:
- * with r0 as the reload scratch, `mov r0,#22' WRITES a register that
- * `mov r8,r0' READS, so sched_analyze_insn records an ANTI dependence and
- * sched2 is FORBIDDEN to place the CreateActor argument fill between the pair.
- * With the scratch at r2 all three insns are mutually independent, every rung
- * of rank_for_schedule ties, and the argument fill -- which has the lower LUID,
- * being an ordinary statement rather than a reload insn -- issues first.
- * SO INDEX 7 IS NOT A SECOND QUESTION.  There is exactly one: get r0 as the
- * reload scratch at insn 30, and all three encodings follow.
- *
- * ----- THE PARK'S STATED ACTION IS NOW SCREENED, SIXTEEN VARIANTS, ZERO HITS -----
- *
- * The action: "make SOME insn anywhere in this function need a reload while r1,
- * r2 and r3 are all live across or set at that insn", with the screen "compile
- * with -da and grep the .18.greg dump for a line reading Using reg 0".  Run on
- * the base and fifteen variants, printing the WHOLE picked set rather than a
- * boolean:
- *
- *   base                                                        2, 3
- *   named locals for all three __UploadSpriteGFX arguments          3
- *   byte stores through a named `unsigned char *q = o + 0x26'   2, 3
- *   word stores through a named `int *b = (int *)(act + 0x28)'  (NONE)
- *   `m' and `g1' assigned late instead of at the top            2, 3
- *   a third call-crossing value `extra = who + has'             (NONE)
- *   `0x80' and `0x80 << 3' in locals assigned at the top            3
- *   fresh locals w2/h2 for the last call pair, assigned early    (NONE)
- *   a second zero variable `z2' for the two byte stores             3
- *   `m' as a literal at the use        (the park's 58 row)      2, 3
- *   `z = 0' before the byte stores     (the park's 75 row)          3
- *   `z' plus a properly typed `buf'    (the park's 78 row)      2, 3
- *   the r0 pin INSTRUMENT feeding `z'  (the park's 76 row)          3
- *   `g1' as a literal at the use                                   3
- *   no barrier at all                  (the park's 4 row)       2, 3
- *   `item' saved into a named local `it' first                  2, 3
- *   `has' carried to the end in a second local `hh'             (NONE)
- *
- * The picked set is a SUBSET OF {2,3} in every single case, and FOUR variants
- * collapse it to the EMPTY SET -- naming a value makes global allocation keep
- * it instead of reloading it, so the reload disappears rather than the pressure
- * rising.  THE PARK'S DIRECTION MEASURABLY RUNS THE WRONG WAY.  Screening the
- * park's own three regressing rows (58, 75, 78) was the cheapest test available
- * and none of them reaches r0 either, so NONE OF THEM IS A PREREQUISITE waiting
- * on a second lever.
- *
- * ----- A SECOND, CHEAPER SUFFICIENT CONDITION THE PARK DID NOT CITE -----
- *
- * find_reg (reload1.c:1596-1700) scores each candidate with spill_cost[regno]
- * and applies TWO DISCOUNTS before the inv_reg_alloc_order tie-break, at
- * reload1.c:1641-1646:
- *     if (rl->in  && GET_CODE (rl->in)  == REG && REGNO (rl->in)  == regno)
- *       this_cost--;
- *     if (rl->out && GET_CODE (rl->out) == REG && REGNO (rl->out) == regno)
- *       this_cost--;
- * A reload whose IN or OUT is literally hard register r0 therefore scores -1
- * and beats r3's 0 OUTRIGHT -- no pressure, no tie-break, no need for r1, r2
- * and r3 to be busy at all.  That is a DIFFERENT search from the park's: not
- * "add pressure" but "find an insn in this function whose reload operand IS
- * r0".  Insn 30's own reload cannot self-discount (`rl->in' is
- * `(const_int 0)', `rl->out' is null -- it is an input reload for the
- * `l' alternative of *thumb_movsi_insn with an `h' destination), and it does
- * not need to: membership in the FUNCTION-GLOBAL set is all it needs, by the
- * chain this batch read and confirmed --
- *     used_spill_regs_local  reload1.c:1686
- *  -> used_spill_regs        reload1.c:1754
- *  -> spill_regs[] rebuilt ASCENDING           reload1.c:3529-3532
- *  -> allocate_reload_reg's round robin from last_spill_reg + 1 = 0
- *                                              reload1.c:5003-5013, :821
- * so r0 picked at ANY insn makes spill_regs[0] == 0 and hands insn 30 the ROM's
- * register.  The park's step (4) is confirmed verbatim against the source,
- * including that pass 0 of allocate_reload_reg's two-pass loop finds nothing
- * for the function's first reload (it requires reload_reg_used_at_all) so pass
- * 1 does the pick.
- *
- * ----- AND ONE PRECONDITION CHECKED AND CLEARED, so it is not a dead end -----
- *
- * find_reg also ORs bad_spill_regs_global into `not_usable' (reload1.c:1604),
- * which would be a HARD precondition -- r0 unpickable anywhere in the function
- * -- if r0 were in it.  It is set in only two places: spill_hard_reg's
- * `cant_eliminate' path at reload1.c:3474 (frame-pointer elimination failures,
- * none here) and a scan_paradoxical_subregs branch at reload1.c:3671 that sits
- * inside `#if 0'.  So the condition IS reachable in principle and the search is
- * not futile -- it is just not reachable by adding locals.
- *
- * STILL 3 of 85 pin-free, device-free, flag-free.  Declining to close.  The
- * next round's question, replacing "add pressure": find an insn in this
- * function whose RELOAD OPERAND is hard register r0, which buys the -1 discount
- * at reload1.c:1641-1646 and needs no pressure at all.
+ * DECLINING TO CLOSE, at 2.  The improvement is real and on both scales; the
+ * remaining cause is one register; one of its two proposed levers is now closed
+ * by compiler source and the other is the co-liveness condition stated above,
+ * which ~30 variants have failed to produce.  The anchor axis is saturated and
+ * SHOULD NOT BE RE-SCREENED.
+ * -- scratch_elev/b349/D
  */
 extern unsigned char gScript_881__0200cbe4[];
 extern unsigned char *__CreateActor(int a);
@@ -443,6 +176,7 @@ int OvlFunc_896_200c260(int item)
     g1 = 0xc1 << 3;
     m = -0x21;
     z = 0;
+    do { } while (0);
     act = __CreateActor(0x16);
     who = __CheckPartyItem(0xe0);
     has = __CheckItem(who, 0xe0);

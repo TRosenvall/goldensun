@@ -1,3 +1,79 @@
+/* OvlFunc_968_200c2bc -- 0x0200c2bc
+ * asm/overlays/rom_7f2f14/ovl_30_c_c_a_c_c_c_a.s
+ * PARK HOLDS AT **2 of 271**.  Batch 349 brief C -- NEGATIVE-LIST RE-TEST.
+ *
+ * FOUR NUMBERS, re-derived first: 2 differing encodings of a 271-entry stream
+ * (ref 271 / ours 271) = 236 instructions plus 35 32-bit entries, size 612 =
+ * 612, relocations clean, first differing index 163 (ref 46ca `mov r10,r9`,
+ * ours 4693 `mov r11,r2`), and the stream differs at EXACTLY 163 and 164.  In
+ * phase on all three length dimensions, so the 2 IS a distance.  PINS 0.
+ *
+ * Verify with:
+ *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
+ *     goldensun-build python3 tools/objcmp.py \
+ *     src/non_matching/ovl_7f2f14/200c2bc.c \
+ *     asm/overlays/rom_7f2f14/ovl_30_c_c_a_c_c_c_a.s --func OvlFunc_968_200c2bc
+ *
+ * ===== THE NEGATIVE LIST, RE-TESTED WITH OBJECT FINGERPRINTING =====
+ * *** THIS PARK'S NEGATIVE LIST IS HONEST, AND IT IS THE ONLY ONE OF THIS
+ * BRIEF'S FOUR THAT IS.  IT ALREADY ACCOUNTED FOR DISTINCT PROGRAMS BEFORE THE
+ * TOOL COULD. ***  It records seven pin-free rows and says of the five inert
+ * ones, in its own words, that they "all produced IDENTICAL CODE".  Verified:
+ *     `q = tp` between `i = 0` and `acc = 0`, loop 2 call on q   bit-identical
+ *     the same with `q = &t`                                     bit-identical
+ *     loop 2's call taking `&t` directly                         bit-identical
+ *     `q = tp` beside `tp = &t`, loop 1 on q                     bit-identical
+ *     `q = &t` beside `tp = &t`, loop 2 on q                     bit-identical
+ *     `acc = 0` written BEFORE `i = 0`                 3 of 271, first 162
+ *     `do { } while (0)` between the two inits        5 of 271, first 154
+ * Seven recorded rows, **3 distinct programs**, and both non-identical figures
+ * reproduce to the digit.  Its three bare-barrier rows are likewise recorded
+ * as "all three identical to EACH OTHER", which also holds.  No negative here
+ * had expired and nothing in the list was a missed lever.  A park that writes
+ * "these produced identical code" is doing by hand what sweep_variants.py's
+ * fingerprint now does, and it is the reason this park cost no wasted round.
+ *
+ * ===== WHAT WAS CHECKED THIS BATCH AND DID NOT APPLY =====
+ * The lever that refuted the equivalent "terminal" verdict on Func_80a96d8 in
+ * this same brief -- an asm with ANY colon section fences combine, so a
+ * folded-away local survives as a real pseudo at zero instruction cost
+ * (combine.c:1183-1188 via rtlanal.c:1637 `case ASM_INPUT: return 0;` and
+ * :1648 `case ASM_OPERANDS: if (MEM_VOLATILE_P (x)) return 1;`) -- DOES NOT
+ * REACH THIS RESIDUE, and the reason is structural rather than untried.
+ * This park's residue is not a missing pseudo.  Batch 336 established, by
+ * reading the reference, that BOTH registers in the contested quartet and BOTH
+ * pointer roles are ALREADY the ROM's; the only thing wrong is the ISSUE ORDER
+ * of `mov r11,r2` against `mov r10,r9`.  Batch 336 then showed every rung of
+ * `rank_for_schedule` ties and INSN_LUID decides -- confirmed here against the
+ * source, haifa-sched.c:4113-4115, `return INSN_LUID (tmp) - INSN_LUID (tmp2)`,
+ * so the LOWER LUID wins, with no rung earlier than priority (the full rung
+ * list is at :4028-4116).
+ * Keeping a pseudo alive cannot change a LUID: LUID is stream position, and
+ * `mov r10,r9` is a move_movables hoist emitted by `emit_insn_before (...,
+ * loop_start)` -- loop.c:1825, :1890, :1991, :2024, :2055 are all that site --
+ * so it is LAST in the preheader by construction, while `acc = 0` is a source
+ * statement and therefore always earlier in the stream.  A combine fence
+ * changes which insns EXIST, not where loop.c put them.
+ *
+ * >> SO THE OPEN DIMENSION IS UNCHANGED AND STILL THE ONE BATCH 336 NAMED: get
+ * >> the ACC INIT emitted before `loop_start` AFTER move_movables has already
+ * >> run, without letting fold absorb the accumulator into the inner loop's
+ * >> addressing.  `strength_reduce` runs after `move_movables` (loop.c:1110
+ * >> then :1135) and emits before the same `loop_start` (emit_iv_add_mult
+ * >> :7636, check_dbra_loop :8154), so an insn from there lands BETWEEN the
+ * >> hoist and loop_start -- exactly where the ROM has `mov r11,r2`.  Batch
+ * >> 336 measured five giv spellings and gcc folded the giv into the inner
+ * >> loop's address arithmetic every time, LOSING an instruction.  That is
+ * >> still the whole park. <<
+ *
+ * NOT RE-SCREENED, recorded negatives: the FLAG axis (all eight per-file
+ * groups) and the ANCHOR axis (55 placements, 26 bit-identical, so 29 distinct
+ * programs tested).  Also not re-run: the pinned q1-q12 family (4 to 249) and
+ * the five giv spellings (32 to 108, every one length-defective).
+ *
+ * ---------------------------------------------------------------------------
+ * THE PRIOR HEADERS FOLLOW IN FULL AND UNCHANGED.
+ */
 /* OvlFunc_968_200c2bc -- 0x0200c2bc,
  * asm/overlays/rom_7f2f14/ovl_30_c_c_a_c_c_c_a.s
  *

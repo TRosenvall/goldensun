@@ -1,3 +1,96 @@
+/* DisplayMenuArrowCursor (EmitPartySprites) -- 0x0801aeec  [rom_15000]
+ * PARK HOLDS AT **5 of 133**.  Batch 349 brief C -- NEGATIVE-LIST RE-TEST.
+ *
+ * FOUR NUMBERS, re-derived first: 5 differing encodings of a 133-entry stream
+ * (ref 133 / ours 133), **119 instructions against 119**, size equal,
+ * relocations equal, first differing index 21 (ref 5ab1 `ldrh r1,[r6,r2]`,
+ * ours 4684 `mov ip,r0`).  In phase on all three length dimensions, so the 5
+ * IS a distance.  PINS 0; the body's device is a `do { } while (0)` anchor,
+ * which shimcount does not count.  Anchor-free figure 6; not comparable.
+ *
+ * Verify with:
+ *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
+ *     goldensun-build python3 tools/objcmp.py \
+ *     src/non_matching/rom_15000/DisplayMenuArrowCursor.c \
+ *     asm/rom_15000/rom_1aeec_a_a_a_a_a.s --func DisplayMenuArrowCursor
+ * SPLIT SHAPE: none (piece.py: 1 function; datacheck.py exits 0 silently).
+ *
+ * ===== THE NEGATIVE LIST, RE-TESTED WITH OBJECT FINGERPRINTING =====
+ * THE PARK RECORDS SIX SOURCE SPELLINGS AS "EXACTLY INERT".  THEY ARE **ONE
+ * DISTINCT PROGRAM** -- all six are BIT-IDENTICAL TO THE BASE OBJECT:
+ *     `int xv;` declared alone                     bit-identical
+ *     `int xv;` + `xv = m->a[i].x; o->x = xv;`      bit-identical
+ *     `ar = &m->a[i]; o = &ar->oam;`                bit-identical
+ *     xv and ar together                           bit-identical
+ *     the existing `e` reused as the intermediate   bit-identical
+ *     a second `struct OamSprite *` for the store   bit-identical
+ * So the park's claim "everything that leaves the function intact is exactly
+ * inert" is true for a stronger reason than it knew: **no spelling of the x
+ * intermediate reaches the back end at all.**  gcc folds every one of them
+ * before allocation, which is a clean close of that whole statement -- the
+ * lever is not in the x read, in any spelling, and no further spelling of it
+ * is worth a row.
+ * The two WORSE rows do reproduce as real, distinct programs, and one figure
+ * had EXPIRED: "all three reads through `ar`" is recorded as 25 and measures
+ * **27** against this body (the 25 was against the pre-anchor base of 6).
+ * `reuse d` reproduces at 118 with RELOCDIFF and +8 bytes.
+ *
+ * ===== AND THE PARK'S OWN RETIREMENT CONDITION IS NOW TESTED PROPERLY =====
+ * The bound reads: "WHAT WOULD RETIRE IT: a block-1 quantity with 4 refs
+ * inside 8 insns (or 5 inside 11) that spans insn 55 AND COSTS NO
+ * INSTRUCTION."  Every prior attempt failed on the cost clause, because a
+ * named intermediate for a BITFIELD store was always re-spelled into the
+ * source and always cost +2 to +4 instructions.
+ * THIS BATCH HAD THE RIGHT INSTRUMENT FOR THE FIRST TIME.  Brief C's
+ * Func_80a96d8 landing establishes (combine.c:1183-1188 via rtlanal.c:1637
+ * `case ASM_INPUT: return 0;` and rtlanal.c:1648 `case ASM_OPERANDS: if
+ * (MEM_VOLATILE_P (x)) return 1;`) that an asm with ANY colon section fences
+ * combine and so **keeps a folded-away local alive as a real pseudo at zero
+ * instruction cost**.  That is exactly the shape this bound asks for.
+ * MEASURED, seven rows, all against the base's 5:
+ *   `xv` + `__asm__ volatile ("" :: "r" (xv))` inside the anchor  122  +12 bytes
+ *   the same with `o` added as a second input operand             122  bit-identical
+ *                                                                 to the row above
+ *   the same placed above `o = &m->a[i].oam`                      123  +8 bytes
+ *   the same placed after the x store                             132  +8 bytes
+ *   `ar` forced into a register the same way                      135  +12 bytes
+ *   `xv` + `__asm__ volatile ("" ::: "memory")` (no operand)        9  size EQUAL
+ *   `::: "memory"` alone, no `xv`                                  10  size EQUAL
+ *
+ * >> SO THE BOUND SURVIVES, AND FOR A SHARPER REASON THAN BEFORE.  There are
+ * >> exactly two ways an ASM_OPERANDS asm can manufacture a pseudo here, and
+ * >> both fail on a DIFFERENT clause of the bound:
+ * >>   - with an `"r"` OPERAND it does create the quantity, and the operand
+ * >>     constraint forces a real register, so it costs 8-12 bytes and carries
+ * >>     RELOCDIFF -- it fails the COSTS-NO-INSTRUCTION clause, like every
+ * >>     named-intermediate row before it;
+ * >>   - with only a CLOBBER list it costs nothing (size equal, 119/119), and
+ * >>     it does NOT create a block-1 quantity spanning insn 55 -- it makes the
+ * >>     figure WORSE (5 -> 9/10) and moves the first difference EARLIER
+ * >>     (21 -> 18), i.e. it perturbs the schedule without touching the
+ * >>     allocation.
+ * >> The zero-cost half and the quantity-creating half are mutually exclusive
+ * >> on this body.  That closes the last construct anyone had reason to think
+ * >> might satisfy the bound, so the bound is no longer "nothing has produced
+ * >> one" -- it is "the only construct that produces one cannot be free".
+ * >> The local-alloc arithmetic underneath (QTY_CMP_PRI at
+ * >> local-alloc.c:1496-1498, find_free_reg at :1934/:2026, post_mark_life at
+ * >> :2039, REG_ALLOC_ORDER at arm.h:989) is UNCHANGED and still reproduces.
+ *
+ * NOT RE-SCREENED, per the park's own note and the brief: the FLAG axis (all
+ * eight per-file groups) and the ANCHOR axis (19 placements, of which 10 were
+ * bit-identical, so 9 distinct programs). Those are recorded negatives.
+ *
+ * ALSO STILL TRUE AND WORTH REPEATING: this park needs TWO mechanisms, not
+ * one.  Indices 21/23/25 are the x-load allocation (3 encodings) and 35/37 are
+ * an independent hi->lo reload scratch for `i` in r8 (2 encodings) which
+ * survived the batch-329 r1 pin unchanged.  Even a full close of the bound
+ * above leaves 2.
+ *
+ * ---------------------------------------------------------------------------
+ * THE PRIOR HEADERS FOLLOW IN FULL AND UNCHANGED.  They are correct and they
+ * are still the map.
+ */
 /* DisplayMenuArrowCursor (EmitPartySprites)  --  0x0801aeec   [rom_15000]
  *
  * PARK AT **5 of 133 stream encodings**, and the 5 is now **SHIM-FREE**:

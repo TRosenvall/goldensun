@@ -36278,3 +36278,90 @@ rows had been or were about to be filed as levers tried.
 *"all N inert"* from *"all N measured nothing"*. One park and one earlier batch
 spent roughly 22 rows re-spelling an expression gcc normalises; that is the cost
 of not knowing.
+
+# Batch 349 — THE NEGATIVE-LIST RE-TEST, AND THE NUMBER THAT JUSTIFIES IT
+
+## The measurement, across four independent agents and two parks done by hand
+
+A park's recorded "inert list" is mostly **one program**. Object fingerprinting
+(`sweep_variants.py`, batch 348) makes that visible for the first time:
+
+| source | recorded spellings | distinct programs | measured nothing |
+|---|---|---|---|
+| `Func_80b6d30` re-test (brief B) | **45** | **6** | **39 (87%)** |
+| four parks (brief D) | 90 | 25 | 65 (72%) |
+| four parks (brief C) | 35 | 7 | 28 (80%) |
+| `Func_80b6d30` by hand (coordinator) | 6 | 2 | 5 |
+| `Field_Halt` literals (coordinator) | 5 | 1 | 4 |
+
+So a header reading *"forty-five spellings measured inert"* often means **six
+programs were tested and thirty-nine placements did nothing.** The unexplored
+moves hide in that gap, and **three landings this batch came out of it.**
+
+## WHY SO MANY COLLAPSE — the specific folds
+
+Not a mystery, and worth naming so a brief stops re-spelling:
+
+* **`simplify_plus_minus`** folds the liveness edits that look most promising.
+  Brief B's five bit-identical rows — `a += 2`, `a = a + 2`, `a = i*2 + 6`,
+  `(i+2)*2`, `off = off;` — were *exactly* what its own mechanism predicted should
+  work, and all five are the base program.
+* **`optabs.c:663`'s `rtx_equal_p (op1, target)`** forces the operand swap
+  whenever the store target is one operand, which collapses an entire `|=`
+  family.
+* **`combine.c:10138-10158`** rewrites `LT C` to `LE (C-1)` for positive C,
+  collapsing every `<`/`<=`/`>`/`!(>)` spelling into one.
+* **`jump.c`** normalises block emission order, so four source layouts of the
+  same control flow are one program.
+
+## AND THE STRUCTURAL REASON A WHOLE PARK CAN GO FLAT: AN ABSORBING STATE
+
+Brief B's finding, and it explains three batches of flat results with one
+mechanism. On `Func_80b6d30`, insn 109's reload has **r1 as its only legal
+choice** whatever the incoming cursor state, because r2 and r3 are
+pseudo-occupied. Proof rather than observation: `find_reg` always prefers r3
+(`arm.h:989-991` with `reload1.c:1639-1646`), so greg printing `Using reg 1`
+there proves both are in `bad_spill_regs` (`reload1.c:1525-1537`).
+
+**Consequence: nothing placed before the inner loop's first `ldrsh` can move the
+residue.** That single fact accounts for batch 321's 29-of-37 flat rows, batch
+347's 25 anchors yielding 9 distinct programs, and brief B's own 39-of-45.
+
+When a park's variants go flat *in bulk*, look for an absorbing state before
+concluding the lever does not exist.
+
+## A NEW INVISIBLE COST: the Thumb `ldrsh` scratch
+
+`*thumb_extendhisi2_insn` carries an **unconditional**
+`(clobber (match_scratch:SI 2 "=&l"))` (`arm.md:3242`) whose template returns a
+bare `ldrsh` for a `REG+REG` address (`arm.md:3269-3270`). So **every Thumb
+`ldrsh` from a register offset burns one reload allocation that emits nothing.**
+An allocation-class effect with no instruction to point at.
+
+## `find_reg`'s choice is nearly information-free — except when it is not
+
+Brief B's correction to an inherited diagnosis. A park read "`find_reg` already
+chooses the ROM's r3, so layer 1 agrees". That is wrong in kind: `find_reg` names
+a register to make **spillable**, and `finish_spills` then re-grows
+`chain->used_spill_regs` to every pseudo-free spill reg
+(`reload1.c:3611-3623`). It prints `3` at eleven of fourteen sites only because
+of `REG_ALLOC_ORDER`.
+
+So that line is almost always `3` and tells you nothing — **except where it
+prints something else**, which is exactly how the absorbing state above gets
+proved. A near-constant instrument is informative only at its exceptions.
+
+## `reload_cse_move2add` IS NOT A ROUTE TO A COMPARISON OPERAND
+
+Struck, having been named as one (by the coordinator, in a brief).
+`reload1.c:8863-8900` rewrites `(set REGX (CONST_INT A)) … (set REGX (CONST_INT
+B))` into `(set REGX (plus REGX (B-A)))` **for the same register**. It never
+touches a comparison operand. Do not reach for it to explain a `cmp` immediate.
+
+## THE METHOD'S ONE CAVEAT, from brief C
+
+**Bit-identity means "did not change the output", not "the compiler never saw a
+difference."** The converse exists: a variant that is *not* bit-identical can
+still be inert on the figure while emitting a **different wrong order** at the
+same indices. So a non-identical inert row is still a real measurement of one
+body — it just is not a second data point about the same ordering.

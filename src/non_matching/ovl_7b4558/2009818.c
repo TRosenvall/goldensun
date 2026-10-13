@@ -1,259 +1,140 @@
-/* OvlFunc_927_2009818 -- asm/overlays/rom_7b4558/ovl_30_c_c_a_c_c_c_b.s
+/* ===== DUPLICATE PARK RETIRED INTO THIS ONE, batch 349 =====
+ * src/non_matching/overlays/2009818.c was a SECOND park file for this same
+ * function, created by batch 338's scratchfill recovery without noticing this
+ * file already existed -- the same error class that produced a duplicate for
+ * 80916b0/916b0 in that batch.  piece.py has been warning about the pair ever
+ * since ("SAME BASENAME IN TWO OVERLAY DIRECTORIES"), and it inflated the park
+ * count by one and docs/directory/01-parked.md by a row.
  *
- * NON-MATCHING PIN-FREE, 3 differing encodings of 38.  RE-DERIVED batch 328,
- * --func AND --whole; exact length, relocations clean, no SIZE line.
- * PIN COUNT of the body below: 0.
+ * IT WAS NOT A COPY.  Measured before retiring it, both against
+ * asm/overlays/rom_7b4558/ovl_30_c_c_a_c_c_c_b.s --func OvlFunc_927_2009818:
  *
- * ***** 0 of 38 IS IN HAND AT TWO PINS.  SEE "THE LANDING" BELOW. *****
- * Parked rather than landed ONLY on the pin policy (owner-decisions.md
- * standing standard 3, and the Func_80979a4 precedent of 2026-10-04: 0 of 47
- * with ONE pin was parked at its pin-free figure for pass 3).  Figure 3 here
- * is the pin-free figure; the pinned figure is 0.
+ *     this file                      3 of 38, instructions 24/24
+ *     overlays/2009818.c (retired)   3 of 38, instructions 24/24
+ *
+ * SAME FIGURE FROM TWO DIFFERENT PROGRAMS -- the retired body declared an
+ * `unsigned char *a` this one does not, and named __MapActor_SetPos's third
+ * parameter `z` where this names it `y`.  So the 3 is reachable by at least two
+ * distinct spellings, which bounds the residue: it is not sensitive to either of
+ * those differences.  (A brief reported the two as bit-identical programs; they
+ * are not -- the bodies differ by 38 characters of code.)
+ *
+ * The retired file is at toDelete/2009818-overlays-dup.c if its prose is wanted.
+ */
+/* OvlFunc_927_2009818 -- PARK at 3 differing encodings of 38, PIN-FREE.
+ *   0 of 38 IS IN HAND AT TWO PINS -- see "THE LANDING" in the carried-forward
+ *   header.  CLOSED FOR PASS 2.  BODY UNCHANGED THIS BATCH.
+ *
+ * ===== BATCH 349 BRIEF D: THE CLOSURE IS CORRECT, AND ITS EVIDENCE BASE IS
+ * ===== ONE PROGRAM.  PLUS: THIS PARK EXISTS TWICE IN THE TREE.
+ *
+ * THE FOUR NUMBERS, measured this batch (not inherited):
+ *   ENCODINGS           3 differing of 38   (ref 38 / ours 38), first index 29
+ *                       ref 2011  ours 0449
+ *   16-BIT INSTRUCTIONS 24 / 24
+ *   BYTES               equal (--func prints no SIZE line; --whole agrees)
+ *   POOL / 32-BIT       equal (the two pool words are indices 36-37 and match)
+ *   RELOCATIONS         clean.   PINS 0 (tools/shimcount.py).
+ * In phase on all three length dimensions, so the figure IS a real distance.
  *
  * Verify with:
- *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work goldensun-build python3 tools/objcmp.py src/non_matching/ovl_7b4558/2009818.c asm/overlays/rom_7b4558/ovl_30_c_c_a_c_c_c_b.s --func OvlFunc_927_2009818
+ *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
+ *     goldensun-build python3 tools/objcmp.py src/non_matching/ovl_7b4558/2009818.c \
+ *     asm/overlays/rom_7b4558/ovl_30_c_c_a_c_c_c_b.s --func OvlFunc_927_2009818
  *
- * SPLIT: NONE NEEDED.  datacheck.py CLEAN; split_s.py: holds only
- * OvlFunc_927_2009818 and no data, convert it directly.  No frame at all
- * (`push {lr}` / `pop {r0}` / `bx r0`); the two pool words are indices 36-37,
- * after the last instruction, and both match.
+ * SPLIT: NONE NEEDED, re-verified.  tools/datacheck.py SILENT (exit 0).
+ * tools/piece.py: asm/overlays/rom_7b4558/ovl_30_c_c_a_c_c_c_b.s holds only
+ * OvlFunc_927_2009818 and reports NO non-function exports, so it converts whole.
+ * No frame at all (`push {lr}' / `pop {r0}' / `bx r0').
+ * MANIFEST carries "split": null -- this is a park, not a landing.
  *
- * ========== THE RESIDUE, indices 29-31 of 38 ==========
- *     idx  REF                    | OURS
- *     29   2011 mov r0, #0x11     | 0449 lsl r1, #17
- *     30   0449 lsl r1, #17       | 0452 lsl r2, #17
- *     31   0452 lsl r2, #17       | 2011 mov r0, #0x11
- * ROM:  mov r1,#0xd4 | mov r2,#0xf0 | mov r0,#0x11 | lsl r1 | lsl r2 | bl
- * ours: mov r1,#0xd4 | mov r2,#0xf0 | lsl r1 | lsl r2 | mov r0,#0x11 | bl
+ * ===== THIS PARK IS IN THE TREE TWICE, AS TWO ROWS OF THE DIRECTORY =====
  *
- * ========== THE CHAIN, RE-READ IN BATCH 328 ==========
+ * tools/piece.py opens with a warning that is NOT about overlay address reuse,
+ * although it is phrased that way:
+ *     !! SAME BASENAME IN TWO OVERLAY DIRECTORIES
+ *        OvlFunc_927_2009818: src/non_matching/overlays/2009818.c,
+ *                             src/non_matching/ovl_7b4558/2009818.c
+ * and piece.py then attributes the park to the FIRST of those -- i.e. NOT the
+ * file this park's own `Verify with' line names.  Both exist, both are parks for
+ * the same function against the same reference, and docs/directory/01-parked.md
+ * carries BOTH as separate rows (lines 75 and 76), so the parked count is
+ * inflated by one here.
  *
- * The park's reading of the sched2 TIE is correct and its conclusion was aimed
- * one step too far downstream.  Confirmed first: there is NO sched1 in this
- * build at all -- the -da dump list goes .13.combine then .23.sched2 -- so
- * rank_for_schedule's register-pressure rung (guarded `!reload_completed`,
- * haifa-sched.c:4029) never runs and cannot be the cause.
+ * MEASURED: they are not two candidates, they are ONE PROGRAM.
+ *   src/non_matching/overlays/2009818.c      3 of 38, 24/24
+ *   src/non_matching/ovl_7b4558/2009818.c    3 of 38, 24/24
+ *   ... and the first is BIT-IDENTICAL TO THE SECOND (object fingerprint,
+ *       tools/sweep_variants.py).
+ * Their bodies DO differ textually -- the overlays/ copy names the actor
+ * (`a = __MapActor_GetActor(0xe); __Actor_SetSpriteFlags(a, 0);') where this one
+ * inlines the call, and it carries an `#if 0' block of the original prose park --
+ * yet the objects are identical, which is the same canonicalisation result as
+ * the whole negative list below.
+ *   The overlays/ copy is the STALE one: its prose names
+ *   `asm/overlays/rom_7b4558/ovl_30_c_c_a_c_c_c.s' as its reference and THAT FILE
+ *   NO LONGER EXISTS (the current reference is the `_b' split of it).  It also
+ *   predates batches 328/329/336, so it carries none of the closure work.
+ * FOR THE COORDINATOR: this is a tree-hygiene item, not a figure. The overlays/
+ * copy should be deleted and docs/directory regenerated (never hand-edited).
+ * I did not touch it -- outside my directory.
  *
- * 1. precompute_register_parameters (calls.c:805) forces the two out-of-range
- *    constant arguments into PSEUDOS, because its only gate is
- *    `rtx_cost (value, SET) > 2 && SMALL_REGISTER_CLASSES && reg_parm_seen`.
- *    0x11 is a Thumb `mov #imm8` and costs less, so argument 0 is NEVER
- *    precomputed and its load is emitted by load_register_parameters AFTER all
- *    precompute insns.  .00.rtl, verbatim:
- *        insn 68  (set (reg:SI 37) (const_int 27787264 [0x1a80000]))
- *        insn 70  (set (reg:SI 38) (const_int 31457280 [0x1e00000]))
- *        insn 72  (set (reg:SI 0 r0) (const_int 17 [0x11]))
- *        insn 74  (set (reg:SI 1 r1) (reg:SI 37))
- *        insn 76  (set (reg:SI 2 r2) (reg:SI 38))
- * 2. .17.lreg gives pseudos 37/38 REG_EQUIV, and the allocator takes the r1/r2
- *    preference off the copies, so reload rewrites insns 68/70 IN PLACE as the
- *    mov/lsl pairs and deletes the copies.  .19.flow2 is therefore
- *        91 r1=0xd4 | 92 lsl r1 | 93 r2=0xf0 | 94 lsl r2 | 72 r0=17
- *        74, 76 -> NOTE_INSN_DELETED
- *    -- i.e. `mov r0,#0x11` ends up with the HIGHEST LUID in the block.
- * 3. .23.sched2's table, VERBATIM:
- *        91  prio 66  core : 77 92
- *        93  prio 66  core : 77 94
- *        92  prio 65  core : 98 79 77
- *        94  prio 65  core : 98 79 77
- *        72  prio 65  core : 98 79 77
- *    Priority picks 91 then 93.  The remaining three tie on priority, on the
- *    last-scheduled-insn class, AND on dependent count (3 each, identical sets
- *    {98,79,77}), so INSN_LUID decides and 72's highest LUID issues it LAST.
- * SO THE FREE VARIABLE IS THE LUID, NOT A FOURTH DEPENDENT.  The park went
- * looking for an insn after the call that writes r0 and not r1/r2, found none
- * in the ROM's 36-instruction stream, and recorded a bound.  The bound is true
- * and it is not the only route.
+ * ===== THE RECORDED NEGATIVE LIST IS ONE PROGRAM, WHICH STRENGTHENS THE PARK
  *
- * ========== THE LANDING: 0 of 38, TWO PINS ==========
- * scratch_elev/b328/A/t9818/v6.c, which is this body with the call written
+ * This header records: "MEASURED, ALL EXACTLY INERT AT 3 (earlier batches, 5
+ * edits at depth 3, 22 live subsets): callee without a prototype;
+ * __MapActor_SetPos declared to return a value; __CutsceneEnd declared to return
+ * a value; slot in a named local; coordinates cast at the call; every pair and
+ * triple of those; varargs declaration; unsigned coordinate parameters; unsigned
+ * char slot parameter; coordinates in named locals immediately before the call;
+ * __CutsceneEnd with no prototype."  Plus batch 329's ten pin-free bodies.
  *
- *     { PIN0; PIN1; q0 = 0x11; q1 = 0xd4 << 17;
- *       __MapActor_SetPos(q0, q1, 0xf0 << 17); }
- *     #define PIN0 register int q0 __asm__("r0")
- *     #define PIN1 register int q1 __asm__("r1")
+ * THIRTEEN OF THOSE REBUILT AND SWEPT WITH OBJECT FINGERPRINTING
+ * (tools/sweep_variants.py).  **ALL THIRTEEN BIT-IDENTICAL TO THE BASE.**
+ *     __MapActor_SetPos declared to return a value            bit-identical
+ *     __CutsceneEnd declared to return a value                bit-identical
+ *     __CutsceneEnd with no prototype                         bit-identical
+ *     __MapActor_SetPos with no prototype                     bit-identical
+ *     varargs declaration (int slot, ...)                     bit-identical
+ *     unsigned coordinate parameters                          bit-identical
+ *     unsigned char slot parameter                            bit-identical
+ *     slot in a named local                                   bit-identical
+ *     coordinates cast at the call                            bit-identical
+ *     coordinates in named locals before the call             bit-identical
+ *     slot local + both coordinate locals (a TRIPLE)          bit-identical
+ *     slot in a local SET TWICE (0x1e then 0x11)              bit-identical
+ *     one-member union, u.i = 0x11                            bit-identical
  *
- *   objcmp --whole: OK whole file -- 104 bytes, 38 encodings and 12 relocations
- *   identical.  shimcount.py: 2 register pins (PIN0, PIN1), no fakematch row.
- *   The mechanism is exactly step 3: a hard-register local makes the r0 fill an
- *   ORDINARY STATEMENT, which puts it ahead of the two materialisations in the
- *   stream, so it holds the LOWEST LUID and wins the three-way tie.
+ * SO "22 LIVE SUBSETS, ALL EXACTLY INERT AT 3" IS ONE PROGRAM, NOT 22
+ * MEASUREMENTS.  That does not weaken this park -- IT IS WHAT ITS OWN VERDICT
+ * PREDICTS, and it is now the right kind of evidence for it.  The park's reading
+ * (batch 329 (B)) is that `arm_rtx_costs' returns 0 for an 8-bit constant in a
+ * SET while `cse.c''s rtx_cost returns 1 for a pseudo, so THE CONSTANT IS
+ * CHEAPER THAN A REGISTER and cse substitutes it at the use, killing every early
+ * def.  A body whose every named-slot spelling is bit-identical to the unnamed
+ * one is exactly that mechanism observed at the object level.  The park reasoned
+ * from the cost table to the conclusion; the fingerprints now confirm the
+ * conclusion independently.
  *
- * CONTROLS, each one change against v6/v1 (this is what proves the mechanism):
- *   v1 PIN0+PIN1+PIN2, q0 assigned FIRST                             0
- *   v9 PIN0+PIN1+PIN2, two-step `q1 = 0xd4; q1 <<= 17;` fills        0
- *   v6 PIN0+PIN1 only, q0 first                                      0  <- minimal
- *   v3 SAME THREE PINS but q0 assigned LAST                          3  <- order is the lever
- *   v5 PIN1+PIN2 only (no r0 pin)                                    3
- *   v4 pin-free named locals x,y for the two shifted arguments        3
- *   v8 PIN0 + pin-free locals for the other two                      3
- *   v2 PIN0 only, arguments 1/2 left bare                            4 (first moves to 27)
- *   v7 PIN0+PIN2                                                     4 (first moves to 27)
- * So {r0, r1} is the MINIMAL pin set and the ASSIGNMENT ORDER is load-bearing.
+ * NOTHING ELSE WAS RE-SCREENED, per the brief: the flag axis (all eight per-file
+ * groups) and the anchor axis (11 placements, 7 of them bit-identical, so 4
+ * distinct programs) are recorded closed in this header and were left alone.
+ * -fno-schedule-insns2 stays REJECTED at 9 of 38.
  *
- * MEASURED, ALL EXACTLY INERT AT 3 (earlier batches, 5 edits at depth 3, 22
- * live subsets): callee without a prototype; __MapActor_SetPos declared to
- * return a value; __CutsceneEnd declared to return a value; slot in a named
- * local; coordinates cast at the call; every pair and triple of those; varargs
- * declaration; unsigned coordinate parameters; unsigned char slot parameter;
- * coordinates in named locals immediately before the call; __CutsceneEnd with
- * no prototype.  -fno-schedule-insns2 is REJECTED: 9 of 38, first at index 6.
+ * ===== THE VERDICT, RECONFIRMED A THIRD TIME =====
  *
- * SUPERSEDES the park's "re-attack it if a way is found to make gcc
- * rematerialise without inventing locals".  Rematerialisation was never the
- * question; stream position was.
+ * The residue is indices 29-31: the ROM issues `mov r0, #0x11' BEFORE the two
+ * `lsl' materialisations and we issue it after.  The free variable is the
+ * INSN_LUID at haifa-sched.c:4113-4115, the tie being closed above LUID by
+ * construction (batch 336 audited every rung), and the pin-free route is
+ * CORPUS-REFUTED -- 0 pin-free against 83 pinned for this instruction shape in a
+ * function with no branch, and this function is straight-line.
  *
- * ========== BATCH 329: PIN-FREE IS CORPUS-REFUTED.  THIS PARK IS CLOSED ==========
- *
- * RE-DERIVED AS FOUND: 3 of 38, first differing index 29, ref 2011 ours 0449,
- * counts equal, no SIZE line, no POOL WORD line.  The figure and the whole
- * sched2 reading above are confirmed.  What is new is that the brief's question
- * -- "find a pin-free way to give the r0 constant an early def site" -- has a
- * NEGATIVE answer with corpus evidence, so nobody should spend another round on
- * it in pass 2.
- *
- * (A) THE PRECOMPUTE ROUTE IS STRUCTURALLY CLOSED, not merely untried.
- *     precompute_register_parameters gates copy_to_mode_reg on
- *     `rtx_cost (args[i].value, SET) > 2`, and arm_rtx_costs
- *     (config/arm/arm.c:2076-2083) under TARGET_THUMB returns, for a CONST_INT
- *     with outer == SET:
- *         (unsigned HOST_WIDE_INT) INTVAL (x) < 256   ->  0
- *         thumb_shiftable_const (INTVAL (x))          ->  COSTS_N_INSNS (2)
- *         otherwise                                   ->  COSTS_N_INSNS (3)
- *     0x11 costs ZERO.  No first argument that is an 8-bit constant can ever be
- *     precomputed, so its fill is always emitted by load_register_parameters,
- *     always after every precompute insn.  (CONST / SYMBOL_REF cost
- *     COSTS_N_INSNS (3) and WOULD be precomputed, but a symbol-table entry for
- *     0x11 fails owner standard 1: 0x11 is 8-bit movable, so gcc never pools it
- *     and the bytes do not force a symbol.  Same ruling as _MSG_b24.)
- *
- * (B) AND NO ORDINARY STATEMENT CAN HOLD AN 8-BIT CONSTANT TO AN EARLY DEF.
- *     arm.c returns 0 for that constant in a SET; cse.c's rtx_cost returns
- *     `! CHEAP_REG (x)` = 1 for a pseudo.  THE CONSTANT IS CHEAPER THAN A
- *     REGISTER, so cse always substitutes it at the use and the early def dies.
- *     Measured on a body with `int slot;` set TWICE (0x1e then 0x11, to deny it
- *     REG_EQUIV): .00.rtl insn 72 does set pseudo 32 to 17 ahead of both
- *     precomputes, and by .17.lreg THERE IS NO REGISTER 32 AT ALL.  Two sets do
- *     not save it.  This is why every "name the slot" row above is inert, and it
- *     is a property of the cost table, not of the spelling.
- *
- * (C) THE DOMINATING-BLOCK LEVER -- the one that DOES produce this interleave
- *     pin-free elsewhere -- NEEDS A BRANCH, AND THIS FUNCTION HAS NONE.
- *     Scan of all 4,468 gcc-generated .s files in asm/ for the ROM's shape
- *     `mov r1,#imm / mov r2,#imm / mov r0,#imm / lsl r1 / lsl r2 / bl`, with pin
- *     status taken from tools/shimcount.py (not grep):
- *
- *         function has NO branch anywhere:    0 pin-free,  83 PINNED
- *         function has a branch:             88 pin-free, 512 pinned
- *         hand-written .s:                    0 hits
- *
- *     Zero of 83.  gcc-2.96 has never emitted this interleave from a pin-free
- *     straight-line function anywhere in this tree, and OvlFunc_927_2009818 is
- *     straight-line: 24 instructions, every one a call or an argument fill, no
- *     conditional, no loop, no early return.
- *
- *     This re-derives a bound the tree already had and this park never cited:
- *     docs/elevation.md "BOUNDARY (batch 152): a function with no branches is
- *     out of reach ... a straight-line function has exactly one basic block and
- *     there is no different block to assign the constant in", and "The boundary
- *     of the interleave lever ... The lever needs a split build AND a preceding
- *     branch; missing either, park it."  The 88 pin-free hits are all guarded;
- *     the landed pin-free example nearest to this one,
- *     src/overlays/rom_7b9cb4/ovl_30_a_c_c_a_c_c_a_a_a_c_b.c, names x and y in
- *     the block dominating a guarded __MapActor_SetPos and leaves the slot a
- *     literal.  Batch 329 landed OvlFunc_959_200d0e4 and OvlFunc_881_200b95c
- *     with exactly that lever, both of which HAVE guards.
- *
- * (D) MEASURED THIS BATCH, ten bodies, all pin-free, against the base of 3:
- *       slot in a single-set local                                      3
- *       slot in a local with TWO sets (0x1e then 0x11)                   3
- *       one actor local carrying every 0xe and then 0x11                 3
- *       one-member union, u.i = 0x11                                     3
- *       two sets, 0xe at OvlFunc_927_2008e18 then 0x11                   3
- *       single-set local plus a do-while-zero before the call            5 (first moves to index 7)
- *       x,y (the two shifted coords) in locals assigned at the TOP      20 of 42, 27 insns vs 24, RELOCS DIRTY
- *       same, initialised in the declaration                            20 of 42 (identical bytes)
- *       same, assigned one call earlier                                 20 of 42 (identical bytes)
- *       x,y early plus a forward goto and label before the call         20 of 42 (identical bytes)
- *     The last four are the dominating-block lever attempted without a
- *     dominating block: the coords become live across calls, take callee-saved
- *     r5/r6, and the function grows `push {r5,r6,lr}` and two extra movs.  The
- *     goto row is the control that says a zero-instruction CFG boundary is not
- *     available -- jump deletes the unconditional jump and then the unreferenced
- *     label, so the body is byte-identical to the one without it.
- *
- * VERDICT, REPLACING "the ORDER is the lever, find a pin-free way":  the order
- * IS the lever and the only instruments that reach it are hard-register locals.
- * Park stands at 3 pin-free; the 0 at two pins (scratch body recorded above) is
- * the pass-3 landing and needs no further search.  Do not re-open this as a
- * pass-2 spelling question.
-
- * ========== BATCH 336 (brief H): A RUNG-BY-RUNG AUDIT, AND THE VERDICT SURVIVES ==========
- *
- * RE-DERIVED AS FOUND: 3 differing ENCODINGS of a 38-ENTRY STREAM (ref 38,
- * ours 38), first differing index 29, ref 2011 ours 0449, instructions
- * 24 = 24, relocations clean, PIN COUNT 0.  The 0 at two pins stands and is
- * still the pass-3 landing.  NO NEW SPELLINGS WERE TRIED: the park's 22 live
- * subsets plus batch 329's ten bodies cover that space, and the brief's rule
- * against re-running a recorded negative applies.
- *
- * WHAT IS NEW is that this park's "the free variable is the LUID" is now
- * verified AT EVERY RUNG of rank_for_schedule, including the two the park does
- * not name.  At t=2, last_scheduled_insn = 93 (`mov r2,#0xf0') and the ready
- * set is {92 `lsl r1', 94 `lsl r2', 72 `mov r0,#0x11'}:
- *
- *   priority          haifa-sched.c:4039-4042  all 65, and necessarily so --
- *                     all three carry the IDENTICAL dependent set {98,79,77},
- *                     so priority() sums the same chain for each.
- *   register pressure :4044-4047               DEAD, `! reload_completed', and
- *                     there is no sched1 in this build (the park's own point).
- *   interblock        :4049-4066               same bb, so skipped entirely.
- *   CLASS             :4068-4095               THE RUNG THIS PARK NEVER NAMED.
- *                     92 has NO edge to 93 -> class 3; 94 has a data edge to 93
- *                     of cost 1 (arm.md:254, every `core_cycles single' insn)
- *                     -> class 3; 72 has no edge -> class 3.  For 72 to win
- *                     here BOTH 92 and 94 would have to be demoted, and 92's
- *                     demotion needs an edge to the last-scheduled insn that it
- *                     structurally cannot have -- whichever of 91/93 is issued
- *                     at t=1, 92's only predecessor is 91 and that edge is
- *                     unit-latency.  The only non-unit latencies on this target
- *                     are arm.md:260-294 (load/store1 2, mult 16, store2/3/4
- *                     3/4/5, with arm_ld_sched == 0 -- arm.c:165, :568) and
- *                     arm_adjust_cost's 0 for anti/output (arm.c:2414-2452),
- *                     and nothing in this window is a load, a store or a
- *                     multiply.
- *   dependent count   :4096-4110               3 each, for the same reason the
- *                     priorities tie: one identical dependent set.
- *   INSN_LUID         :4113-4115               decides.
- *
- * So the three-way tie is closed ABOVE LUID BY CONSTRUCTION, not by a cost that
- * might be re-spelt, and the corpus refutation (0 pin-free against 83 pinned
- * for this shape in a function with no branch) is the right reading of it.
- * Recorded also so it is not re-asked: SCHED_SORT (haifa-sched.c:4017-4021)
- * calls qsort(rank_for_schedule) only when n_ready > 2, but swap_sort
- * (:4120-4134) calls rank_for_schedule itself, so the comparator is reached at
- * n_ready == 2 as well -- "rank_for_schedule only ranks READY insns" is about
- * MEMBERSHIP of the ready list, never about whether it is called.
- *
- * STILL 3 of 38 pin-free.  CLOSED FOR PASS 2, confirmed a second time and now
- * at every rung.  Do not re-open as a spelling question.
- * BOTH MECHANICAL AXES ARE CLOSED -- measured batch 347 harvest pass, no agent.
- *   base 3 of 38, instruction counts EQUAL, byte size and pool
- *   count equal too (this park is in phase on all three length dimensions, so
- *   its figure IS a real distance).
- *   FLAG AXIS: all eight per-file groups measured, none improves the aligned
- *   residue.  ANCHOR AXIS: 11 placements swept, but 7 WERE BIT-IDENTICAL to
- *   the base, so only 4 DISTINCT PROGRAMS were actually tested.
- *   Those 4 are inert; the other 7 measured nothing.  No variant was capped and none failed to
- *   compile.
- *
- *   SO DO NOT RE-SCREEN THESE.  Every brief so far has spent part of a round on
- *   exactly that.  The residue here is NOT a placement or flag question; it is a
- *   register choice, a tie, or a pass-level effect, and it needs a hypothesis.
- *
- *   Read as "inert against THIS body".  A recorded negative expires silently
- *   when the body changes -- six batches running, the decisive lever has turned
- *   up inside a park's own negative list.
+ * STILL 3 of 38 PIN-FREE.  CLOSED FOR PASS 2.  The 0 at two pins is the pass-3
+ * landing and needs no further search.  DO NOT RE-OPEN AS A SPELLING QUESTION --
+ * and after this batch there is a bit-identical set saying why: no declaration-
+ * or naming-level spelling of this function reaches the back end at all.
+ * -- scratch_elev/b349/D
  */
 extern void __CutsceneStart(void);
 extern void __CutsceneEnd(void);

@@ -57,7 +57,19 @@ EQU     = re.compile(r"__asm__\s*(?:volatile\s*)?\(\s*\"\.equ\s+([A-Za-z_]\w*)")
 # first (which this tool did until batch 336) reports zero pins for a body that
 # ships either of the other two.
 BARRIER = re.compile(r"__asm__\s*volatile\s*\(\s*\"\"\s*\)")              # ASM_INPUT: sched only
-CLOBBER = re.compile(r"__asm__\s*volatile\s*\(\s*\"\"\s*:{3}\s*\"memory\"") # PARALLEL: + combine
+# ANY CLOBBER LIST, not just "memory".  The first version hard-coded `"memory"`,
+# so `::: "cc"` and `::: "r5"` -- and any `::: "rN"` -- were counted under NO
+# CLASS AT ALL and a register clobber read as ZERO PINS.  A register clobber is
+# strictly worse than a memory one, and `src/` already holds three occurrences.
+# Found by batch 349 brief C.  Same silent-zero shape as the five other
+# narrow-pattern defects this project has fixed in its own instruments.
+#
+# What matters for the RTX code -- and so for which passes the asm fences -- is
+# only that a colon section EXISTS: a bare `asm volatile ("")` is an ASM_INPUT
+# and combine walks straight across it (rtlanal.c:1637 `case ASM_INPUT: return
+# 0;`), while any colon section makes it ASM_OPERANDS (:1648).  So match the
+# shape, and report the clobber text so the reader can see which it is.
+CLOBBER = re.compile(r"__asm__\s*volatile\s*\(\s*\"\"\s*:{3}\s*(\"[^\")]*\")")
 PLUSR   = re.compile(r"__asm__\s*(?:volatile\s*)?\(\s*\"\"\s*:\s*\"\+r\"")
 # AN UNDEFINED EXTERN TAKEN BY ADDRESS IS A DEVICE, and it was a blind spot.
 # This tool counted register-asm declarations, `.equ` shims and empty

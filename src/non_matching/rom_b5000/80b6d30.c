@@ -1,596 +1,777 @@
 /* Func_80b6d30 (AssignBattlePositions)  --  0x080b6d30
  *
- * STILL NON-MATCHING, **3 differing encodings of 119** (ref 119 / ours 119,
- * 109 real instructions on both sides, first differing index 82).  PIN-FREE,
+ * STILL NON-MATCHING, **3 differing encodings of 119**.  PIN-FREE, SHIM-FREE,
+ * FLAG-FREE.  BODY UNCHANGED by batch 349 brief B.
  *
- * ===== 4 -> 3, NEGATIVE-LIST RE-TEST PASS, no agent =====
- * The lever is A SECOND DEFINITION OF `j` -- `j = 0;` as its own statement, which
- * is a DEAD STORE because the loop then assigns `j = ret`.  That is allocation
- * ROUTE 3 from the standing table ("add a definition so the range splits, and the
- * value leaves the race"), and the measurements say exactly that:
+ * ===== BATCH 349 BRIEF B: THE RESIDUE IS ONE RELOAD REGISTER, AND THE PASS,
+ * ===== THE DECIDING INSN AND THE REASON THE SURFACE IS FLAT ARE ALL NAMED
  *
- *   `j = 0;` before `ret = 0`            3 of 119
- *   `j = 0;` after the Func_80c2384 call 3 of 119   bit-identical to the above
- *   both, plus the loop at `j = 0`       3 of 119   bit-identical to the above
- *   THE CLEAN FORM, loop `j = 0` only    4 of 119   BIT-IDENTICAL TO BASE
+ * FOUR NUMBERS, RE-DERIVED (objcmp --whole and the insn_pool_counts split):
+ *   encodings  ref 119 / ours 119
+ *   16-bit insns  ref 109 / ours 109
+ *   bytes      ref 256 / ours 256
+ *   pool/32-bit entries  ref 9 / ours 9      relocations ok
+ * In phase on all three length dimensions, so 3 IS a real distance.
  *
- * So POSITION IS IRRELEVANT and the VALUE is irrelevant -- the clean rewrite that
- * removes the dead store is the same program as the base.  What the compiler
- * reacts to is the EXISTENCE of a second definition.  It fixed the first
- * differing encoding: index 23 -> 82.
+ *   idx 82  ref 032b  lsl r3, r5, #12     ours 032a  lsl r2, r5, #12
+ *   idx 83  ref 433b  orr r3, r7          ours 433a  orr r2, r7
+ *   idx 84  ref 469a  mov sl, r3          ours 4692  mov sl, r2
  *
- * AND FIVE OF THE SIX INERT-LIST ROWS I RE-TESTED WERE BIT-IDENTICAL TO THE BASE,
- * i.e. they measured NOTHING: `for (j = ret; j < 2; ...)`, `ret = j = 0`,
- * declaration order with `ret` last, `i` before `j`, and `(i << 1)` for `i * 2`.
- * The park's carried-forward list reads as fourteen tried spellings; the ones
- * re-tested here are a far smaller number of distinct programs.  Object
- * fingerprinting (sweep_variants, new in batch 348) is what separates them.
+ * ALL THREE ENCODINGS ARE ONE DECISION: the lo-register reload that insns
+ * 203/205 need because `ret` is in sl.  There is no second residue left -- the
+ * old "(1) index 23 mov r4, sl" half was fixed by the `j = 0;` dead store.
  *
- * WHAT IS LEFT, and it is now one question.  Index 82 is `ref 032b`
- * (`lsls r3, r5, #12`) against `ours 032a` (`lsls r2, r5, #12`) -- a REGISTER
- * CHOICE on the shift result, nothing else.  Five spellings of that expression
- * were measured on the improved body:
- *   block-local name for the shift      3   BIT-IDENTICAL
- *   split the OR into its own name      3   BIT-IDENTICAL
- *   commuted `v | (i << 12)`            3   BIT-IDENTICAL
- *   shift through the long-lived `a`  103   (reloc differs, +8 bytes)
- *   shift through the long-lived `off` 106   (reloc differs, +12 bytes)
- * So NO SPELLING OF THE EXPRESSION REACHES THE ALLOCATOR DIFFERENTLY -- the three
- * naming forms are one program -- and reusing a long-lived local is catastrophic.
- * The remaining lever is not in this statement.  PIN-FREE,
- * SHIM-FREE, FLAG-FREE.  RE-DERIVED batch 326 brief F -- objcmp --func AND
- * --whole both read 4 of 119 with SIZE, INSTRUCTION COUNT and RELOCATIONS all
- * silent, so no pad is absorbing a length difference.  Batch 321 brief E
- * RE-MEASURED and CONFIRMED the figure, ran 37 crossed variants over the lever
- * class the park had never touched (declarations and signatures), and
- * independently DERIVED residue (1)'s impossibility from cse.c rather than
- * inferring it.  THE BODY BELOW IS UNCHANGED from the parked one.
+ * 1. THE NEGATIVE LIST, RE-TESTED WITH OBJECT FINGERPRINTING.  **83 variants
+ *    measured; the 45-row re-test of the park's own carried-forward inert list
+ *    came back as SIX DISTINCT PROGRAMS (39 BIT-IDENTICAL to the base).**  A
+ *    second 14-row probe set was 6 distinct programs (8 bit-identical).  The
+ *    rows that measured NOTHING include every one of: `for (j = ret; ...)` with
+ *    the dead store kept, `ret = j = 0`, `j = ret = 0`, `!j`, a block temp for
+ *    `i << 12`, `v | (i << 12)`, `o` at function scope, the tail test as
+ *    `&&`/`break`, the tail test split in two, `(int)ewram_2018000 + (i << 14)`,
+ *    `&ewram_2018000[i << 14]`, `i * 0x4000`, `ewram_2018000[][0x4000]` with
+ *    `(int)ewram_2018000[i]`, `off = i << 1`, `o = i << 1`, `i < 6`,
+ *    `if (u[0x129])`, `u[0x129] > 0`, `unsigned char *s`, `unsigned flag`,
+ *    `unsigned v`, `unsigned ret`, `unsigned a`, `unsigned off`, `i` before `j`,
+ *    `j` before `ret`, `_PreloadSpriteGFX`'s 2nd parameter `void *`, the store
+ *    block with `o` eliminated, `i = 0;` lifted out, the bottom-tested
+ *    do-while, `slot` copied to a block local, `if (flag)`, `if (i >= 5)`,
+ *    `if (!(i < 5))`, `flag` declared first, `a` before `off`, an extra unused
+ *    local, `*(short *)(a + s)`, `!*(short *)(s + a)`, `(i + 2) * 2` /
+ *    `(i + 3) * 2` for the two offsets, `a += 2`, `a = a + 2`, `a = i * 2 + 6`,
+ *    `off = off;` as a third use, and `if (i <= 4) { a = off + 6; ... }`.
+ *    DO NOT RECORD ANY OF THOSE AS LEVERS TRIED -- gcc canonicalised them away
+ *    before the back end.  **The park's inert list is one program, not fourteen
+ *    spellings.**
+ *
+ * 2. THE PASS AND THE INSN.  `ret` is reg 37 and global_alloc gives it sl
+ *    (`.18.greg` "12 regs to allocate: 41 59 53 80 39 33 36 35 38 37 34 32",
+ *    dispositions "37 in 10"), and its conflict row lists hard regs 0 1 2 3 5,
+ *    so it CANNOT take a lo register and it has NO `preferences:` line at all.
+ *    So this is NOT an allocno priority or preference question -- global_alloc
+ *    agrees with the ROM.  `.15.regmove` insn 203 is
+ *    `(set (reg/v:SI 37) (ashift (reg/v:SI 39) 12))` and insn 205 the `ior`;
+ *    both need a lo reload and insn 384 `(set (reg/v:SI 10 sl) (reg:SI 2 r2))`
+ *    is the one copy.  `.19.flow2` has insn 203 as `(set (reg:SI 2 r2) ...)`.
+ *
+ * 3. THE DECIDER IS `allocate_reload_reg`'s ROUND-ROBIN CURSOR, AND THE WHOLE
+ *    CHAIN IS NOW READ OFF THE DUMP.  `last_spill_reg` is an INDEX into
+ *    `spill_regs`, initialised to -1 (**reload1.c:821**), written ONLY in
+ *    `set_reload_reg` (**reload1.c:4937**) and read as the start of the
+ *    round-robin at **reload1.c:5003-5013**.  An INHERITED reload or one whose
+ *    `reg_rtx` was preset is SKIPPED (**reload1.c:5636-5641**: `if
+ *    (rld[r].reg_rtx != 0 || rld[r].optional) continue;`) and therefore does
+ *    NOT advance the cursor -- which is exactly the `Spilling for insn N.`
+ *    lines in `.18.greg` that carry NO `Using reg` line (insns 27, 72, 165,
+ *    357, 359 here).  `spill_regs` is built ascending (**reload1.c:3527-3532**)
+ *    and is **{1,2,3}, n_spills 3**.  Availability is
+ *    `reload_reg_unavailable = ~chain->used_spill_regs` (**reload1.c:5129**),
+ *    and `chain->used_spill_regs` is re-grown per insn in `finish_spills` as
+ *    `~used_by_pseudos & used_spill_regs` (**reload1.c:3611-3623**) -- i.e. a
+ *    spill reg is unavailable at an insn exactly when a live pseudo sits in it.
+ *
+ *    The advancing allocations, in STREAM order, with the register each got
+ *    (from `.19.flow2`) and the cursor it leaves:
+ *      insn  37  r1 (insn 366 `movs r1,#0`)   c0     <- cursor starts -1
+ *      insn 322  r2 (peel ldrsh scratch)      c1
+ *      insn 324  r3 (`mov r3,r8`, flag)       c2
+ *      insn 329  r1 (peel ldrsh scratch)      c0
+ *      insn 109  r1 (loop ldrsh scratch)      c0
+ *      insn 116  r3 (`mov r3,r8`, flag)       c2
+ *      insn 134  r1 (loop ldrsh scratch)      c0
+ *      insn 203  r2   <-- THE RESIDUE.  The ROM needs c1 here, i.e. the last
+ *                         allocation before insn 203 must have taken r2.
+ *
+ * 4. **THE INVISIBLE ALLOCATIONS, NAMED.**  `*thumb_extendhisi2_insn`
+ *    (**arm.md:3239-3242**) carries `(clobber (match_scratch:SI 2 "=&l"))`
+ *    UNCONDITIONALLY, and its output template returns a bare `ldrsh %0, %1`
+ *    whenever the address is `REG + REG` (**arm.md:3269-3270**) -- the scratch
+ *    is then REG_UNUSED and EMITS NOTHING.  So **every Thumb `ldrsh` from a
+ *    register-offset address burns one reload-register allocation that is
+ *    invisible in the output.**  That is where insns 109 and 134 come from, and
+ *    it is why no amount of respelling the visible code moves the cursor.
+ *
+ * 5. **INSN 109 IS AN ABSORBING STATE -- THIS IS WHY EVERY SWEEP OF THIS PARK
+ *    HAS BEEN FLAT.**  At insn 109 the live pseudos occupy r2 (`off`, pseudo
+ *    72) and r3 (`a` / the ldrsh destination), so `chain->used_spill_regs` is
+ *    {1} and r1 is the ONLY legal reload register regardless of the incoming
+ *    cursor.  Direct evidence rather than inference: `find_reg` tie-breaks on
+ *    `inv_reg_alloc_order` (**reload1.c:1639-1646**) and `REG_ALLOC_ORDER` is
+ *    `{3, 2, 1, 0, ...}` (**arm.h:989-991**), so find_reg ALWAYS prefers r3;
+ *    `.18.greg` printing **"Using reg 1"** at insn 109 therefore proves r3 and
+ *    r2 are both in `bad_spill_regs` there (**reload1.c:1525-1537**, which ORs
+ *    in `used_by_pseudos`).  The same reading gives insn 134: greg prints
+ *    **"Using reg 2"**, which proves r3 is occupied and **r2 is FREE** at insn
+ *    134 -- `off` dies at insn 129 (`a = off + 6`).
+ *    CONSEQUENCE: **nothing before the inner loop's first `ldrsh` can change
+ *    index 82.**  Declarations, types, callee signatures, statement order in
+ *    the prologue, the `j = ret` init, every anchor placement and every flag
+ *    group sit before insn 109 and are erased by it.  That is the mechanism
+ *    behind "29 of 37 rows tie the base" (batch 321), "25 anchor placements, 9
+ *    distinct programs, all inert" (batch 347) and the 39-of-45 bit-identical
+ *    block above.
+ *
+ * 6. **THE +-1 RULE, MEASURED THREE TIMES WITH INSTRUMENTS.**  Adding or
+ *    removing exactly one advancing allocation inside the window
+ *    (insn 109, insn 203] flips index 82 off r2.  Probed on the generated `.s`
+ *    directly (register of `lsl rX, r5, #12 / orr rX, r7 / mov sl, rX`), which
+ *    is length-blind so semantics-changing instruments are usable:
+ *      drop the inner `if (flag != 0) break;`      -> **r3**  (113 insns)
+ *      add a third inner `ldrsh` test              -> **r3**  (127 insns)
+ *      add one `ldrsh` AFTER the inner loop        -> **r3**  (124 insns)
+ *      a `short *` kept live across the tests      -> r1      (121 insns)
+ *      the store block hoisted above `if (j == 0)` -> r5      (121 insns)
+ *    All INSTRUMENTS -- each changes the instruction count, so none ships.  But
+ *    they settle the mechanism: the residue is the cursor's position, the
+ *    window is (109, 203], and ANY +-1 in it wins the register.
+ *
+ * 7. THE BOUND, STATED WITH ITS EVIDENCE, NOT AS A VERDICT.  Two routes exist
+ *    and both are costed:
+ *    (a) +-1 advancing allocation in the window (109, 203].  Every instruction
+ *        in that window is already byte-matched against the ROM
+ *        (`cmp r5,#6` / the 0x128 materialisation / the two calls and their
+ *        caller-saves / `cmp r0,#0` / `cmp r4,#0`), and the only zero-emission
+ *        allocation class gcc has here is the `ldrsh` scratch of arm.md:3242,
+ *        which requires an `ldrsh` instruction the ROM does not have in that
+ *        window.  The 0x128 reload at insn 165 does NOT advance the cursor (it
+ *        is one of the preset `Spilling for insn` lines); making it advance
+ *        would hand it r2 at cursor 0 and emit `mov r2,#0x94` where the ROM has
+ *        `mov r3,#0x94`.
+ *    (b) change `n_spills` / the modulus, i.e. bring r0 into the global
+ *        `used_spill_regs`.  `find_reg` reaches r0 only when r3, r2 AND r1 are
+ *        all in `bad_spill_regs` at some reload insn, i.e. THREE lo registers
+ *        simultaneously occupied by live pseudos.  Our deepest point is two
+ *        (insn 109).  The park's own hard-register pin is the only thing that
+ *        has ever done it -- trace `3 2 3 2 0 3 1 3 3 3 3 3`, n_spills 3 -> 4,
+ *        figure 102.
+ *    Read (a) and (b) as "measured costed, not measured impossible".
+ *
+ * 8. WHAT THE ROM'S SOURCE MUST HAVE DONE, as the next concrete question.  For
+ *    insn 203 to get r3 the ROM's cursor was 1, so its insn 134 took r2, so its
+ *    cursor entering 134 was 0, so its insn 116 (the inner `mov r3, r8`) took
+ *    r1 -- and insn 116 takes r1 only if r3 is ALSO unavailable there, i.e. a
+ *    live pseudo in r3 dies at the inner flag test.  Our `a` dies at insn 110.
+ *    Three attempts to keep a value live across that test are recorded here:
+ *    hoisting `b = off + 6` above the tests (32 of 119), keeping the first
+ *    loaded `short` live via `off + 6 + t` and `(off + 6) | t` (both
+ *    BIT-IDENTICAL -- gcc folds `t` out knowing nothing, the adds simply
+ *    commute away), and a `short *` for the second read (95 at 121).
+ *    **NEXT: find a construct that leaves ONE lo pseudo live into the inner
+ *    `if (flag != 0)` test and dead immediately after it, at zero instruction
+ *    cost.**  That is the whole remaining question; it is narrower than
+ *    anything this park has been asked before.
  *
  * The only function in asm/rom_b5000/rom_b5a0c_c_c_c_a_c.s and no data section
- * (datacheck.py prints nothing), so landing would be a plain whole-file
- * conversion with no export and no split.
+ * (datacheck.py prints nothing; split_s.py --dry-run therefore has nothing to
+ * cut), so landing would be a plain whole-file conversion -- no export, no
+ * split.  Pins 0 (shimcount: register class 0, .equ 0, other __asm__ 0).
  *
  * Verify with:
- *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work goldensun-build python3 tools/objcmp.py src/non_matching/rom_b5000/80b6d30.c asm/rom_b5000/rom_b5a0c_c_c_c_a_c.s --func Func_80b6d30
+ *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
+ *     goldensun-build python3 tools/objcmp.py \
+ *     src/non_matching/rom_b5000/80b6d30.c \
+ *     asm/rom_b5000/rom_b5a0c_c_c_c_a_c.s --whole
  *
- * THE RESIDUE IS TWO PLACES, FOUR ENCODINGS, and both are confirmed:
+ * DO NOT RE-PROPOSE: anything in the 83-variant list of section 1; any edit
+ * before the inner loop's first `ldrsh` (section 5 erases it); respellings of
+ * `ret = (i << 12) | v` (five were already one program, four more here);
+ * declarations/types/signatures (37 + 12 rows, flat); the post-reload CSE
+ * family; cse1/cse2/gcse boundaries (residue (1) is GONE -- it was fixed by the
+ * dead store, so the entire boundary question in sections below is HISTORY).
  *
- *   (1) index 23:   rom `mov r4, sl`              ours `movs r4, #0`
- *   (2) indices 82-84:
- *       rom  `lsl r3, r5, #12 / orr r3, r7 / mov sl, r3`
- *       ours `lsl r2, r5, #12 / orr r2, r7 / mov sl, r2`
- *
- * ===== BATCH 321: RESIDUE (1) IS NOW PROVED, NOT ARGUED =====
- *
- * The park argued from COST and notreg_cost that the constant wins on ties.
- * That is correct as far as it goes but it is not the whole decision, and the
- * missing half makes the result STRONGER rather than weaker.  Read in gcc-2.96's
- * own cse.c, the full chain at `j = ret` is:
- *
- *   a. `ret = 0` records BOTH `(const_int 0)` and ret's pseudo in ONE
- *      equivalence class, and `insert` keeps a class sorted by CHEAPER with the
- *      cheapest FIRST.  Its own comment says it: "a constant is the only thing
- *      that can be cheaper than a register".  So the class head is the constant.
- *
- *   b. At `j = ret`, cse_insn walks that class and PRUNES every candidate that
- *      is already in the table -- `src = 0` for the register and then
- *      `src_folded = 0` for the constant ("Prefer items not in the hash table
- *      to ones that are when they are equal cost").  BOTH are pruned, so
- *      src_cost and src_folded_cost both stay at 10000 and NEITHER is what
- *      decides anything.
- *
- *   c. The substitution therefore comes from the hash-table entry, and `elt` was
- *      set to `elt->first_same_value` -- the class HEAD -- which by (a) is the
- *      constant, at `src_elt_cost == 0`.  The fold is unconditional.
- *
- * So the escape is not "make the register cheaper than the constant", it is
- * "keep the register off the head of its own equivalence class", and the only
- * thing in CHEAPER that can beat a `(const_int 0)` at cost 0 is CHEAP_REG, which
- * needs `REG_USERVAR_P && REGNO < FIRST_PSEUDO_REGISTER` -- a HARD-REGISTER USER
- * VARIABLE.  That is the pin the park already measured at 102 of 119.  **There
- * is no pin-free C source that reaches residue (1) inside one basic block**, and
- * the ROM's own layout puts `ret = 0` (indices 18/21) and `j = ret` (index 23)
- * in one block with only `bl Func_80c2384` between them -- and a call does not
- * invalidate a pseudo in cse's table, which the park verified from the other
- * direction by moving `j = ret` across it (still 4).
- *
- * The documented escape remains a CONTROL-FLOW BOUNDARY, as in the corpus
- * exemplar src/rom_b5000/rom_b8228_c_a_c_c_a_c_a_c_b.c whose `for (i = ret; ...)`
- * sits in an ELSE arm at .L3.  This function has no boundary to put there.
- *
- * ===== BATCH 321: THE DECLARATION LEVER CLASS IS MEASURED, AND IT IS FLAT =====
- *
- * docs/humanization.md section 3 says a pin is evidence about a DECLARATION.
- * This park's body is a textbook instance of that signature -- `*(short *)(s +
- * a)` raw-offset arithmetic four times, and `extern unsigned char
- * ewram_2018000[];` with no dimensions -- and NOTHING in the class had ever been
- * tried here.  37 crossed variants via tools/crossfire.py, depth 2, two edit
- * sets.  Reference memory profile ldr=7 ldrb=4 ldrsh=4 str=1 strh=2.
- *
- * EXACTLY INERT at 4 of 119, ref 119 / ours 119 (so these are distances, and
- * each is a candidate prerequisite that pays nothing on its own OR in any pair):
- *
- *   * `extern unsigned char ewram_2018000[][0x4000];` WITH the use rewritten as
- *     `(int)ewram_2018000[i]` -- pattern 4, the inner dimension included.  This
- *     is the dividend case the brief asks to be reported: BETTER-TYPED SOURCE,
- *     IDENTICAL BYTES.  (Either half ALONE is 5 of 119, i.e. one worse -- the
- *     declaration and the use have to move together.)
- *   * splitting `if (v == 0x1dc || v == 0x1e3) continue;` into two sequential
- *     `if`s -- pattern 1.
- *   * `i * 0x4000` for `i << 14`; dropping the `(int)` cast on the ewram
- *     argument; `_PreloadSpriteGFX`'s second parameter declared `void *`;
- *     `_GetUnit`'s prototype withheld; `ret` declared `unsigned int`; `v`
- *     declared `unsigned int`.  And every PAIR of the above.
- *
- * FAR WORSE, all with a COUNT flag (so the figure measures misalignment, not
- * distance) -- recorded so nobody repeats them:
- *   * `short *s` with the four accesses as `s[i+2]` / `s[i+3]`: 79-94 at 115-123
- *     instructions, with MEM divergence.  Pattern 2 does NOT apply here: the
- *     ROM's `ldrsh r3, [r6, r2]` register-offset form is what the `off`/`a`
- *     idiom produces, and narrowing the pointer type replaces it with scaled
- *     addressing.  The landed sibling Func_80b6cdc's idiom is correct as written.
- *   * hoisting the arg-4 call `Func_80c23a0(u[0x128])` into a temp: 101 at 123.
- *
- * READ THE FLATNESS AS THE FINDING (brief 321): 29 of 37 rows tie the base
- * exactly, across three different dimensions.  The lever is not in declarations,
- * types or callee signatures.  Given the derivation above, that is expected:
- * residue (1) is decided on COST inside cse1's equivalence class, which no type
- * written in C can move, and residue (2) is a reload-register INDEX.
- *
- * ===== BATCH 326 BRIEF F: RESIDUE (1)'s OPEN ROUTE IS REFUTED, AND ITS
- * ===== SHAPE IS REPRODUCED
- *
- * OBSERVED rather than derived: `.02.jump` insn 54 is
- * `(set (reg/v:SI 38) (reg/v:SI 37))` and `.03.cse` insn 54 is
- * `(set (reg/v:SI 38) (const_int 0))` with a REG_EQUAL note (reg 37 = `ret`,
- * reg 38 = `j`).  cse1 does fold it, exactly as the park derived.
- *
- * **BUT THE SAME FOLD ALSO DELETES `jump_insn 308`, THE LOOP'S ENTRY GUARD**
- * `(if_then_else (gt (reg 38) (const_int 1)) ...)`, which `stmt.c` emits ahead
- * of `NOTE_INSN_LOOP_BEG` for every `for`.  The ROM has NO entry guard: it goes
- * `mov r4, sl / mov r7, r0` straight into `.Lb6d68`.  Measured -- every edit
- * that blocks the fold puts the guard back and pays two encodings for it:
- *
- *   * `ret = _DEVICE_ZERO` (a volatile extern, INSTRUMENT): `cmp r1,#1 / bgt
- *     .L4` appears, **121 instructions**, figure 105.
- *   * `register int ret asm("r10")` (the park's pin): `cmp r7,#1 / bgt .L4`,
- *     **121 instructions**, figure 102.
- *
- * So the park's "residue (1) needs a control-flow boundary that cse1 SEES and a
- * later pass REMOVES" is necessary and **NOT SUFFICIENT**: a boundary that hides
- * `ret`'s value also stops the guard folding.  **Any solution must ALSO make the
- * outer loop bottom-tested in RTL**, and that cross is measured and it works:
- *
- *   * `j = ret; do { ... } while (++j <= 1);` is **EXACTLY INERT at 4 of 119,
- *     118 instructions, with a bit-identical `.18.greg` reload trace.**  The
- *     bottom-tested spelling is free -- a candidate prerequisite that pays
- *     nothing on its own, which is why 37 one-at-a-time variants in batch 321
- *     and six statement orders before that could not see it.
- *   * the same do-while WITH the volatile instrument emits `mov r7, sl` at the
- *     init, **no entry guard, and 118 instructions -- the ROM's exact count**
- *     (against 121 for `for` + the same instrument).  Its figure is 101 only
- *     because the volatile load swaps `j` and `v` between r7 and r4 and drops
- *     one reload from the trace.
- *
- * > **Residue (1)'s SHAPE is therefore reproduced** -- register copy out of sl,
- * > no guard, 118 instructions.  What remains is a DEVICE-FREE way to keep
- * > `ret`'s value from cse1 at the init of a bottom-tested loop.  State the open
- * > question that way; the boundary and the loop shape must arrive together.
- *
- * Device-free boundary attempts, all INERT at 4 (the label never survives to
- * cse1): `goto start; start: j = ret;` -- jump1 runs at pass 02 and deletes the
- * jump together with its now-unused label -- and braces on the `continue` arm.
- * `int ret = 0;` as a declaration initialiser with the do-while reads **22**.
- *
- * ===== A FAMILY NOBODY HAD CHECKED, NOW CLOSED, WITH ITS EVIDENCE =====
- *
- * `mov r4, sl` could have come from post-reload CSE instead of from source --
- * there are two passes that replace a non-register SET_SRC with a register that
- * already holds the value, and both run after reload.  Neither can fire here:
- *
- *   * `reload_cse_simplify_set` (**reload1.c:8046-8056**) substitutes when
- *     `this_cost < old_cost`, or on a tie because "If equal costs, prefer
- *     registers over anything else".
- *   * `reload_cse_simplify_operands` (**reload1.c:8219-8224**), optional
- *     reloading, gates a CONST_INT operand on
- *     `rtx_cost (operand, SET) > rtx_cost (reg, SET)`.
- *
- * and the Thumb costs are: `arm_rtx_costs` returns **0** for any `const_int`
- * below 256 with `outer == SET` (**arm.c:2078-2081**); `REGISTER_MOVE_COST` is
- * **4** when HI_REGS is involved, 2 otherwise (**arm.h:1280-1285**); and
- * `rtx_cost ((reg), SET)` is **1** = `! CHEAP_REG` (**cse.c:805**, CHEAP_REG at
- * **cse.c:505-507** -- `CHEAP_REGNO` is false for r10, which is neither
- * fp/sp/ap nor `FIXED_REGNO_P`).  `4 < 0` false, `4 == 0` false, `0 > 1` false.
- * **BOUND: on Thumb no post-reload pass can replace a `const_int` below 256
- * with a register.**  Also checked: `*thumb_movsi_insn`'s alternative 8 is
- * `"*lh"/"*lh"` (**arm.md:3839-3840**), so lo<-hi needs no reload in either
- * direction -- residues (1) and (2) are NOT linked through the reload count.
- *
- * ===== RESIDUE (2) RE-DIAGNOSED: find_reg ALREADY PICKS THE ROM'S REGISTER ====
- *
- * `.15.regmove:533` shows insn 200 is `(set (reg/v:SI 37) (ashift (reg 39) 12))`
- * and insn 202 `(set (reg 37) (ior (reg 37) (reg 36)))` -- both write `ret`,
- * which is in sl, so both need a lo-register reload, and insn 381
- * (`mov sl, r2`) is the reload copy.  `.18.greg` prints
- *
- *     Spilling for insn 200.
- *     Using reg 3 for reload 0
- *     Spilling for insn 202.
- *     Using reg 3 for reload 0
- *
- * -- **`find_reg` (reload1.c:1588, the only `Using reg` printf, :1664) already
- * chooses the ROM's r3.**  We emit r2.  So layer 1 agrees with the ROM and the
- * divergence is purely layer 3: `allocate_reload_reg`'s round-robin over
- * `spill_regs` starting at `last_spill_reg` (**reload1.c:4998-5013**; the cursor
- * is written only at **:4937**, inside `set_reload_reg`).
- *
- * Measured inputs.  `spill_regs` is built in ASCENDING hard-register order
- * (**reload1.c:3527-3532**) and here it is **{1,2,3}, n_spills 3**; the whole
- * cursor trace for the function is **3 2 3 2 1 3 2 3 3 2 3 2 3 3**.  At insn 200
- * the live pseudos are 32-39 in fp, r6, r9, r8, r7, sl, r4, r5, so the per-insn
- * grown set `chain->used_spill_regs` (**reload1.c:3621-3622**, read into
- * `reload_reg_unavailable` at **:5129**) is the full {1,2,3} and ALL THREE ARE
- * FREE -- batch 325's "`Using reg`, several free -> the cursor" triage, and the
- * cursor alone decides.
- *
- * **The hard-register pin flips the site to the ROM's `lsl r3, r5, #12`, and it
- * does it by putting r0 into the spill set** -- trace `3 2 3 2 0 3 1 3 3 3 3 3`,
- * n_spills 3 -> 4.  So residue (2)'s lever class is the **modulus or parity of
- * the cursor** (n_spills, or the count of non-inherited reload allocations
- * before insn 200), NOT the spelling of the statement.  That is why the park's
- * respellings were inert, and the park's old sentence "the register at index 82
- * is a function of the COUNT of reload-register allocations made EARLIER" was
- * right about the mechanism while its "`Using reg 3` selects which register to
- * SPILL, not which a reload gets" understated how close layer 1 already is.
- *
- * ===== MEASURED BATCH 326 (ref 119 / ours 119, 118 instructions unless noted) =
- *
- * EXACTLY INERT at 4 with a bit-identical reload trace -- candidate
- * prerequisites, not dead ends: the do-while above; `goto`+label before the
- * init; braces on the `continue` arm; `i >= 5` for `i > 4`; `if (flag)`;
- * `if (!flag)`; `a = i * 2 + 4` with `off`/`a` eliminated; `off = i << 1`;
- * `o = i << 1`; `v | (i << 12)`; `if (u[0x129])`; `u[0x129] > 0`;
- * `(int)ewram_2018000 + (i << 14)`; `i * 0x4000`;
- * `if (v != 0x1dc && v != 0x1e3) break;`; the tail test split into two `if`s;
- * `int a` before `int off`; `int i` before `int j`; `int j` before `int ret`;
- * `unsigned char *s`; `unsigned int flag`; `unsigned int v`; `void *` as
- * `_PreloadSpriteGFX`'s second parameter; `i = 0;` lifted out of the inner
- * `for`.
- *
- * WORSE: `j + v` for `v + j` **5**; `i != 6` as the inner bound **6**; `i > 5`
- * for `i == 6` **7**; `int ret = 0;` as a declaration initialiser **22**;
- * `ret = i << 12; ret |= v;` **46** at 120; the `j == 0` assignment moved below
- * the store block **47** at 120; `off` reused in place of `o` in the store
- * block **116** at 128.
- *
- * ===== THE INERT LIST, carried forward =====
- *
- * From earlier batches, all still 4 or far worse: `for (j = ret; ...)`, `j = ret`
- * before and after the call, `ret = j = 0`, `j = ret = 0`, `j = 0; ...; ret = j`;
- * commuted `v | (i << 12)`; `!j` for `j == 0`; a block-scoped temp for `i << 12`;
- * `ret = i << 12; ret |= v`; declaration order (`ret` last, `ret` first, `j`
- * before `ret`); `i` before `j`; `o` at function scope; the tail test as
- * `if (v != 0x1dc && v != 0x1e3) break;`; `(int)ewram_2018000 + (i << 14)`.
- * NOT inert and not useful: `a = off; a += 4;` -> 75; hoisting `u[0x128]` into a
- * local -> 59; moving `ret = 0` after the call -> 10; `+` for `|` -> 56.
- * Flags: `-fno-gcse`, `-fno-cse-follow-jumps`, `-fno-rerun-cse-after-loop`,
- * `-fno-strength-reduce` all leave it at 4, so NO flag group applies.
- * The cse-defeating barrier family is measured in full and all of it costs two
- * instructions, because `ret` is in a HI register: "+r" 96, "+h" 96, "+g" 98-103,
- * "+l" 100-104, at 121-123 encodings against 119.  "+h" not helping is the
- * important one -- gcc-2.96 copies through a low register either way.
- *
- * SHIMS -- NONE.  register class 0, .equ class 0, other __asm__ 0.
- *
- * NEXT, IF ANYONE TAKES IT UP, in priority order:
- *
- *   1. Residue (1): a DEVICE-FREE boundary that hides `ret`'s value from cse1,
- *      CROSSED WITH the bottom-tested loop (which is measured free).  The
- *      instrumented cross already gives the ROM's `mov <j>, sl` at the ROM's
- *      118 instructions, so the shape is right and only the boundary is missing.
- *      Do not test a boundary on the `for` body -- it will read two worse and
- *      look inert-or-harmful for the wrong reason.
- *   2. Residue (2): shift `allocate_reload_reg`'s cursor by one before insn 200,
- *      or change `n_spills`.  Nothing at the differing statement can do it; look
- *      for an edit that adds or removes ONE non-inherited reload allocation
- *      earlier in the function, or that brings r0 into `used_spill_regs`.
- *
- * Do NOT re-propose: 32+ respellings of the two differing statements, the
- * declaration/type/signature class (37 variants, 29 exactly flat), and the
- * post-reload-CSE family (closed above with citations).
- *
+ * ===== HISTORY BELOW: the park as it stood before batch 349 brief B =====
+ **
+ ** STILL NON-MATCHING, **3 differing encodings of 119** (ref 119 / ours 119,
+ ** 109 real instructions on both sides, first differing index 82).  PIN-FREE,
+ **
+ ** ===== 4 -> 3, NEGATIVE-LIST RE-TEST PASS, no agent =====
+ ** The lever is A SECOND DEFINITION OF `j` -- `j = 0;` as its own statement, which
+ ** is a DEAD STORE because the loop then assigns `j = ret`.  That is allocation
+ ** ROUTE 3 from the standing table ("add a definition so the range splits, and the
+ ** value leaves the race"), and the measurements say exactly that:
+ **
+ **   `j = 0;` before `ret = 0`            3 of 119
+ **   `j = 0;` after the Func_80c2384 call 3 of 119   bit-identical to the above
+ **   both, plus the loop at `j = 0`       3 of 119   bit-identical to the above
+ **   THE CLEAN FORM, loop `j = 0` only    4 of 119   BIT-IDENTICAL TO BASE
+ **
+ ** So POSITION IS IRRELEVANT and the VALUE is irrelevant -- the clean rewrite that
+ ** removes the dead store is the same program as the base.  What the compiler
+ ** reacts to is the EXISTENCE of a second definition.  It fixed the first
+ ** differing encoding: index 23 -> 82.
+ **
+ ** AND FIVE OF THE SIX INERT-LIST ROWS I RE-TESTED WERE BIT-IDENTICAL TO THE BASE,
+ ** i.e. they measured NOTHING: `for (j = ret; j < 2; ...)`, `ret = j = 0`,
+ ** declaration order with `ret` last, `i` before `j`, and `(i << 1)` for `i * 2`.
+ ** The park's carried-forward list reads as fourteen tried spellings; the ones
+ ** re-tested here are a far smaller number of distinct programs.  Object
+ ** fingerprinting (sweep_variants, new in batch 348) is what separates them.
+ **
+ ** WHAT IS LEFT, and it is now one question.  Index 82 is `ref 032b`
+ ** (`lsls r3, r5, #12`) against `ours 032a` (`lsls r2, r5, #12`) -- a REGISTER
+ ** CHOICE on the shift result, nothing else.  Five spellings of that expression
+ ** were measured on the improved body:
+ **   block-local name for the shift      3   BIT-IDENTICAL
+ **   split the OR into its own name      3   BIT-IDENTICAL
+ **   commuted `v | (i << 12)`            3   BIT-IDENTICAL
+ **   shift through the long-lived `a`  103   (reloc differs, +8 bytes)
+ **   shift through the long-lived `off` 106   (reloc differs, +12 bytes)
+ ** So NO SPELLING OF THE EXPRESSION REACHES THE ALLOCATOR DIFFERENTLY -- the three
+ ** naming forms are one program -- and reusing a long-lived local is catastrophic.
+ ** The remaining lever is not in this statement.  PIN-FREE,
+ ** SHIM-FREE, FLAG-FREE.  RE-DERIVED batch 326 brief F -- objcmp --func AND
+ ** --whole both read 4 of 119 with SIZE, INSTRUCTION COUNT and RELOCATIONS all
+ ** silent, so no pad is absorbing a length difference.  Batch 321 brief E
+ ** RE-MEASURED and CONFIRMED the figure, ran 37 crossed variants over the lever
+ ** class the park had never touched (declarations and signatures), and
+ ** independently DERIVED residue (1)'s impossibility from cse.c rather than
+ ** inferring it.  THE BODY BELOW IS UNCHANGED from the parked one.
+ **
+ ** The only function in asm/rom_b5000/rom_b5a0c_c_c_c_a_c.s and no data section
+ ** (datacheck.py prints nothing), so landing would be a plain whole-file
+ ** conversion with no export and no split.
+ **
+ ** Verify with:
+ **   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work goldensun-build python3 tools/objcmp.py src/non_matching/rom_b5000/80b6d30.c asm/rom_b5000/rom_b5a0c_c_c_c_a_c.s --func Func_80b6d30
+ **
+ ** THE RESIDUE IS TWO PLACES, FOUR ENCODINGS, and both are confirmed:
+ **
+ **   (1) index 23:   rom `mov r4, sl`              ours `movs r4, #0`
+ **   (2) indices 82-84:
+ **       rom  `lsl r3, r5, #12 / orr r3, r7 / mov sl, r3`
+ **       ours `lsl r2, r5, #12 / orr r2, r7 / mov sl, r2`
+ **
+ ** ===== BATCH 321: RESIDUE (1) IS NOW PROVED, NOT ARGUED =====
+ **
+ ** The park argued from COST and notreg_cost that the constant wins on ties.
+ ** That is correct as far as it goes but it is not the whole decision, and the
+ ** missing half makes the result STRONGER rather than weaker.  Read in gcc-2.96's
+ ** own cse.c, the full chain at `j = ret` is:
+ **
+ **   a. `ret = 0` records BOTH `(const_int 0)` and ret's pseudo in ONE
+ **      equivalence class, and `insert` keeps a class sorted by CHEAPER with the
+ **      cheapest FIRST.  Its own comment says it: "a constant is the only thing
+ **      that can be cheaper than a register".  So the class head is the constant.
+ **
+ **   b. At `j = ret`, cse_insn walks that class and PRUNES every candidate that
+ **      is already in the table -- `src = 0` for the register and then
+ **      `src_folded = 0` for the constant ("Prefer items not in the hash table
+ **      to ones that are when they are equal cost").  BOTH are pruned, so
+ **      src_cost and src_folded_cost both stay at 10000 and NEITHER is what
+ **      decides anything.
+ **
+ **   c. The substitution therefore comes from the hash-table entry, and `elt` was
+ **      set to `elt->first_same_value` -- the class HEAD -- which by (a) is the
+ **      constant, at `src_elt_cost == 0`.  The fold is unconditional.
+ **
+ ** So the escape is not "make the register cheaper than the constant", it is
+ ** "keep the register off the head of its own equivalence class", and the only
+ ** thing in CHEAPER that can beat a `(const_int 0)` at cost 0 is CHEAP_REG, which
+ ** needs `REG_USERVAR_P && REGNO < FIRST_PSEUDO_REGISTER` -- a HARD-REGISTER USER
+ ** VARIABLE.  That is the pin the park already measured at 102 of 119.  **There
+ ** is no pin-free C source that reaches residue (1) inside one basic block**, and
+ ** the ROM's own layout puts `ret = 0` (indices 18/21) and `j = ret` (index 23)
+ ** in one block with only `bl Func_80c2384` between them -- and a call does not
+ ** invalidate a pseudo in cse's table, which the park verified from the other
+ ** direction by moving `j = ret` across it (still 4).
+ **
+ ** The documented escape remains a CONTROL-FLOW BOUNDARY, as in the corpus
+ ** exemplar src/rom_b5000/rom_b8228_c_a_c_c_a_c_a_c_b.c whose `for (i = ret; ...)`
+ ** sits in an ELSE arm at .L3.  This function has no boundary to put there.
+ **
+ ** ===== BATCH 321: THE DECLARATION LEVER CLASS IS MEASURED, AND IT IS FLAT =====
+ **
+ ** docs/humanization.md section 3 says a pin is evidence about a DECLARATION.
+ ** This park's body is a textbook instance of that signature -- `*(short *)(s +
+ ** a)` raw-offset arithmetic four times, and `extern unsigned char
+ ** ewram_2018000[];` with no dimensions -- and NOTHING in the class had ever been
+ ** tried here.  37 crossed variants via tools/crossfire.py, depth 2, two edit
+ ** sets.  Reference memory profile ldr=7 ldrb=4 ldrsh=4 str=1 strh=2.
+ **
+ ** EXACTLY INERT at 4 of 119, ref 119 / ours 119 (so these are distances, and
+ ** each is a candidate prerequisite that pays nothing on its own OR in any pair):
+ **
+ **   * `extern unsigned char ewram_2018000[][0x4000];` WITH the use rewritten as
+ **     `(int)ewram_2018000[i]` -- pattern 4, the inner dimension included.  This
+ **     is the dividend case the brief asks to be reported: BETTER-TYPED SOURCE,
+ **     IDENTICAL BYTES.  (Either half ALONE is 5 of 119, i.e. one worse -- the
+ **     declaration and the use have to move together.)
+ **   * splitting `if (v == 0x1dc || v == 0x1e3) continue;` into two sequential
+ **     `if`s -- pattern 1.
+ **   * `i * 0x4000` for `i << 14`; dropping the `(int)` cast on the ewram
+ **     argument; `_PreloadSpriteGFX`'s second parameter declared `void *`;
+ **     `_GetUnit`'s prototype withheld; `ret` declared `unsigned int`; `v`
+ **     declared `unsigned int`.  And every PAIR of the above.
+ **
+ ** FAR WORSE, all with a COUNT flag (so the figure measures misalignment, not
+ ** distance) -- recorded so nobody repeats them:
+ **   * `short *s` with the four accesses as `s[i+2]` / `s[i+3]`: 79-94 at 115-123
+ **     instructions, with MEM divergence.  Pattern 2 does NOT apply here: the
+ **     ROM's `ldrsh r3, [r6, r2]` register-offset form is what the `off`/`a`
+ **     idiom produces, and narrowing the pointer type replaces it with scaled
+ **     addressing.  The landed sibling Func_80b6cdc's idiom is correct as written.
+ **   * hoisting the arg-4 call `Func_80c23a0(u[0x128])` into a temp: 101 at 123.
+ **
+ ** READ THE FLATNESS AS THE FINDING (brief 321): 29 of 37 rows tie the base
+ ** exactly, across three different dimensions.  The lever is not in declarations,
+ ** types or callee signatures.  Given the derivation above, that is expected:
+ ** residue (1) is decided on COST inside cse1's equivalence class, which no type
+ ** written in C can move, and residue (2) is a reload-register INDEX.
+ **
+ ** ===== BATCH 326 BRIEF F: RESIDUE (1)'s OPEN ROUTE IS REFUTED, AND ITS
+ ** ===== SHAPE IS REPRODUCED
+ **
+ ** OBSERVED rather than derived: `.02.jump` insn 54 is
+ ** `(set (reg/v:SI 38) (reg/v:SI 37))` and `.03.cse` insn 54 is
+ ** `(set (reg/v:SI 38) (const_int 0))` with a REG_EQUAL note (reg 37 = `ret`,
+ ** reg 38 = `j`).  cse1 does fold it, exactly as the park derived.
+ **
+ ** **BUT THE SAME FOLD ALSO DELETES `jump_insn 308`, THE LOOP'S ENTRY GUARD**
+ ** `(if_then_else (gt (reg 38) (const_int 1)) ...)`, which `stmt.c` emits ahead
+ ** of `NOTE_INSN_LOOP_BEG` for every `for`.  The ROM has NO entry guard: it goes
+ ** `mov r4, sl / mov r7, r0` straight into `.Lb6d68`.  Measured -- every edit
+ ** that blocks the fold puts the guard back and pays two encodings for it:
+ **
+ **   * `ret = _DEVICE_ZERO` (a volatile extern, INSTRUMENT): `cmp r1,#1 / bgt
+ **     .L4` appears, **121 instructions**, figure 105.
+ **   * `register int ret asm("r10")` (the park's pin): `cmp r7,#1 / bgt .L4`,
+ **     **121 instructions**, figure 102.
+ **
+ ** So the park's "residue (1) needs a control-flow boundary that cse1 SEES and a
+ ** later pass REMOVES" is necessary and **NOT SUFFICIENT**: a boundary that hides
+ ** `ret`'s value also stops the guard folding.  **Any solution must ALSO make the
+ ** outer loop bottom-tested in RTL**, and that cross is measured and it works:
+ **
+ **   * `j = ret; do { ... } while (++j <= 1);` is **EXACTLY INERT at 4 of 119,
+ **     118 instructions, with a bit-identical `.18.greg` reload trace.**  The
+ **     bottom-tested spelling is free -- a candidate prerequisite that pays
+ **     nothing on its own, which is why 37 one-at-a-time variants in batch 321
+ **     and six statement orders before that could not see it.
+ **   * the same do-while WITH the volatile instrument emits `mov r7, sl` at the
+ **     init, **no entry guard, and 118 instructions -- the ROM's exact count**
+ **     (against 121 for `for` + the same instrument).  Its figure is 101 only
+ **     because the volatile load swaps `j` and `v` between r7 and r4 and drops
+ **     one reload from the trace.
+ **
+ ** > **Residue (1)'s SHAPE is therefore reproduced** -- register copy out of sl,
+ ** > no guard, 118 instructions.  What remains is a DEVICE-FREE way to keep
+ ** > `ret`'s value from cse1 at the init of a bottom-tested loop.  State the open
+ ** > question that way; the boundary and the loop shape must arrive together.
+ **
+ ** Device-free boundary attempts, all INERT at 4 (the label never survives to
+ ** cse1): `goto start; start: j = ret;` -- jump1 runs at pass 02 and deletes the
+ ** jump together with its now-unused label -- and braces on the `continue` arm.
+ ** `int ret = 0;` as a declaration initialiser with the do-while reads **22**.
+ **
+ ** ===== A FAMILY NOBODY HAD CHECKED, NOW CLOSED, WITH ITS EVIDENCE =====
+ **
+ ** `mov r4, sl` could have come from post-reload CSE instead of from source --
+ ** there are two passes that replace a non-register SET_SRC with a register that
+ ** already holds the value, and both run after reload.  Neither can fire here:
+ **
+ **   * `reload_cse_simplify_set` (**reload1.c:8046-8056**) substitutes when
+ **     `this_cost < old_cost`, or on a tie because "If equal costs, prefer
+ **     registers over anything else".
+ **   * `reload_cse_simplify_operands` (**reload1.c:8219-8224**), optional
+ **     reloading, gates a CONST_INT operand on
+ **     `rtx_cost (operand, SET) > rtx_cost (reg, SET)`.
+ **
+ ** and the Thumb costs are: `arm_rtx_costs` returns **0** for any `const_int`
+ ** below 256 with `outer == SET` (**arm.c:2078-2081**); `REGISTER_MOVE_COST` is
+ ** **4** when HI_REGS is involved, 2 otherwise (**arm.h:1280-1285**); and
+ ** `rtx_cost ((reg), SET)` is **1** = `! CHEAP_REG` (**cse.c:805**, CHEAP_REG at
+ ** **cse.c:505-507** -- `CHEAP_REGNO` is false for r10, which is neither
+ ** fp/sp/ap nor `FIXED_REGNO_P`).  `4 < 0` false, `4 == 0` false, `0 > 1` false.
+ ** **BOUND: on Thumb no post-reload pass can replace a `const_int` below 256
+ ** with a register.**  Also checked: `*thumb_movsi_insn`'s alternative 8 is
+ ** `"*lh"/"*lh"` (**arm.md:3839-3840**), so lo<-hi needs no reload in either
+ ** direction -- residues (1) and (2) are NOT linked through the reload count.
+ **
+ ** ===== RESIDUE (2) RE-DIAGNOSED: find_reg ALREADY PICKS THE ROM'S REGISTER ====
+ **
+ ** `.15.regmove:533` shows insn 200 is `(set (reg/v:SI 37) (ashift (reg 39) 12))`
+ ** and insn 202 `(set (reg 37) (ior (reg 37) (reg 36)))` -- both write `ret`,
+ ** which is in sl, so both need a lo-register reload, and insn 381
+ ** (`mov sl, r2`) is the reload copy.  `.18.greg` prints
+ **
+ **     Spilling for insn 200.
+ **     Using reg 3 for reload 0
+ **     Spilling for insn 202.
+ **     Using reg 3 for reload 0
+ **
+ ** -- **`find_reg` (reload1.c:1588, the only `Using reg` printf, :1664) already
+ ** chooses the ROM's r3.**  We emit r2.  So layer 1 agrees with the ROM and the
+ ** divergence is purely layer 3: `allocate_reload_reg`'s round-robin over
+ ** `spill_regs` starting at `last_spill_reg` (**reload1.c:4998-5013**; the cursor
+ ** is written only at **:4937**, inside `set_reload_reg`).
+ **
+ ** Measured inputs.  `spill_regs` is built in ASCENDING hard-register order
+ ** (**reload1.c:3527-3532**) and here it is **{1,2,3}, n_spills 3**; the whole
+ ** cursor trace for the function is **3 2 3 2 1 3 2 3 3 2 3 2 3 3**.  At insn 200
+ ** the live pseudos are 32-39 in fp, r6, r9, r8, r7, sl, r4, r5, so the per-insn
+ ** grown set `chain->used_spill_regs` (**reload1.c:3621-3622**, read into
+ ** `reload_reg_unavailable` at **:5129**) is the full {1,2,3} and ALL THREE ARE
+ ** FREE -- batch 325's "`Using reg`, several free -> the cursor" triage, and the
+ ** cursor alone decides.
+ **
+ ** **The hard-register pin flips the site to the ROM's `lsl r3, r5, #12`, and it
+ ** does it by putting r0 into the spill set** -- trace `3 2 3 2 0 3 1 3 3 3 3 3`,
+ ** n_spills 3 -> 4.  So residue (2)'s lever class is the **modulus or parity of
+ ** the cursor** (n_spills, or the count of non-inherited reload allocations
+ ** before insn 200), NOT the spelling of the statement.  That is why the park's
+ ** respellings were inert, and the park's old sentence "the register at index 82
+ ** is a function of the COUNT of reload-register allocations made EARLIER" was
+ ** right about the mechanism while its "`Using reg 3` selects which register to
+ ** SPILL, not which a reload gets" understated how close layer 1 already is.
+ **
+ ** ===== MEASURED BATCH 326 (ref 119 / ours 119, 118 instructions unless noted) =
+ **
+ ** EXACTLY INERT at 4 with a bit-identical reload trace -- candidate
+ ** prerequisites, not dead ends: the do-while above; `goto`+label before the
+ ** init; braces on the `continue` arm; `i >= 5` for `i > 4`; `if (flag)`;
+ ** `if (!flag)`; `a = i * 2 + 4` with `off`/`a` eliminated; `off = i << 1`;
+ ** `o = i << 1`; `v | (i << 12)`; `if (u[0x129])`; `u[0x129] > 0`;
+ ** `(int)ewram_2018000 + (i << 14)`; `i * 0x4000`;
+ ** `if (v != 0x1dc && v != 0x1e3) break;`; the tail test split into two `if`s;
+ ** `int a` before `int off`; `int i` before `int j`; `int j` before `int ret`;
+ ** `unsigned char *s`; `unsigned int flag`; `unsigned int v`; `void *` as
+ ** `_PreloadSpriteGFX`'s second parameter; `i = 0;` lifted out of the inner
+ ** `for`.
+ **
+ ** WORSE: `j + v` for `v + j` **5**; `i != 6` as the inner bound **6**; `i > 5`
+ ** for `i == 6` **7**; `int ret = 0;` as a declaration initialiser **22**;
+ ** `ret = i << 12; ret |= v;` **46** at 120; the `j == 0` assignment moved below
+ ** the store block **47** at 120; `off` reused in place of `o` in the store
+ ** block **116** at 128.
+ **
+ ** ===== THE INERT LIST, carried forward =====
+ **
+ ** From earlier batches, all still 4 or far worse: `for (j = ret; ...)`, `j = ret`
+ ** before and after the call, `ret = j = 0`, `j = ret = 0`, `j = 0; ...; ret = j`;
+ ** commuted `v | (i << 12)`; `!j` for `j == 0`; a block-scoped temp for `i << 12`;
+ ** `ret = i << 12; ret |= v`; declaration order (`ret` last, `ret` first, `j`
+ ** before `ret`); `i` before `j`; `o` at function scope; the tail test as
+ ** `if (v != 0x1dc && v != 0x1e3) break;`; `(int)ewram_2018000 + (i << 14)`.
+ ** NOT inert and not useful: `a = off; a += 4;` -> 75; hoisting `u[0x128]` into a
+ ** local -> 59; moving `ret = 0` after the call -> 10; `+` for `|` -> 56.
+ ** Flags: `-fno-gcse`, `-fno-cse-follow-jumps`, `-fno-rerun-cse-after-loop`,
+ ** `-fno-strength-reduce` all leave it at 4, so NO flag group applies.
+ ** The cse-defeating barrier family is measured in full and all of it costs two
+ ** instructions, because `ret` is in a HI register: "+r" 96, "+h" 96, "+g" 98-103,
+ ** "+l" 100-104, at 121-123 encodings against 119.  "+h" not helping is the
+ ** important one -- gcc-2.96 copies through a low register either way.
+ **
+ ** SHIMS -- NONE.  register class 0, .equ class 0, other __asm__ 0.
+ **
+ ** NEXT, IF ANYONE TAKES IT UP, in priority order:
+ **
+ **   1. Residue (1): a DEVICE-FREE boundary that hides `ret`'s value from cse1,
+ **      CROSSED WITH the bottom-tested loop (which is measured free).  The
+ **      instrumented cross already gives the ROM's `mov <j>, sl` at the ROM's
+ **      118 instructions, so the shape is right and only the boundary is missing.
+ **      Do not test a boundary on the `for` body -- it will read two worse and
+ **      look inert-or-harmful for the wrong reason.
+ **   2. Residue (2): shift `allocate_reload_reg`'s cursor by one before insn 200,
+ **      or change `n_spills`.  Nothing at the differing statement can do it; look
+ **      for an edit that adds or removes ONE non-inherited reload allocation
+ **      earlier in the function, or that brings r0 into `used_spill_regs`.
+ **
+ ** Do NOT re-propose: 32+ respellings of the two differing statements, the
+ ** declaration/type/signature class (37 variants, 29 exactly flat), and the
+ ** post-reload-CSE family (closed above with citations).
+ **
 
- * ===== BATCH 327 BRIEF H: RESIDUE (1) IS TWO FOLDS, NOT ONE, AND A PLAIN
- * ===== CODE_LABEL IS *NOT* A BOUNDARY
- *
- * Figure re-derived: **4 differing encodings of 119**, ref 119 / ours 119,
- * first at index 23, SIZE / INSTRUCTION COUNT / RELOCATIONS all silent.
- * BODY UNCHANGED.
- *
- * 1. THE FOLD IS UNCONDITIONAL FOR THE REASON THE PARK DERIVED, and the lines
- *    are: `CHEAPER(X,Y)` is literally `X->cost < Y->cost` (**cse.c:1479**);
- *    `COST` gives a pseudo 1 and a non-reg `rtx_cost (x, SET) * 2`
- *    (**cse.c:509-520**), and `arm_rtx_costs` returns 0 for a `const_int` < 256
- *    with `outer == SET` (**arm.c:2078-2081**), so `(const_int 0)` at cost 0
- *    takes the head of the class in `insert` (**cse.c:1546-1556**); cse_insn
- *    then walks from `elt->first_same_value` (**:5108**), prunes both `src` and
- *    `src_folded` as already-in-class (**:5109-5148**) and falls to
- *    `trial = copy_rtx (elt->exp)` (**:5247-5251**) -- the constant.
- *
- * 2. **THERE ARE TWO FOLDS, WITH DIFFERENT BOUNDARY SETS.**  `cse_end_of_basic_block`
- *    (**cse.c:6534-6743**) ends a block at ANY CODE_LABEL (**:6573**, no
- *    LABEL_NUSES test) and, when `! after_loop`, at NOTE_INSN_LOOP_END
- *    (**:6588-6591**).  cse1 is called with after_loop == 0 and **cse2 with
- *    after_loop == 1, so cse2 ignores LOOP_END.**  Measured:
- *      `do { v = Func_80c2384(u[0x128]); } while (0);` + the free do-while puts
- *      a NOTE_INSN_LOOP_END between `ret = 0` and `j = ret` AT ZERO INSTRUCTION
- *      COST, and `.02.jump` insn 69 `(set (reg 38) (reg 37))` **survives
- *      `.03.cse`, `.07.gcse` and `.08.loop` unchanged** -- cse1 does NOT fold --
- *      and `.09.cse2` turns it into `(const_int 0)` with a REG_EQUAL note.
- *      Figure 7 of 119 (119 encodings, first at index 20); the 3 extra are a
- *      scheduling perturbation of the `ldrb`/`mov sl,r1` pair and the init's
- *      placement.  Variants: the same wrapper on the `for` body 7; around
- *      `ret = 0` and the call together 7; around `ret = 0` alone 8.
- *
- * 3. **A CODE_LABEL IS NOT AUTOMATICALLY A BOUNDARY -- THIS IS WHY EVERY LABEL
- *    ATTEMPT IN THIS PARK'S HISTORY MEASURED INERT.**  Before reaching a label
- *    the block is EXTENDED ACROSS a forward conditional jump by two independent
- *    paths, both on at -O2: `follow_jumps` (**cse.c:6640-6684**) when
- *    `LABEL_NUSES == 1`, there are insns after the target and the target is
- *    preceded by a BARRIER; and `skip_blocks` (**:6686-6720**), "a branch around
- *    a block of code", when `q != CODE_LABEL` and no labels intervene.
- *    PROVED with an instrument: `if (u[0x129] != 0) return ret;` before the init
- *    (+5 instructions; semantically equivalent because the in-loop test already
- *    makes the body a no-op then and `ret` is 0) puts
- *    `barrier / code_label [1 uses] / insn 74 (set (reg 38) (reg 37))` in
- *    `.02.jump` -- and cse1 folds it anyway.  With `-fno-cse-follow-jumps`
- *    ALONE it STILL folds; only with **both** `-fno-cse-follow-jumps
- *    -fno-cse-skip-blocks` does `.03.cse` keep the copy.
- *    The park's "the label never survives to cse1" is therefore wrong in a way
- *    that matters: a single-use, barrier-preceded label DOES survive and is
- *    STEPPED OVER.
- *
- * 4. THE BOUND, STATED.  The boundary must be a label the block cannot be
- *    extended into -- reached by FALL-THROUGH plus a jump from outside the
- *    block (a true join), or `LABEL_NUSES >= 2`, or a loop top -- and it must
- *    still be a boundary at cse2, which ignores LOOP_END.  Every such label
- *    needs a compare and a branch, and the reference is exact at 118
- *    instructions with no conditional anywhere before `.Lb6d68`.
- *
- * 5. AND A CORRECTION TO "ONLY THE BOUNDARY IS MISSING".  The do-while +
- *    LOOP_END body with `-fno-rerun-cse-after-loop` (instrument) DOES keep the
- *    copy, and it comes out as `mov r4, r0 / mov r7, sl` -- **`j` in r7 and `v`
- *    in r4, the reverse of the ROM** -- 13 differing at 123 lines.  So blocking
- *    the fold lengthens `ret`'s live range and re-orders the allocnos: the
- *    boundary is NECESSARY AND NOT SUFFICIENT.  Treat "find a device-free
- *    boundary and it lands" as refuted; the allocation has to be re-won too.
- *
- * 6. THE POST-RELOAD BOUND NOW COVERS ALL THREE PASSES.  The park cited
- *    `reload_cse_simplify_set` and `reload_cse_simplify_operands`.  There is a
- *    THIRD: `reload_cse_move2add` (**reload1.c:8840**), called from
- *    `reload_cse_regs` (**:7991**) between two `reload_cse_regs_1` passes.  Its
- *    const path is gated on `GET_CODE (src) == CONST_INT && reg_base_reg[regno]
- *    < 0` and rewrites only against **the same hard register's own** recorded
- *    constant `reg_offset[regno]`, emitting `(set (reg) (reg))` -- a SELF-move
- *    -- when the delta is 0 (**:8899-8903**).  It can never take the value from
- *    a DIFFERENT register, so it cannot make `movs r4, #0` into `mov r4, sl`.
- *    **The bound stands, now checked across all three post-reload passes.**
- *
- * NEXT, REVISED:
- *   1. Residue (1) needs a free join-point label AND a way to keep `j` in r4
- *      once `ret` stays live across the init.  Do not test a boundary without
- *      checking the j/v allocation in `.19.flow2`.
- *   2. Residue (2) unchanged -- the `allocate_reload_reg` cursor's parity.
- * Do NOT re-propose: `goto`+label (stepped over by follow_jumps), do-while(0)
- * wrappers in any of the four positions measured above, or the post-reload CSE
- * family.
+ ** ===== BATCH 327 BRIEF H: RESIDUE (1) IS TWO FOLDS, NOT ONE, AND A PLAIN
+ ** ===== CODE_LABEL IS *NOT* A BOUNDARY
+ **
+ ** Figure re-derived: **4 differing encodings of 119**, ref 119 / ours 119,
+ ** first at index 23, SIZE / INSTRUCTION COUNT / RELOCATIONS all silent.
+ ** BODY UNCHANGED.
+ **
+ ** 1. THE FOLD IS UNCONDITIONAL FOR THE REASON THE PARK DERIVED, and the lines
+ **    are: `CHEAPER(X,Y)` is literally `X->cost < Y->cost` (**cse.c:1479**);
+ **    `COST` gives a pseudo 1 and a non-reg `rtx_cost (x, SET) * 2`
+ **    (**cse.c:509-520**), and `arm_rtx_costs` returns 0 for a `const_int` < 256
+ **    with `outer == SET` (**arm.c:2078-2081**), so `(const_int 0)` at cost 0
+ **    takes the head of the class in `insert` (**cse.c:1546-1556**); cse_insn
+ **    then walks from `elt->first_same_value` (**:5108**), prunes both `src` and
+ **    `src_folded` as already-in-class (**:5109-5148**) and falls to
+ **    `trial = copy_rtx (elt->exp)` (**:5247-5251**) -- the constant.
+ **
+ ** 2. **THERE ARE TWO FOLDS, WITH DIFFERENT BOUNDARY SETS.**  `cse_end_of_basic_block`
+ **    (**cse.c:6534-6743**) ends a block at ANY CODE_LABEL (**:6573**, no
+ **    LABEL_NUSES test) and, when `! after_loop`, at NOTE_INSN_LOOP_END
+ **    (**:6588-6591**).  cse1 is called with after_loop == 0 and **cse2 with
+ **    after_loop == 1, so cse2 ignores LOOP_END.**  Measured:
+ **      `do { v = Func_80c2384(u[0x128]); } while (0);` + the free do-while puts
+ **      a NOTE_INSN_LOOP_END between `ret = 0` and `j = ret` AT ZERO INSTRUCTION
+ **      COST, and `.02.jump` insn 69 `(set (reg 38) (reg 37))` **survives
+ **      `.03.cse`, `.07.gcse` and `.08.loop` unchanged** -- cse1 does NOT fold --
+ **      and `.09.cse2` turns it into `(const_int 0)` with a REG_EQUAL note.
+ **      Figure 7 of 119 (119 encodings, first at index 20); the 3 extra are a
+ **      scheduling perturbation of the `ldrb`/`mov sl,r1` pair and the init's
+ **      placement.  Variants: the same wrapper on the `for` body 7; around
+ **      `ret = 0` and the call together 7; around `ret = 0` alone 8.
+ **
+ ** 3. **A CODE_LABEL IS NOT AUTOMATICALLY A BOUNDARY -- THIS IS WHY EVERY LABEL
+ **    ATTEMPT IN THIS PARK'S HISTORY MEASURED INERT.**  Before reaching a label
+ **    the block is EXTENDED ACROSS a forward conditional jump by two independent
+ **    paths, both on at -O2: `follow_jumps` (**cse.c:6640-6684**) when
+ **    `LABEL_NUSES == 1`, there are insns after the target and the target is
+ **    preceded by a BARRIER; and `skip_blocks` (**:6686-6720**), "a branch around
+ **    a block of code", when `q != CODE_LABEL` and no labels intervene.
+ **    PROVED with an instrument: `if (u[0x129] != 0) return ret;` before the init
+ **    (+5 instructions; semantically equivalent because the in-loop test already
+ **    makes the body a no-op then and `ret` is 0) puts
+ **    `barrier / code_label [1 uses] / insn 74 (set (reg 38) (reg 37))` in
+ **    `.02.jump` -- and cse1 folds it anyway.  With `-fno-cse-follow-jumps`
+ **    ALONE it STILL folds; only with **both** `-fno-cse-follow-jumps
+ **    -fno-cse-skip-blocks` does `.03.cse` keep the copy.
+ **    The park's "the label never survives to cse1" is therefore wrong in a way
+ **    that matters: a single-use, barrier-preceded label DOES survive and is
+ **    STEPPED OVER.
+ **
+ ** 4. THE BOUND, STATED.  The boundary must be a label the block cannot be
+ **    extended into -- reached by FALL-THROUGH plus a jump from outside the
+ **    block (a true join), or `LABEL_NUSES >= 2`, or a loop top -- and it must
+ **    still be a boundary at cse2, which ignores LOOP_END.  Every such label
+ **    needs a compare and a branch, and the reference is exact at 118
+ **    instructions with no conditional anywhere before `.Lb6d68`.
+ **
+ ** 5. AND A CORRECTION TO "ONLY THE BOUNDARY IS MISSING".  The do-while +
+ **    LOOP_END body with `-fno-rerun-cse-after-loop` (instrument) DOES keep the
+ **    copy, and it comes out as `mov r4, r0 / mov r7, sl` -- **`j` in r7 and `v`
+ **    in r4, the reverse of the ROM** -- 13 differing at 123 lines.  So blocking
+ **    the fold lengthens `ret`'s live range and re-orders the allocnos: the
+ **    boundary is NECESSARY AND NOT SUFFICIENT.  Treat "find a device-free
+ **    boundary and it lands" as refuted; the allocation has to be re-won too.
+ **
+ ** 6. THE POST-RELOAD BOUND NOW COVERS ALL THREE PASSES.  The park cited
+ **    `reload_cse_simplify_set` and `reload_cse_simplify_operands`.  There is a
+ **    THIRD: `reload_cse_move2add` (**reload1.c:8840**), called from
+ **    `reload_cse_regs` (**:7991**) between two `reload_cse_regs_1` passes.  Its
+ **    const path is gated on `GET_CODE (src) == CONST_INT && reg_base_reg[regno]
+ **    < 0` and rewrites only against **the same hard register's own** recorded
+ **    constant `reg_offset[regno]`, emitting `(set (reg) (reg))` -- a SELF-move
+ **    -- when the delta is 0 (**:8899-8903**).  It can never take the value from
+ **    a DIFFERENT register, so it cannot make `movs r4, #0` into `mov r4, sl`.
+ **    **The bound stands, now checked across all three post-reload passes.**
+ **
+ ** NEXT, REVISED:
+ **   1. Residue (1) needs a free join-point label AND a way to keep `j` in r4
+ **      once `ret` stays live across the init.  Do not test a boundary without
+ **      checking the j/v allocation in `.19.flow2`.
+ **   2. Residue (2) unchanged -- the `allocate_reload_reg` cursor's parity.
+ ** Do NOT re-propose: `goto`+label (stepped over by follow_jumps), do-while(0)
+ ** wrappers in any of the four positions measured above, or the post-reload CSE
+ ** family.
  
- * ===== BATCH 329 BRIEF D: A ZERO-BYTE cse1 BOUNDARY EXISTS, AND THE SECOND
- * ===== FOLD IS `.07.gcse`, NOT `.09.cse2`
- *
- * Figure re-derived: **4 differing encodings of 119**, ref 119 / ours 119, first
- * at index 23, SIZE / INSTRUCTION COUNT / RELOCATIONS all silent on BOTH --func
- * and --whole.  BODY UNCHANGED.  The bottom-tested do-while control was
- * re-measured and is still EXACTLY inert at 4, confirming it is free.
- *
- * 1. THE PARK'S BOUNDARY BOUND IS REFUTED.  Batch 327 point 4 ended on *"Every
- *    such label needs a compare and a branch, and the reference is exact at 118
- *    instructions with no conditional anywhere before .Lb6d68."*  Measured
- *    false.  A ONE-TRIP BOTTOM-TESTED LOOP AROUND THE INIT ALONE is a real
- *    CODE_LABEL boundary and costs ZERO BYTES:
- *        do { j = ret; } while (j > 1);    4 -> 5 of 119, dsize 0, reloc ok
- *        do { j = ret; } while (j != 0);   4 -> 5 of 119, dsize 0, reloc ok
- *    and in both `.03.cse` KEEPS `(insn 58 (set (reg/v:SI 38) (reg/v:SI 37)))`
- *    unfolded.  cse1 is defeated device-free for nothing.  The reason the
- *    extension code cannot step over it is structural: the loop-top label is
- *    reached by FALL-THROUGH, so the insn ending the block is not a conditional
- *    JUMP_INSN and `cse.c:6636-6719` -- which requires
- *    `GET_CODE (p) == JUMP_INSN && ... IF_THEN_ELSE` -- is never entered.  (The
- *    only other boundary at cse.c:6534-6600 is NOTE_INSN_SETJMP, unreachable.)
- *
- * 2. THE PASS THAT THEN FOLDS IT IS `.07.gcse`.  insn 58 traced through every
- *    dump of the boundary body: `.03.cse` reg copy; **`.07.gcse` const_int 0**;
- *    `.08.loop`, `.09.cse2`, `.13.combine`, `.15.regmove` const_int 0.  The
- *    park's chain blamed cse1 and then cse2 and never named gcse -- which is
- *    why four batches of boundary work aimed at the wrong pass.  **gcse's
- *    constant propagation is GLOBAL (reaching definitions over the CFG), so no
- *    basic-block boundary of any kind can stop it.**
- *
- * 3. THE gcse GATE, READ, AND UNREACHABLE FROM C.  `hash_scan_set`
- *    (**gcse.c:1877-1892**) records a set for cprop when the dest is a pseudo,
- *    the src is a reg / CONST_INT / SYMBOL_REF / CONST_DOUBLE, and
- *    `insn == BLOCK_END (BLOCK_NUM (insn)) || oprs_available_p (pat,
- *    next_nonnote_insn (insn))`.  The second disjunct fails only if the DEST is
- *    set again later in the same basic block -- so **the LAST definition of a
- *    register in a block always satisfies one disjunct or the other**, and no
- *    source edit can keep `ret = 0` out of the cprop set table.
- *    `can_copy_p[SImode]` is true and CONST_INT is explicitly accepted.
- *
- * 4. AND THE BOUNDARY'S ZERO COST IS gcse's OWN DOING -- the lever and the
- *    blocker are ONE PASS.  The same body measured with gcse disabled as an
- *    INSTRUMENT (the no-gcse flag, passed to objcmp through its extra-flags
- *    environment hook -- NOT written here as a key=value pair, because
- *    tools/parkcheck.py greps park headers for that spelling and would then
- *    measure this park under the flag and report TOOLING) reads
- *    **95 of 119 at dsize +4**: the one-trip loop's `cmp`/branch SURVIVES.  Its
- *    freedom in the normal build is bought by gcse propagating the constant so a
- *    later pass can delete the dead branch.
- *
- * 5. THE COST ESCAPE IS MEASURED SHUT.  `CHEAPER` is `cost <` (cse.c:1479) and
- *    a pseudo costs 1 (cse.c:509-514), so the register would take the class head
- *    if the constant cost more than 1.  `arm_rtx_costs` (**arm.c:2077-2082**)
- *    returns **0** for a `const_int` below 256 with `outer == SET`, so the ROM's
- *    own value 0 is precisely the one value that cannot lose the head.
- *    Instruments: `ret = 0x4321;` **11 of 119 at dsize +4**; `ret = 256;`
- *    **97 of 119**, both RELOCDIFF.
- *
- * 6. THE POST-RELOAD BOUND RE-READ LINE BY LINE AND CONFIRMED, with one
- *    precision.  `reload_cse_simplify_set` (**reload1.c:8025-8056**) sets
- *    `old_cost = rtx_cost (src, SET)` = 0 for a CONSTANT_P src and
- *    `this_cost = REGISTER_MOVE_COST` = 4 whenever HI_REGS is an endpoint
- *    (**arm.h:1280-1285**): `4 < 0` false, the tie branch needs `4 == 0`, false.
- *    `reload_cse_simplify_operands` (**reload1.c:8216-8224**) gates on
- *    `rtx_cost (operand, SET) > rtx_cost (reg, SET)` = `0 > 1`, false.
- *    `reload_cse_move2add` (**reload1.c:8891-8910**) rewrites only against the
- *    SAME hard register's own `reg_offset[regno]` and emits a SELF-move at delta
- *    0.  Precision worth keeping: `rtx_cost` on a REG is `! CHEAP_REG`
- *    (**cse.c:804-805**), and post-reload a pseudo rtx renumbered in place keeps
- *    `REG_USERVAR_P`, so CHEAP_REG can be TRUE and that cost 0 -- it does not
- *    matter here because the candidate rtx in that loop is not the user's and
- *    `0 > 0` is false too.
- *
- * 7. AND "NECESSARY BUT NOT SUFFICIENT" IS NOT ESTABLISHED.  `.26.mach` for the
- *    installed body is instruction-for-instruction the reference through the
- *    whole init -- `mov r1, #0 / mov r8, r0 / ldrb r0, [r5] / mov sl, r1 / bl`
- *    -- with the reference's allocation (`j` r4, `v` r7, `ret` sl, `i` r5, `s`
- *    r6, `flag` r8, `u` r9, `slot` fp).  **ONLY insn 54's SET_SRC differs.**
- *    Batch 327 point 5 inferred that blocking the fold must re-order the
- *    allocnos, but it measured that with `-fno-rerun-cse-after-loop` and with a
- *    volatile load, each of which perturbs the allocation by itself.  With the
- *    device-free boundary above the allocation is UNCHANGED; the only cost is
- *    that sched2 swaps the two init copies (+1).
- *
- * NEXT, REPLACING THE OLD LIST: the question is no longer a cse boundary -- that
- * is found, free, and written above.  It is **keep `ret = 0` out of gcse's cprop
- * set table, or out of `cprop_avin` at the init.**  On the reading above the
- * first is unreachable; the second needs a SECOND reaching definition of `ret`
- * at the init, which needs a branch.  Do NOT re-propose cse-era boundaries,
- * do-while(0) wrappers, labels, or the post-reload CSE family.
+ ** ===== BATCH 329 BRIEF D: A ZERO-BYTE cse1 BOUNDARY EXISTS, AND THE SECOND
+ ** ===== FOLD IS `.07.gcse`, NOT `.09.cse2`
+ **
+ ** Figure re-derived: **4 differing encodings of 119**, ref 119 / ours 119, first
+ ** at index 23, SIZE / INSTRUCTION COUNT / RELOCATIONS all silent on BOTH --func
+ ** and --whole.  BODY UNCHANGED.  The bottom-tested do-while control was
+ ** re-measured and is still EXACTLY inert at 4, confirming it is free.
+ **
+ ** 1. THE PARK'S BOUNDARY BOUND IS REFUTED.  Batch 327 point 4 ended on *"Every
+ **    such label needs a compare and a branch, and the reference is exact at 118
+ **    instructions with no conditional anywhere before .Lb6d68."*  Measured
+ **    false.  A ONE-TRIP BOTTOM-TESTED LOOP AROUND THE INIT ALONE is a real
+ **    CODE_LABEL boundary and costs ZERO BYTES:
+ **        do { j = ret; } while (j > 1);    4 -> 5 of 119, dsize 0, reloc ok
+ **        do { j = ret; } while (j != 0);   4 -> 5 of 119, dsize 0, reloc ok
+ **    and in both `.03.cse` KEEPS `(insn 58 (set (reg/v:SI 38) (reg/v:SI 37)))`
+ **    unfolded.  cse1 is defeated device-free for nothing.  The reason the
+ **    extension code cannot step over it is structural: the loop-top label is
+ **    reached by FALL-THROUGH, so the insn ending the block is not a conditional
+ **    JUMP_INSN and `cse.c:6636-6719` -- which requires
+ **    `GET_CODE (p) == JUMP_INSN && ... IF_THEN_ELSE` -- is never entered.  (The
+ **    only other boundary at cse.c:6534-6600 is NOTE_INSN_SETJMP, unreachable.)
+ **
+ ** 2. THE PASS THAT THEN FOLDS IT IS `.07.gcse`.  insn 58 traced through every
+ **    dump of the boundary body: `.03.cse` reg copy; **`.07.gcse` const_int 0**;
+ **    `.08.loop`, `.09.cse2`, `.13.combine`, `.15.regmove` const_int 0.  The
+ **    park's chain blamed cse1 and then cse2 and never named gcse -- which is
+ **    why four batches of boundary work aimed at the wrong pass.  **gcse's
+ **    constant propagation is GLOBAL (reaching definitions over the CFG), so no
+ **    basic-block boundary of any kind can stop it.**
+ **
+ ** 3. THE gcse GATE, READ, AND UNREACHABLE FROM C.  `hash_scan_set`
+ **    (**gcse.c:1877-1892**) records a set for cprop when the dest is a pseudo,
+ **    the src is a reg / CONST_INT / SYMBOL_REF / CONST_DOUBLE, and
+ **    `insn == BLOCK_END (BLOCK_NUM (insn)) || oprs_available_p (pat,
+ **    next_nonnote_insn (insn))`.  The second disjunct fails only if the DEST is
+ **    set again later in the same basic block -- so **the LAST definition of a
+ **    register in a block always satisfies one disjunct or the other**, and no
+ **    source edit can keep `ret = 0` out of the cprop set table.
+ **    `can_copy_p[SImode]` is true and CONST_INT is explicitly accepted.
+ **
+ ** 4. AND THE BOUNDARY'S ZERO COST IS gcse's OWN DOING -- the lever and the
+ **    blocker are ONE PASS.  The same body measured with gcse disabled as an
+ **    INSTRUMENT (the no-gcse flag, passed to objcmp through its extra-flags
+ **    environment hook -- NOT written here as a key=value pair, because
+ **    tools/parkcheck.py greps park headers for that spelling and would then
+ **    measure this park under the flag and report TOOLING) reads
+ **    **95 of 119 at dsize +4**: the one-trip loop's `cmp`/branch SURVIVES.  Its
+ **    freedom in the normal build is bought by gcse propagating the constant so a
+ **    later pass can delete the dead branch.
+ **
+ ** 5. THE COST ESCAPE IS MEASURED SHUT.  `CHEAPER` is `cost <` (cse.c:1479) and
+ **    a pseudo costs 1 (cse.c:509-514), so the register would take the class head
+ **    if the constant cost more than 1.  `arm_rtx_costs` (**arm.c:2077-2082**)
+ **    returns **0** for a `const_int` below 256 with `outer == SET`, so the ROM's
+ **    own value 0 is precisely the one value that cannot lose the head.
+ **    Instruments: `ret = 0x4321;` **11 of 119 at dsize +4**; `ret = 256;`
+ **    **97 of 119**, both RELOCDIFF.
+ **
+ ** 6. THE POST-RELOAD BOUND RE-READ LINE BY LINE AND CONFIRMED, with one
+ **    precision.  `reload_cse_simplify_set` (**reload1.c:8025-8056**) sets
+ **    `old_cost = rtx_cost (src, SET)` = 0 for a CONSTANT_P src and
+ **    `this_cost = REGISTER_MOVE_COST` = 4 whenever HI_REGS is an endpoint
+ **    (**arm.h:1280-1285**): `4 < 0` false, the tie branch needs `4 == 0`, false.
+ **    `reload_cse_simplify_operands` (**reload1.c:8216-8224**) gates on
+ **    `rtx_cost (operand, SET) > rtx_cost (reg, SET)` = `0 > 1`, false.
+ **    `reload_cse_move2add` (**reload1.c:8891-8910**) rewrites only against the
+ **    SAME hard register's own `reg_offset[regno]` and emits a SELF-move at delta
+ **    0.  Precision worth keeping: `rtx_cost` on a REG is `! CHEAP_REG`
+ **    (**cse.c:804-805**), and post-reload a pseudo rtx renumbered in place keeps
+ **    `REG_USERVAR_P`, so CHEAP_REG can be TRUE and that cost 0 -- it does not
+ **    matter here because the candidate rtx in that loop is not the user's and
+ **    `0 > 0` is false too.
+ **
+ ** 7. AND "NECESSARY BUT NOT SUFFICIENT" IS NOT ESTABLISHED.  `.26.mach` for the
+ **    installed body is instruction-for-instruction the reference through the
+ **    whole init -- `mov r1, #0 / mov r8, r0 / ldrb r0, [r5] / mov sl, r1 / bl`
+ **    -- with the reference's allocation (`j` r4, `v` r7, `ret` sl, `i` r5, `s`
+ **    r6, `flag` r8, `u` r9, `slot` fp).  **ONLY insn 54's SET_SRC differs.**
+ **    Batch 327 point 5 inferred that blocking the fold must re-order the
+ **    allocnos, but it measured that with `-fno-rerun-cse-after-loop` and with a
+ **    volatile load, each of which perturbs the allocation by itself.  With the
+ **    device-free boundary above the allocation is UNCHANGED; the only cost is
+ **    that sched2 swaps the two init copies (+1).
+ **
+ ** NEXT, REPLACING THE OLD LIST: the question is no longer a cse boundary -- that
+ ** is found, free, and written above.  It is **keep `ret = 0` out of gcse's cprop
+ ** set table, or out of `cprop_avin` at the init.**  On the reading above the
+ ** first is unreachable; the second needs a SECOND reaching definition of `ret`
+ ** at the init, which needs a branch.  Do NOT re-propose cse-era boundaries,
+ ** do-while(0) wrappers, labels, or the post-reload CSE family.
  
- * ===== BATCH 337 BRIEF B: THE gcse BOUND IS REFUTED FROM THE DUMP AND FROM
- * ===== gcse.c.  ONLY cse2 IS LEFT ON RESIDUE (1), AND ITS BOUNDARY SET IS TWO
- * ===== RTX CODES.  RESIDUE (2) UNMOVED BY SIX MORE CELLS.
- *
- * FIGURE RE-DERIVED, IN STREAM TERMS: **4 differing stream encodings of 119**,
- * ref 119 / ours 119 encodings, **109/109 16-bit instructions**, first
- * differing index 23, SIZE / INSTRUCTION COUNT / RELOCATIONS all silent.  In
- * phase, so a true distance.  BODY UNCHANGED.  Pins 0.
- * *** CORRECTION TO THIS HEADER'S OWN FIGURE LINE: it says "118 real
- * instructions on both sides".  objcmp reports 109/109.  The 4 of 119 is
- * right; the instruction count written beside it is not, and three batches
- * have copied it forward. ***
- *
- * 1. **THE BATCH-329 BOUND IS WRONG, IN THE COSTLY DIRECTION.**  Point 2 above
- *    ends: *"gcse's constant propagation is GLOBAL (reaching definitions over
- *    the CFG), so no basic-block boundary of any kind can stop it."*  Measured
- *    false, and the park's OWN batch-327 measurement is the counter-example it
- *    did not recognise.  I rebuilt the batch-327 body (`do { v =
- *    Func_80c2384(u[0x128]); } while (0);` + the free bottom-tested outer
- *    loop), reproduced its **7 of 119, 109/109, first index 20**, and read
- *    every dump:
- *      `.03.cse`   insn 69 = `(set (reg/v:SI 38) (reg/v:SI 37))`   -- NOT folded
- *      `.07.gcse`  **ZERO `CONST-PROP:` lines in the whole dump** -- NOT folded
- *      `.09.cse2`  `(set (reg/v:SI 38) (const_int 0))` + REG_EQUAL  -- FOLDED
- *    And `.07.gcse`'s own set table CONTAINS both `Index 1 (set (reg/v:SI 37)
- *    (const_int 0))` and `Index 2 (set (reg/v:SI 38) (reg/v:SI 37))`, so the
- *    park's `hash_scan_set` reading (gcse.c:1877-1892) is RIGHT and is simply
- *    not the gate.
- *
- * 2. **THE GATE IS IN `cprop_insn`, AND IT IS PER-BASIC-BLOCK.**  Two tests the
- *    park never named, both ahead of `find_avail_set`:
- *      * **gcse.c:3826-3828** -- `if (! oprs_not_set_p (reg_used->reg_rtx,
- *        insn)) continue;` with the comment *"If the register has already been
- *        set in this block, there's nothing we can do."*  `ret = 0` and
- *        `j = ret` are in ONE real basic block in every body that keeps them
- *        there, so gcse cprop **cannot act at all**.  That is why the
- *        do-while(0) body shows zero CONST-PROP lines.
- *      * **gcse.c:3792-3797** -- cprop only runs when
- *        `GET_CODE (PATTERN (insn)) == SET`; a PARALLEL is skipped outright
- *        (`"??? We might be able to handle PARALLELs. Later."`, :3838).  Not
- *        reachable from C here, but it is the other half of the gate and
- *        belongs in the record.
- *    The one-trip-loop boundary of batch 329 point 1 **creates a real basic
- *    block**, which is precisely what lets gcse act -- so batch 329 measured
- *    gcse folding *its own* boundary body and then generalised the wrong way.
- *
- * 3. **THE OPEN QUESTION, RESTATED: only cse2 remains, and its boundary set is
- *    exactly two RTX codes.**  `cse_end_of_basic_block` (cse.c:6534-6600) ends
- *    a block at a **CODE_LABEL** (:6572, no LABEL_NUSES test) and at
- *    **NOTE_INSN_SETJMP** (:6593-6595); the NOTE_INSN_LOOP_END arm (:6588-6591)
- *    is `! after_loop`-gated and cse2 runs with after_loop == 1.  So the only
- *    device-free boundary for cse2 is a CODE_LABEL between `ret = 0` and
- *    `j = ret` -- and a CODE_LABEL splits the real basic block, which hands the
- *    fold back to gcse unless `cprop_avin` is empty at that block's entry.
- *
- * 4. **AND THE ONE CONSTRUCTION THAT SATISFIES BOTH, DERIVED AND COSTED.**
- *    `AVAIL_IN` at a block is the intersection over predecessors, and two
- *    DISTINCT `(set (reg ret) (const_int 0))` insns kill each other, so
- *        ret = 0;  do { j = ret; ret = 0; } while (j > 1);
- *    puts the use at a loop-top CODE_LABEL (cse1 and cse2 both stop; the label
- *    is reached by FALL-THROUGH so cse.c:6636-6719's `follow_jumps` /
- *    `skip_blocks` extension is never entered -- batch 329 point 1's structural
- *    argument) AND leaves `cprop_avin` empty at it, because the preheader's set
- *    and the in-loop set are different `struct expr`s and each is killed on the
- *    other's path.  **It is not shippable and the reason is batch 329 point 4's
- *    own finding**: the one-trip loop's `cmp`/branch is free ONLY because gcse
- *    propagates the constant so a later pass deletes it.  Block gcse and the
- *    branch survives (+2 instructions), and the loop condition tests `j`, whose
- *    set is `j = ret` -- not a constant -- so nothing else can fold it.
- *    **The lever and the blocker are one pass; this is that identity written as
- *    a construction rather than as an observation.**
- *
- * 5. RESIDUE (2) -- six further cells, all EXACTLY INERT at 4 of 119, 109/109,
- *    first index 23, none of them in the lists above: the inner-loop bound as
- *    `i < 6`; the store block with `o` eliminated and `i * 2 + 4` / `i * 2 + 6`
- *    written twice; `if (flag)` for `if (flag != 0)` at the FIRST site;
- *    `v | (i << 12)` commuted; `slot` copied into a local that the two stores
- *    use; `&ewram_2018000[i << 14]` for `ewram_2018000 + (i << 14)`.
- *    MEASURED WORSE: `s = iwram_3001e74;` moved after either call **18 of 119**
- *    at 109/109 with RELOCDIFF; `u[0x129]` hoisted into a local before the loop
- *    **107 of 119 at 111 instructions**; `v + j` hoisted into a temp for the
- *    `_PreloadSpriteGFX` call **109 of 119 at 116 instructions**.
- *    The cursor-parity diagnosis is NOT refuted -- nothing here bears on
- *    reload1.c:4998-5013 -- but the reachable-edit surface for it is now
- *    sixteen measured cells wider and still flat.
- *
- * NEXT, REPLACING THE OLD LIST:
- *   1. Residue (1) is a cse2 question ONLY.  Either find a CODE_LABEL between
- *      the two insns that gcse's `cprop_avin` is empty at AND whose branch a
- *      pass other than gcse deletes, or declare point 4 the bound.  Do NOT
- *      re-propose cse1 boundaries, gcse boundaries, do-while(0) wrappers, the
- *      post-reload CSE family, or a volatile-asm barrier (batch 336 brief B
- *      measured that a volatile asm does not block a gcse cprop at all).
- *   2. Residue (2) unchanged: one non-inherited reload allocation added or
- *      removed before insn 200, or r0 into `used_spill_regs`.  Every edit that
- *      changes the instruction count is disqualified by construction, which is
- *      what makes this hard -- a reload emits a `mov`.
- * BOTH MECHANICAL AXES ARE CLOSED -- measured batch 347 harvest pass, no agent.
- *   base 4 of 119, instruction counts EQUAL, byte size and pool
- *   count equal too (this park is in phase on all three length dimensions, so
- *   its figure IS a real distance).
- *   FLAG AXIS: all eight per-file groups measured, none improves the aligned
- *   residue.  ANCHOR AXIS: 25 placements swept, but 16 WERE BIT-IDENTICAL to
- *   the base, so only 9 DISTINCT PROGRAMS were actually tested.
- *   Those 9 are inert; the other 16 measured nothing.  No variant was capped and none failed to
- *   compile.
- *
- *   SO DO NOT RE-SCREEN THESE.  Every brief so far has spent part of a round on
- *   exactly that.  The residue here is NOT a placement or flag question; it is a
- *   register choice, a tie, or a pass-level effect, and it needs a hypothesis.
- *
- *   Read as "inert against THIS body".  A recorded negative expires silently
- *   when the body changes -- six batches running, the decisive lever has turned
- *   up inside a park's own negative list.
+ ** ===== BATCH 337 BRIEF B: THE gcse BOUND IS REFUTED FROM THE DUMP AND FROM
+ ** ===== gcse.c.  ONLY cse2 IS LEFT ON RESIDUE (1), AND ITS BOUNDARY SET IS TWO
+ ** ===== RTX CODES.  RESIDUE (2) UNMOVED BY SIX MORE CELLS.
+ **
+ ** FIGURE RE-DERIVED, IN STREAM TERMS: **4 differing stream encodings of 119**,
+ ** ref 119 / ours 119 encodings, **109/109 16-bit instructions**, first
+ ** differing index 23, SIZE / INSTRUCTION COUNT / RELOCATIONS all silent.  In
+ ** phase, so a true distance.  BODY UNCHANGED.  Pins 0.
+ ** *** CORRECTION TO THIS HEADER'S OWN FIGURE LINE: it says "118 real
+ ** instructions on both sides".  objcmp reports 109/109.  The 4 of 119 is
+ ** right; the instruction count written beside it is not, and three batches
+ ** have copied it forward. ***
+ **
+ ** 1. **THE BATCH-329 BOUND IS WRONG, IN THE COSTLY DIRECTION.**  Point 2 above
+ **    ends: *"gcse's constant propagation is GLOBAL (reaching definitions over
+ **    the CFG), so no basic-block boundary of any kind can stop it."*  Measured
+ **    false, and the park's OWN batch-327 measurement is the counter-example it
+ **    did not recognise.  I rebuilt the batch-327 body (`do { v =
+ **    Func_80c2384(u[0x128]); } while (0);` + the free bottom-tested outer
+ **    loop), reproduced its **7 of 119, 109/109, first index 20**, and read
+ **    every dump:
+ **      `.03.cse`   insn 69 = `(set (reg/v:SI 38) (reg/v:SI 37))`   -- NOT folded
+ **      `.07.gcse`  **ZERO `CONST-PROP:` lines in the whole dump** -- NOT folded
+ **      `.09.cse2`  `(set (reg/v:SI 38) (const_int 0))` + REG_EQUAL  -- FOLDED
+ **    And `.07.gcse`'s own set table CONTAINS both `Index 1 (set (reg/v:SI 37)
+ **    (const_int 0))` and `Index 2 (set (reg/v:SI 38) (reg/v:SI 37))`, so the
+ **    park's `hash_scan_set` reading (gcse.c:1877-1892) is RIGHT and is simply
+ **    not the gate.
+ **
+ ** 2. **THE GATE IS IN `cprop_insn`, AND IT IS PER-BASIC-BLOCK.**  Two tests the
+ **    park never named, both ahead of `find_avail_set`:
+ **      * **gcse.c:3826-3828** -- `if (! oprs_not_set_p (reg_used->reg_rtx,
+ **        insn)) continue;` with the comment *"If the register has already been
+ **        set in this block, there's nothing we can do."*  `ret = 0` and
+ **        `j = ret` are in ONE real basic block in every body that keeps them
+ **        there, so gcse cprop **cannot act at all**.  That is why the
+ **        do-while(0) body shows zero CONST-PROP lines.
+ **      * **gcse.c:3792-3797** -- cprop only runs when
+ **        `GET_CODE (PATTERN (insn)) == SET`; a PARALLEL is skipped outright
+ **        (`"??? We might be able to handle PARALLELs. Later."`, :3838).  Not
+ **        reachable from C here, but it is the other half of the gate and
+ **        belongs in the record.
+ **    The one-trip-loop boundary of batch 329 point 1 **creates a real basic
+ **    block**, which is precisely what lets gcse act -- so batch 329 measured
+ **    gcse folding *its own* boundary body and then generalised the wrong way.
+ **
+ ** 3. **THE OPEN QUESTION, RESTATED: only cse2 remains, and its boundary set is
+ **    exactly two RTX codes.**  `cse_end_of_basic_block` (cse.c:6534-6600) ends
+ **    a block at a **CODE_LABEL** (:6572, no LABEL_NUSES test) and at
+ **    **NOTE_INSN_SETJMP** (:6593-6595); the NOTE_INSN_LOOP_END arm (:6588-6591)
+ **    is `! after_loop`-gated and cse2 runs with after_loop == 1.  So the only
+ **    device-free boundary for cse2 is a CODE_LABEL between `ret = 0` and
+ **    `j = ret` -- and a CODE_LABEL splits the real basic block, which hands the
+ **    fold back to gcse unless `cprop_avin` is empty at that block's entry.
+ **
+ ** 4. **AND THE ONE CONSTRUCTION THAT SATISFIES BOTH, DERIVED AND COSTED.**
+ **    `AVAIL_IN` at a block is the intersection over predecessors, and two
+ **    DISTINCT `(set (reg ret) (const_int 0))` insns kill each other, so
+ **        ret = 0;  do { j = ret; ret = 0; } while (j > 1);
+ **    puts the use at a loop-top CODE_LABEL (cse1 and cse2 both stop; the label
+ **    is reached by FALL-THROUGH so cse.c:6636-6719's `follow_jumps` /
+ **    `skip_blocks` extension is never entered -- batch 329 point 1's structural
+ **    argument) AND leaves `cprop_avin` empty at it, because the preheader's set
+ **    and the in-loop set are different `struct expr`s and each is killed on the
+ **    other's path.  **It is not shippable and the reason is batch 329 point 4's
+ **    own finding**: the one-trip loop's `cmp`/branch is free ONLY because gcse
+ **    propagates the constant so a later pass deletes it.  Block gcse and the
+ **    branch survives (+2 instructions), and the loop condition tests `j`, whose
+ **    set is `j = ret` -- not a constant -- so nothing else can fold it.
+ **    **The lever and the blocker are one pass; this is that identity written as
+ **    a construction rather than as an observation.**
+ **
+ ** 5. RESIDUE (2) -- six further cells, all EXACTLY INERT at 4 of 119, 109/109,
+ **    first index 23, none of them in the lists above: the inner-loop bound as
+ **    `i < 6`; the store block with `o` eliminated and `i * 2 + 4` / `i * 2 + 6`
+ **    written twice; `if (flag)` for `if (flag != 0)` at the FIRST site;
+ **    `v | (i << 12)` commuted; `slot` copied into a local that the two stores
+ **    use; `&ewram_2018000[i << 14]` for `ewram_2018000 + (i << 14)`.
+ **    MEASURED WORSE: `s = iwram_3001e74;` moved after either call **18 of 119**
+ **    at 109/109 with RELOCDIFF; `u[0x129]` hoisted into a local before the loop
+ **    **107 of 119 at 111 instructions**; `v + j` hoisted into a temp for the
+ **    `_PreloadSpriteGFX` call **109 of 119 at 116 instructions**.
+ **    The cursor-parity diagnosis is NOT refuted -- nothing here bears on
+ **    reload1.c:4998-5013 -- but the reachable-edit surface for it is now
+ **    sixteen measured cells wider and still flat.
+ **
+ ** NEXT, REPLACING THE OLD LIST:
+ **   1. Residue (1) is a cse2 question ONLY.  Either find a CODE_LABEL between
+ **      the two insns that gcse's `cprop_avin` is empty at AND whose branch a
+ **      pass other than gcse deletes, or declare point 4 the bound.  Do NOT
+ **      re-propose cse1 boundaries, gcse boundaries, do-while(0) wrappers, the
+ **      post-reload CSE family, or a volatile-asm barrier (batch 336 brief B
+ **      measured that a volatile asm does not block a gcse cprop at all).
+ **   2. Residue (2) unchanged: one non-inherited reload allocation added or
+ **      removed before insn 200, or r0 into `used_spill_regs`.  Every edit that
+ **      changes the instruction count is disqualified by construction, which is
+ **      what makes this hard -- a reload emits a `mov`.
+ ** BOTH MECHANICAL AXES ARE CLOSED -- measured batch 347 harvest pass, no agent.
+ **   base 4 of 119, instruction counts EQUAL, byte size and pool
+ **   count equal too (this park is in phase on all three length dimensions, so
+ **   its figure IS a real distance).
+ **   FLAG AXIS: all eight per-file groups measured, none improves the aligned
+ **   residue.  ANCHOR AXIS: 25 placements swept, but 16 WERE BIT-IDENTICAL to
+ **   the base, so only 9 DISTINCT PROGRAMS were actually tested.
+ **   Those 9 are inert; the other 16 measured nothing.  No variant was capped and none failed to
+ **   compile.
+ **
+ **   SO DO NOT RE-SCREEN THESE.  Every brief so far has spent part of a round on
+ **   exactly that.  The residue here is NOT a placement or flag question; it is a
+ **   register choice, a tie, or a pass-level effect, and it needs a hypothesis.
+ **
+ **   Read as "inert against THIS body".  A recorded negative expires silently
+ **   when the body changes -- six batches running, the decisive lever has turned
+ **   up inside a park's own negative list.
  */
 extern unsigned char *_GetUnit(int id);
 extern int Func_80c23c0(int a);

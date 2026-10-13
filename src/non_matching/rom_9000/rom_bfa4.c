@@ -1,3 +1,171 @@
+/* Func_800bfa4 -- PARK at 6 differing encodings of 44.
+ *   PIN-FREE, DEVICE-FREE, FLAG-FREE.  BODY UNCHANGED THIS BATCH.
+ *
+ * ===== BATCH 349 BRIEF D: THE FIGURE STANDS.  THE "PLATEAU" IS ONE PROGRAM,
+ * ===== THE RECORDED 12-of-44 ROUTE DOES NOT REPRODUCE, AND THE SPLIT'S
+ * ===== EXPORTED DATA SYMBOL IS NOW RESOLVED.
+ *
+ * THE FOUR NUMBERS, measured this batch (not inherited):
+ *   ENCODINGS           6 differing of 44   (ref 44 / ours 44), first index 5
+ *   16-BIT INSTRUCTIONS 39 / 39
+ *   BYTES               equal on --func (no SIZE line)
+ *   POOL / 32-BIT       equal
+ *   RELOCATIONS         clean on --func.   PINS 0 (tools/shimcount.py).
+ * In phase on every length dimension, so the figure IS a real distance.
+ *   `--whole' prints SIZE ref 164 / ours 96 because the .s still carries the
+ *   .rodata the split separates; the per-function figure is the distance.
+ *
+ * Verify with:
+ *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
+ *     goldensun-build python3 tools/objcmp.py src/non_matching/rom_9000/rom_bfa4.c \
+ *     asm/rom_9000/rom_be70_c_c.s --func Func_800bfa4
+ *
+ * ===== THE SPLIT: ITS EXPORTED DATA SYMBOL IS LIVE, AND THE RECORDED SHAPE
+ * ===== ALREADY HANDLES IT.  DO NOT CONVERT THIS PIECE WHOLE.
+ *
+ * tools/piece.py now reports exported DATA, and on this piece it fires:
+ *     asm/rom_9000/rom_be70_c_c.s -- 1 function(s)
+ *         PARKED  Func_800bfa4   6 of 44
+ *         !! EXPORTS 1 NON-FUNCTION SYMBOL(S): .L1314c
+ * THE REFERENCE WAS CHECKED RATHER THAN ASSUMED (`grep -rn '\.L1314c' asm/ src/'):
+ *     asm/rom_9000/rom_be70_c_c.s:54   .global .L1314c      <- defined here
+ *     asm/rom_9000/rom_be70_c_c.s:56  .L1314c:              <- .incrom 0x1314c, 0x13190
+ *     asm/rom_9000/rom_be70_a.s:86     .word .L1314c        <- REFERENCED
+ *     src/rom_9000/rom_be70_a.c:7      extern unsigned char scramble[] __asm__(".L1314c");
+ * So TWO OTHER TRANSLATION UNITS depend on it, one of them already elevated C.
+ * A WHOLE conversion of this piece would delete the definition and take the gate
+ * red -- which is exactly the failure batch 345 hit.
+ *
+ * THE PARK'S RECORDED SHAPE IS CORRECT AND SUFFICIENT, re-verified this batch.
+ * tools/split_s.py asm/rom_9000/rom_be70_c_c.s Func_800bfa4 --dry-run:
+ *     "holds Func_800bfa4 plus 1 blob(s) and 1 label(s), ALL of it after the
+ *      code.  Splitting code from data: the function goes to _b, the data to _c."
+ *     would write asm/rom_9000/rom_be70_c_c_b.s  (1 function, 50 lines)  <- this
+ *     would write asm/rom_9000/rom_be70_c_c_c.s  (1 function,  6 lines)  <- .rodata
+ *     would REMOVE asm/rom_9000/rom_be70_c_c.s, would rewrite stage1.ld
+ * The .rodata -- INCLUDING its `.global .L1314c' -- stays in asm as _c.s, so the
+ * symbol survives the split and both referencing TUs keep linking.  And
+ * tools/datacheck.py confirms no NEW export is needed either:
+ *     EXPORTS : .L1314c  (already global -- NOT the set a split needs)
+ *     Func_800bfa4  reads no data label -> split needs NO new export
+ * Install path on a landing: src/rom_9000/rom_be70_c_c_b.c.
+ * MANIFEST carries "split": null -- this is a park, not a landing.
+ *
+ * ===== THE RECORDED NEGATIVE LIST: 33 VARIANTS, 7 DISTINCT PROGRAMS =====
+ *
+ * Rebuilt from this header's own prose and swept with tools/sweep_variants.py,
+ * which fingerprints each variant's object (encodings + relocations):
+ *
+ *   33 variants swept   26 BIT-IDENTICAL TO THE BASE   7 distinct programs
+ *
+ * (1) THE "PLATEAU" IS ONE PROGRAM.  This header reads: "THE 6 IS A PLATEAU, NOT
+ *     AN ACCIDENT -- seven further spellings all read 6 of 44, 39/39, first
+ *     index 5: cx/cy merged into dx/dy as one variable each; `*cam' for
+ *     `cam[0]'; an `unsigned char *' base with casts; pre-masking `cam[1]' only;
+ *     the unary-minus spelling `-(cx & mask) + tx'; declaring tx/ty first;
+ *     declaring `cam' last."  ALL SEVEN ARE BIT-IDENTICAL TO THE BASE.  They are
+ *     not seven spellings at a plateau; they are the base body compiled seven
+ *     times.  The identical `first index 5' in every row was the tell.
+ *     Same for the three interleavings the header already (correctly) calls
+ *     byte-identical -- B A C E D F, B C A E D F, C B A E D F -- and for the
+ *     `(unsigned)(dx + 0x1fffff) <= 0x12ffffe' range test recorded as "exactly
+ *     inert": inert was the right figure, but it measured nothing.
+ *
+ * (2) THE RECORDED 12-of-44 ROUTE DOES NOT REPRODUCE, AND IT IS HALF OF THE
+ *     PARK'S CENTRAL ARGUMENT.  This header's span arithmetic concludes: "The
+ *     ROM needs tx allocated before cx.  For tx (1.00) to outrank cx, cx's span
+ *     must reach 8 insns at 4 refs or its refs must drop to 2.  BOTH MEASURED",
+ *     and gives the second as "dropping cx to 2 refs by giving the masked value
+ *     its own quantity (`mx = cx & mask; dx = tx - mx;') -- 12 of 44, 39/39.  It
+ *     DOES move the decision".
+ *     MEASURED HERE, that exact spelling -- `mx = cx & mask;' then
+ *     `dx = tx - mx;', nothing else changed -- is **BIT-IDENTICAL TO THE BASE AT
+ *     6**.  cse folds the temp straight back out, cx keeps its four references,
+ *     and nothing reaches the allocator.  So the refs-drop route was NEVER
+ *     MEASURED; "BOTH MEASURED" is false, and one of the two arms of the park's
+ *     anti-correlation claim rests on a figure that does not exist on this body.
+ *     (If that 12 was genuine it was measured against a DIFFERENT interleaving
+ *     than the one installed, and recording it against this body is a
+ *     misattribution either way.)
+ *
+ * (3) ROUTE 3 -- THE ONE THAT PAID ON Func_80b6d30 -- IS BIT-IDENTICAL ON EVERY
+ *     LOCAL IN THIS FUNCTION.  A dead store (`v = 0;' as its own statement
+ *     before the real definition, the shape that took Func_80b6d30 from 4 to 3
+ *     purely by the EXISTENCE of a second definition) was tried on every one of
+ *     the eight locals -- cx, cy, tx, ty, mask, dx, dy, cam -- plus cx at the top
+ *     of the body, cx and tx together, and cx defined late behind a dead store.
+ *     ALL ELEVEN BIT-IDENTICAL TO THE BASE.
+ *
+ * >>> THE HONEST CLOSE, and it redirects the whole axis this park has been
+ * >>> grinding: NO SPELLING OF THIS FUNCTION'S LOCAL-VARIABLE STRUCTURE REACHES
+ * >>> THE BACK END.  Every local here is a single-assignment temp feeding one
+ * >>> expression tree, so cse and combine rebuild identical RTL however it is
+ * >>> written -- naming, un-naming, pre-masking, re-associating, re-ordering
+ * >>> within a dependency class, and adding dead definitions are all the same
+ * >>> program.  That is a BIT-IDENTICAL SET over the entire axis, not a list of
+ * >>> negatives, and it means the lever is NOT in the locals.  Do not spend
+ * >>> another round on statement order, temp naming, or mask placement.
+ *
+ * ===== WHAT DOES REACH THE BACK END, MEASURED -- AND ALL OF IT IS WORSE =====
+ *
+ * Seven distinct programs were produced, by changing the SHAPE of the function
+ * rather than the spelling of its temps.  Every row 39/39 unless noted:
+ *
+ *   base (this body)                                        6 of 44  first 5
+ *   `out[0]'/`out[1]' instead of `*out++'                    8        first 5
+ *   the two shifted results in locals sx/sy                  8        first 5
+ *   `mask' as a literal 0xffff0000 at both uses             13        first 4
+ *   early-return spelling (negated test, stores first)      15        first 5
+ *   both parameters copied into locals first                40  first 0, +4 bytes, RELOCDIFF
+ *   the `&&' chain written as four nested `if's             41  first 1, RELOCDIFF
+ *   `cam' dropped for two absolute address expressions      44  first 1, +4 bytes, RELOCDIFF
+ *
+ * Copying ONE parameter into a local (either one, separately) is bit-identical to
+ * the base; copying BOTH costs a callee-saved register and four bytes.  The last
+ * three rows are length defects and are dead, not near misses.
+ *
+ * ===== THE RESIDUE, UNCHANGED AND RESTATED =====
+ *
+ * Indices 5-10.  Two facts, and this header's anti-correlation question is still
+ * the right one -- but note that half its supporting measurement (the 12 row) is
+ * now withdrawn, so the coupling is OBSERVED, not demonstrated:
+ *        ROM                        ours
+ *   5    mov r5, r1                 ldr r2, [r3, #4]   cy -> r2
+ *   6    ldr r1, [r3]      cx->r1   ldr r3, [r3]       cx -> r3  (base reused)
+ *   7    ldr r2, [r3, #4]  cy->r2   mov r5, r1
+ *   8    ldr r3, [r0, #8]  tx->r3   ldr r1, [r0, #8]   tx -> r1
+ *   9    and r1, r4                 and r3, r3, r4
+ *  10    sub r1, r3, r1    dx->r1   sub r1, r1, r3     dx from tx's register
+ *   (1) cx and tx are SWAPPED between r1 and r3.  cx is the highest-priority
+ *       local-alloc quantity (QTY_CMP_PRI, local-alloc.c:1496) so it takes the
+ *       head of REG_ALLOC_ORDER (arm.h:989, `3, 2, 1, 0, ...') = r3, by reusing
+ *       the dead camera base in place.  The ROM puts the OBJECT temps in r3 and
+ *       cx in r1.
+ *   (2) both camera loads are hoisted above the `mov r5, r1' parameter copy.
+ *
+ * WHERE THE NEXT ROUND SHOULD AIM, given the bit-identical set above: fact (2)
+ * is a STREAM-POSITION question of exactly the kind an anchor reaches -- it is
+ * the same shape that took this batch's OvlFunc_896_200c260 from 3 to 2 (the
+ * parameter save landing before an independent materialisation).  This header
+ * records the anchor axis as swept, 15 placements of which 6 were bit-identical,
+ * so 9 distinct programs, all inert -- and that was NOT re-screened here, per
+ * the brief.  But the anchor axis was swept on this body alone; it has never
+ * been CROSSED with any of the seven distinct programs above, and two of those
+ * (the `out[0]/out[1]' and sx/sy rows, both at 8 and both in phase) are the only
+ * candidate prerequisites this function has ever produced.  That cross is the
+ * cheapest untried thing here.
+ *
+ * SO THE PARK STANDS AT 6, with its evidence base corrected: the plateau is one
+ * program, the refs-drop route was never measured, and the locals axis is closed
+ * by a bit-identical set.
+ * -- scratch_elev/b349/D
+ *
+ * ---------------------------------------------------------------------------
+ * WHAT FOLLOWS IS THE PARK'S OWN HEADER, CARRIED FORWARD.  Its "seven further
+ * spellings", its "12 of 44" mx row and its "BOTH MEASURED" are superseded by
+ * the above; the rest was re-measured and still holds.
+ * ---------------------------------------------------------------------------
+ */
 /* p4 -- Func_800bfa4 -- PARK at 6 differing encodings of 44 (was 8).
  *       PIN-FREE, DEVICE-FREE, FLAG-FREE.  BODY REPLACED THIS BATCH.
  *

@@ -1,3 +1,48 @@
+/* ===== 0 OF 319 IS IN HAND, BLOCKED ONLY ON AN OWNER DECISION, batch 349 =====
+ * This park is BYTE-IDENTICAL with one device.  It was NOT installed, because
+ * install_batch.py's policy line applies: "PREFER PIN-FREE -- if no pin-free
+ * landing is readily available, park it at the pin-free figure and leave it for
+ * pass 3."  A pin-free landing is NOT available here, so the coordinator parked
+ * it rather than booking a new fakematch row on its own judgment.
+ *
+ * THE LADDER, measured, every rung at the tree's production flags:
+ *     device-free                        8 of 319
+ *     bare `__asm__ volatile ("")`       2 of 319   <- THIS BODY
+ *     any ASM_OPERANDS form              0 of 319   byte-identical
+ *       (`::: "memory"` shipped-form tested; `--whole` reads
+ *        OK whole file -- 728 bytes, 319 encodings and 42 relocations identical)
+ *
+ * THE DECISION FOR THE OWNER is narrow: the 0 needs a colon section on the
+ * existing bare asm, which turns it from a form this tree does NOT book into one
+ * it DOES -- 5 landed files use `::: "memory"` and 4 carry a fakematch.txt row.
+ * It would be the fifth such row.  Everything else is already paid for.
+ *
+ * WHY A COLON SECTION IS UNAVOIDABLE, from the compiler source rather than by
+ * elimination.  combine.c:1183-1188 refuses to combine across any insn
+ * satisfying volatile_insn_p, and that predicate answers BY RTX CODE:
+ *     rtlanal.c:1637   case ASM_INPUT:    return 0;
+ *     rtlanal.c:1648   case ASM_OPERANDS: if (MEM_VOLATILE_P (x)) return 1;
+ * A bare `asm volatile ("")` is an ASM_INPUT, so combine WALKS STRAIGHT ACROSS
+ * IT.  Any colon section makes the pattern ASM_OPERANDS and the fence exists.
+ * So the difference is not the clobber's contents -- every ASM_OPERANDS spelling
+ * measured is bit-identical -- it is the SECTION'S EXISTENCE.
+ *
+ * AND THE LANDING IS A CROSSING OF TWO ROWS FROM THIS PARK'S OWN NEGATIVE LIST:
+ * `int y; y = 0x18;` with `-y` at both calls (recorded "2 inert" three times) and
+ * a clobber list on the bare asm (recorded "2 inert", and named as a ruled-out
+ * escape).  EACH IS BIT-IDENTICAL TO BASE ALONE; together they are 0.  Four
+ * batches -- 321, 328, 329, 336 -- recorded this park as terminal at 2.
+ *
+ * THE PASS WAS NAMED WRONG TWICE HERE, and this is the correction: it is COMBINE,
+ * not sched2 and not gcse's cprop.  A/B dumps show pseudo 47 (`y`) alive in
+ * .12.life in both builds, gone at .13.combine in the bare build, after which
+ * .17.lreg prints `;; Register 47 in 6.` -- r6 being exactly the ROM's register.
+ * The park's claim that "a volatile asm does not stop gcse's cprop from folding a
+ * named constant" is false as written, on both halves.
+ *
+ * TO INSTALL IT: add the colon section to the asm below, book a fakematch.txt row
+ * for Func_80a96d8, and the candidate is in scratch_elev/b349/C/p3_candidate.c.
+ */
 /*
  * ========= BATCH 336, BRIEF B: RUNG 5's LUID BOUND NOW HAS A REASON, =========
  * ========= AND THE PASS-3 QUESTION IS ANSWERED IN THE NEGATIVE       =========

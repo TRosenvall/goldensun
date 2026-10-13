@@ -620,3 +620,4 @@ BaseAnim_Spasm       src/rom_c9000/rom_cefd4_c_c_c_b.c
 Func_8011fd8  src/rom_9000/rom_11ce0_c_a_a_b.c
 OvlFunc_881_2009a98  src/overlays/rom_77a7c8/ovl_30_c_a_c_c_a_c_a_a_a_a_a_c_c_c.c
 OvlFunc_959_200a69c  src/non_matching/ovl_7e7574/200a69c.c
+Func_80a96d8  src/rom_a1000/rom_a8604_c_a_a_c.c
