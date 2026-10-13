@@ -1,168 +1,152 @@
-/* OvlFunc_883_200aa54 -- NON-MATCHING, 215 of 243 encodings differ.
- * Unattempted before batch 298.  Reference asm/overlays/rom_780898/ovl_30_c_c_c_a_a_a_c_c_c_c_c_c_a_a_a_a.s.
+/* OvlFunc_883_200aa54 -- PARKED, objcmp 40 of 243 (stream), aligncmp 29 in 16 hunks.
+ * Reference asm/overlays/rom_780898/ovl_30_c_c_c_a_a_a_c_c_c_c_c_c_a_a_a_a.s.
+ *
+ * LENGTH, SIZE AND POOL ALL AGREE NOW: ref 184 16-bit instructions against ours
+ * 184, 604 bytes against 604, 59 32-bit entries against 59.
+ *
+ * THE TWO HEADERS THIS REPLACES WERE BOTH WRONG ABOUT THEIR OWN FIGURE, AND THE
+ * ERROR WAS LOAD-BEARING.  They read "Size 604 both and count 243 both, so this
+ * IS a distance" and "ref 243 against ours 243, so LENGTH AND SIZE ARE BOTH
+ * EXACT".  243 is objcmp's STREAM length -- 16-bit instructions plus 32-bit
+ * entries (pool words AND `bl` calls) plus pads.  The 16-bit instruction counts
+ * were 184 against 183, and our stream carried a trailing `.short 0x0000` pad
+ * absorbing the difference, which is why both the byte size and the stream
+ * length looked equal.  objcmp prints the real counts, and its own pad note, on
+ * the two lines DIRECTLY ABOVE the figure both headers quoted.
+ *
+ * What that cost: both headers described "THE TWO REMAINING SHORTFALLS (each 1
+ * instruction, both plateaus)" and attributed the whole residue to one cse.c
+ * hoist.  Counted per region there were FIVE sites in THREE mechanisms, and two
+ * of them cancel exactly -- see the table below.  Everything aimed at the cse
+ * hoists was therefore aimed at an instruction-neutral site.
  *
  * Verify with:
  *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
  *       goldensun-build python3 tools/objcmp.py \
  *       src/non_matching/ovl_780898/200aa54.c \
- *       asm/overlays/rom_780898/ovl_30_c_c_c_a_a_a_c_c_c_c_c_c_a_a_a_a.s --func OvlFunc_883_200aa54
- *
- * Size 604 both and count 243 both, so this IS a distance; aligncmp reads 196 of 243
- * (54 differing in 27 hunks), and the relocations are the same 50 symbols in the
- * same ORDER with offsets 2-6 bytes early -- i.e. a size shift, not a layout
- * difference.  PIN-FREE.  Split needed.
- * BLOCKER: cse.c, NOT gcse -- two repeated flag ids hoisted into callee-saved
- * registers.  -fno-cse-skip-blocks and -fno-rerun-cse-after-loop each remove both;
- * -fno-gcse does not.  That is the third time in three batches a hold that looked
- * like gcse was cse's, so check .03.cse before .07.gcse.  Flag figures are
- * DIAGNOSTIC only: under -fno-rerun-cse-after-loop it reads 211 aligned but 241
- * instructions, so neither state is exact and no flag row is warranted.
- * What closed the LENGTH: writing the three-way sprite constant as a store in EVERY
- * arm and letting cross-jumping merge the tails -- the cross-jumping hazard used
- * forwards for once, rather than avoided.
- */
-/* OvlFunc_883_200aa54 -- asm/overlays/rom_780898/ovl_30_c_c_c_a_a_a_c_c_c_c_c_c_a_a_a_a.s,
- * 0x0200aa54, 229 ROM lines.  A map-setup cutscene entry: reads save bits
- * 0x109, 0x204, 0x210, 0x308 and sets 0x308.
- *
- * NON-MATCHING: 215 encodings of 243 differ (objcmp), production flags.
- *
- * 215 IS NOT A DISTANCE, AND THE TWO FIGURES THAT ARE: objcmp prints no SIZE
- * line -- 604 bytes in both -- and ref 243 against ours 243, so LENGTH AND SIZE
- * ARE BOTH EXACT.  But RELOCATIONS still differ, by 2-6 bytes of offset, so the
- * stream is locally shifted and the index-by-index count saturates.  The
- * alignment-tolerant measure is the real one: 196 of 243 aligned-equal, 54
- * differing in 27 hunks (tools/aligncmp.py).
- *
- * THE RE IS COMPLETE.  All FIFTY relocations are the same symbols in the same
- * order -- 45 calls and 5 word constants -- and every call target, flag id,
- * actor slot, tile-copy argument and field offset reproduces.
- *
- * SHIMS: none (tools/shimcount.py: no pins, no .equ shims, no "+r" barriers).
- * SPLIT: text-only; tools/datacheck.py prints nothing.  The .s holds TWO
- * functions by the anchored .thumb_func_start pattern (OvlFunc_883_20095dc and
- * this one), so landing needs a split.
- *
- * Verify with:
- *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
- *     goldensun-build python3 tools/objcmp.py \
- *     src/non_matching/overlays/200aa54.c \
- *     asm/overlays/rom_780898/ovl_30_c_c_c_a_a_a_c_c_c_c_c_c_a_a_a_a.s \
- *     --func OvlFunc_883_200aa54
+ *       asm/overlays/rom_780898/ovl_30_c_c_c_a_a_a_c_c_c_c_c_c_a_a_a_a.s \
+ *       --func OvlFunc_883_200aa54
+ *   docker run ... python3 tools/aligncmp.py \
+ *       src/non_matching/ovl_780898/200aa54.c \
+ *       asm/overlays/rom_780898/ovl_30_c_c_c_a_a_a_c_c_c_c_c_c_a_a_a_a.s \
+ *       OvlFunc_883_200aa54 -v
  *
  * ============================================================
- * THE DOMINANT RESIDUE IS ONE MECHANISM, AND IT IS A cse.c PASS, NOT gcse.
+ * PER-REGION SPLIT, COUNTED SEPARATELY (batch 347 brief D)
  *
- * TWO REPEATED FLAG IDS GET HOISTED INTO CALLEE-SAVED REGISTERS.  The ROM
- * rebuilds each one at each site; we build it once and copy:
+ *   site                                   inherited   now
+ *   1  second gState byte read (ref[9:16])      -1       0   <-- CLOSED
+ *   2  actor 0x22 / 0x55 pointer pair           -1      -1
+ *   3  the 0x815 hoist, first site              +1      +1
+ *   4  the 0x815 hoist, second site              0       0
+ *   5  the 0x308 hoist (both sites together)     0       0   <-- NEUTRAL, not a cost
+ *   net                                         -1       0
  *
+ * So the 0x308 hoist costs NO instructions at all -- it pays `adds r0,r5,#0` at
+ * the first site and saves a `movs`/`lsls` pair at the second -- and the 0x815
+ * hoist costs exactly one.  Both still cost a callee-saved register, which is
+ * why our prologue reads `push {r5, r6, lr}` against the ROM's `push {r5, lr}`.
+ *
+ * ============================================================
+ * WHAT CLOSED THE LENGTH, AND WHY (batch 347)
+ *
+ * *** THE TWO gState BYTE READS MUST USE LITERAL OFFSETS, NOT AN OFFSET
+ * VARIABLE. ***  The reference has
+ *       ldr r1,=0x205 / adds r3,r2,r1 / adds r1,#1 / ldrb r0,[r3]
+ *                     / adds r3,r2,r1 / ldrb r1,[r3]
+ * -- a SEPARATE three-operand add before each load, and `adds r1,#1` for the
+ * second constant.  The inherited body spelled the reads through an `off`
+ * variable, which makes the address `(plus (reg base) (reg off))`: that IS a
+ * legal Thumb ldrb address, so combine folds the add into the load and we get
+ * `ldrb r1,[r1,r3]` -- one instruction short.  With literal offsets the address
+ * is `(plus (reg base) (const_int 517))`, which no Thumb ldrb can encode, so
+ * combine cannot fold it and the separate add survives.  The `adds r1,#1` then
+ * falls out of reload_cse_move2add (reload1.c:8840-8916) because both constants
+ * land in the same hard register.
+ *
+ * This is the EXACT MIRROR of the offset-variable idiom this overlay's landed
+ * ovl_30_c_c_a_a_a_b.c uses for its reg+reg `ldrsh r3,[r3,r1]` loads, and both
+ * are still needed in this one function: the halfword reads keep the `off`
+ * variable (they WANT the fold), the two byte reads must not have one.
+ * Measured: 183 -> 184 instructions, objcmp 215 -> 40, aligned 54 in 27 hunks
+ * -> 29 in 16.  Writing the two reads inline in the __SetUIColor argument list
+ * is bit-identical to writing them into `a` and `b` first.
+ *
+ * ============================================================
+ * THE ONE REMAINING SHORTFALL: THE 0x22 / 0x55 ACTOR POINTER PAIR
+ *
+ *       rom   adds r1,r5,#0 / adds r1,#0x22 / strb / adds r3,r5,#0
+ *             / movs r2,#0 / adds r3,#0x55 / strb
+ *       ours  adds r2,r5,#0 / adds r2,#0x22 / strb / adds r2,#0x33 / ... / strb
+ *
+ * AND IT IS NOT A SPELLING -- IT IS reload_cse_move2add'S SECOND BRANCH,
+ * reload1.c:8917-8990, which rewrites a repeated `(set REGX (REGY))
+ * (set REGX (plus REGX A))` pattern into a delta when `reg_base_reg[regno] ==
+ * REGNO (src)`.  It fires for us because BOTH pointers land in r2; the
+ * reference puts them in r1 and r3, so there is no known base in the
+ * destination and each pointer is rebuilt from the actor.  Measured on THIS
+ * body, FIVE spellings are BIT-IDENTICAL -- two named pointers, `actor[0x22]`
+ * array form, `*(actor + 0x22)`, a mixed form, and a zero carrier -- so the
+ * source cannot reach it and the lever is hard-register allocation.
+ * (The old header recorded "two named pointers ... 179" as WORSE; that figure
+ * was measured on the pre-close body and has expired -- it is inert here.)
+ *
+ * ============================================================
+ * THE 0x815 / 0x308 HOISTS: cse.c, AND NOW KNOWN TO BE NEARLY FREE
+ *
+ * The ROM rebuilds each repeated flag id at each site; we build it once in a
+ * callee-saved register and copy:
  *   0x815, pooled:   rom   ldr r0,=0x815  ... (again) ldr r0,=0x815
  *                    ours  ldr r6,=0x815 / adds r0,r6,#0  ... adds r0,r6,#0
- *   0x308, shifted:  rom   movs r0,#0xc2 / lsls r0,#2  ... (again) the same pair
- *                    ours  movs r5,#0xc2 / lsls r5,#2 / adds r0,r5,#0 ... adds r0,r5,#0
- *
- * That is also why our prologue reads `push {r5, r6, lr}` against the ROM's
- * `push {r5, lr}`, and why the whole gState block sits one register across
- * (ours r1/r2 where the ROM has r2/r1) -- one extra callee-saved allocno.
- *
- * PASS: cse.c.  Measured against six flags: -fno-cse-skip-blocks AND
+ *   0x308, shifted:  rom   movs r0,#0xc2 / lsls r0,#2  ... the same pair again
+ *                    ours  movs r5,#0xc2 / lsls r5,#2 / adds r0,r5,#0
+ *                          ... adds r0,r5,#0
+ * PASS: cse.c, measured against six flags -- -fno-cse-skip-blocks AND
  * -fno-rerun-cse-after-loop each remove BOTH hoists; -fno-gcse,
  * -fno-cse-follow-jumps, -fno-expensive-optimizations and -fno-schedule-insns2
- * leave them untouched.  So this is NOT the gcse cprop class that
- * asm/overlays/rom_78ef88/ovl_314_c_c_a_c_a_a_c_c_b.o books, and -fno-gcse is
- * the wrong rule for it.  It IS the class the tree's ten-odd
- * -fno-rerun-cse-after-loop rules book.
- *
- * NINE SPELLINGS WERE TRIED AGAINST IT AND ALL ARE INERT: the 0x308 pair as a
- * nested `if`, as a `goto` to a shared exit, the 0x815 pair with the first test
- * stored into a local, and six orderings around them.  The two uses are always
- * in the same cse block because cse.c ends one only at a CODE_LABEL and
- * cse_skip_blocks walks past the conditional jump between them.
- *
- * FLAG-CONDITIONAL FIGURE, LABELLED AS SUCH: with -fno-rerun-cse-after-loop
- * this candidate reads 211 of 243 aligned-equal, 36 differing in 15 hunks --
- * better structurally -- but the instruction count drops to 241, because the
- * flag costs two instructions of its own elsewhere.  NEITHER STATE IS EXACT, so
- * this is a park either way and the flag is NOT a recommendation yet.  Anyone
- * adding the Makefile rule must close the two shortfalls below first.
+ * leave them untouched.  NINE spellings are inert against them, because cse.c
+ * ends a block only at a CODE_LABEL and cse_skip_blocks walks past the
+ * conditional jump between the two uses.
+ * FLAG FIGURES ARE DIAGNOSTIC ONLY and both predate the length close; re-screen
+ * -fno-rerun-cse-after-loop on THIS body before quoting any of them.
  *
  * ============================================================
- * THE TWO REMAINING SHORTFALLS (each 1 instruction, both plateaus).
- *
- *  1. THE SECOND gState BYTE READ GETS FOLDED INTO A REGISTER-OFFSET LOAD.
- *        rom   adds r3, r2, r1 / ldrb r1, [r3]
- *        ours  ldrb r1, [r1, r3]
- *     combine merges `p = base + off; *p` when `off` was just incremented.
- *     Inert: bumping `off` after the first load (worse, 228), a second pointer
- *     variable, an `unsigned char *` carrier instead of an `unsigned int`
- *     (that one DID fix the first load, 179 -> 186 aligned).
- *  2. THE SECOND ACTOR BYTE POINTER IS DERIVED FROM THE FIRST.
- *        rom   adds r1,r5,#0 / adds r1,#0x22 / strb / adds r3,r5,#0 /
- *              movs r2,#0 / adds r3,#0x55 / movs r1,#0xc8 / strb
- *        ours  adds r2,r5,#0 / adds r2,#0x22 / strb / adds r2,#0x33 / ... / strb
- *     The ROM rebuilds each pointer from the actor; gcc spots 0x55 = 0x22+0x33.
- *     Inert: two named pointer variables, `q = actor; q += 0x55;`.
- *
- * ============================================================
- * WHAT WAS READ OUT OF THE ROM AND IS LOAD-BEARING.
+ * WHAT WAS READ OUT OF THE ROM AND IS LOAD-BEARING
  *
  *  - IT RETURNS int 0.  `mov r0,#0 / add sp,#8 / pop {r5} / pop {r1} / bx r1`:
  *    the return address is popped into r1, which names a return value, and both
  *    exits funnel to the same `mov r0,#0`.
- *  - THE gState READ IS THE OVERLAY'S ESTABLISHED IDIOM, already landed in
- *    src/overlays/rom_780898/ovl_30_c_c_a_a_a_b.c: an `unsigned int` base, an
- *    offset built as `0xe1 << 1`, and the load as
- *    `*(short *)((char *)p + off)` with `off` re-zeroed -- that zero variable is
- *    the ROM's `mov r1,#0` and the load is `ldrsh r3,[r3,r1]`.  Read THREE
- *    times in this function; the first keeps the base alive (`adds r3,r2,r1`,
- *    three-operand) because 0x205/0x206 are read from it, the other two
- *    consume it (`add r3,r2`).
- *  - THE THREE-WAY SPRITE CONSTANT MUST BE WRITTEN AS A STORE IN EVERY ARM,
- *    AND THIS IS WHAT CLOSED THE LENGTH.  The ROM has one `lsl r3,#17` and one
- *    `str r3,[r5,#8]` at a join reached by `b` from each arm.  Selecting the
- *    constant into a local and storing once after the join is TWO INSTRUCTIONS
- *    SHORT (241): gcc hoists each `movs r3,#imm` above its own `cmp` and
- *    inverts the branch, dropping both `b`s.  A `goto` to an explicit join is
- *    inert.  Writing `*(int *)(actor + 8) = K << 17;` in all three arms and
- *    letting CROSS-JUMPING merge the tails gives the ROM's shape exactly --
- *    241 -> 243, size exact.  This is the cross-jumping warning used FORWARDS:
- *    the ROM merges here, so the source must present arms to merge.
+ *  - THE gState HALFWORD READ IS THE OVERLAY'S ESTABLISHED IDIOM, already
+ *    landed in src/overlays/rom_780898/ovl_30_c_c_a_a_a_b.c: an `unsigned int`
+ *    base, an offset built as `0xe1 << 1`, and the load as
+ *    `*(short *)((char *)p + off)` with `off` re-zeroed -- that zero variable
+ *    is the ROM's `mov r1,#0` and the load is `ldrsh r3,[r3,r1]`.  KEEP the
+ *    offset variable for these; it is the byte reads that must not have one.
+ *  - THE THREE-WAY SPRITE CONSTANT MUST BE WRITTEN AS A STORE IN EVERY ARM.
+ *    The ROM has one `lsl r3,#17` and one `str r3,[r5,#8]` at a join reached by
+ *    `b` from each arm.  Selecting into a local and storing once after the join
+ *    is TWO SHORT; a `goto` join is inert.  Writing the store in all three arms
+ *    and letting CROSS-JUMPING merge the tails gives the ROM's shape.
  *  - THE TILE-COPY PAIR SHARES ONE CALLEE-SAVED `1`.  `mov r5,#1` serves the
  *    6th argument of the first __CopyMapTiles and both stacked arguments of the
  *    second, so it is one named local; the first call's 5th argument (2) is a
  *    plain literal in r3.  __Func_8010704's two stacked arguments sit in r3/r2,
- *    CALLER-saved, so those are literals too -- naming them costs a register.
+ *    CALLER-saved, so those are literals too.
  *  - `__MapActor_GetActor(0x15)` IS CALLED TWICE IN A ROW in the ROM, once for
  *    the saved pointer and once as the argument of __Actor_SetSpriteFlags.  A
  *    call is not a CSE candidate, so writing it twice is what the ROM has.
- *  - THE 0x14/0x15 ACTOR SLOT IS `0x14 + (__GetFlag(0x87a) != 0)`, which is the
- *    `neg r0,r3 / orr r0,r3 / lsr r0,#31` idiom.  Here the plain `!= 0` gives
- *    it, because __GetFlag returns an opaque int and gcc cannot see a single
- *    bit -- the statement-level-branch rule in docs/elevation.md applies to
- *    masked bit tests, not to this.
- *  - THE 0x109/0x823 PAIR IS AN if/else WITH THE 0x109 BODY SECOND.  The ROM
- *    lays the 0x823 test and its body first and `.L2bc8` after, so the source
- *    tests `__GetFlag(0x109) == 0` and puts the 0x5b store in the `else`.
- *  - THE 0x5b STORE WRITES THE 0x815 FLAG VARIABLE, NOT A LITERAL ZERO:
- *    `strb r5, [r0]` reuses the register holding that __GetFlag result, which
- *    is provably 0 on this path.
+ *  - THE 0x14/0x15 ACTOR SLOT IS `0x14 + (__GetFlag(0x87a) != 0)`.
+ *  - THE 0x109/0x823 PAIR IS AN if/else WITH THE 0x109 BODY SECOND.
+ *  - THE 0x5b STORE WRITES THE 0x815 FLAG VARIABLE, NOT A LITERAL ZERO.
  *
- * MEASURED, 12 spellings (aligned-equal of 243):
- *   store in every arm for the three-way            196   <-- this file
- *   `unsigned char *` carrier for the byte reads     186
- *   conditional select into a local + one store      179, and 241 instructions
- *   `goto` join for the three-way                    179
- *   two named pointers for the 0x22 / 0x55 stores    179
- *   `goto` shared exit for the 0x308 block           196 (inert)
- *   second pointer variable for the byte read        196 (inert)
- *   `q = actor; q += 0x55;`                          196 (inert)
- *   literal stacked args for __Func_8010704          inert
- *   dropping the first tile-copy's named 5th arg     inert
+ * SHIMS: none (tools/shimcount.py: no pins, no .equ shims, no "+r" barriers).
+ * SPLIT: text-only; tools/datacheck.py prints nothing.  The .s holds TWO
+ * functions (OvlFunc_883_20095dc and this one), so landing needs a split.
  *
- * NEXT: the two 1-instruction shortfalls above, then re-screen with
- * -fno-rerun-cse-after-loop.  If they close, this is a Makefile-rule landing of
- * the same shape as the ten existing -fno-rerun-cse-after-loop rules; if they
- * do not, it stays a cse.c park.
+ * NEXT: the actor-pointer pair is an allocation question, so try the brief's
+ * routes 4 and 5 (move a statement across a block boundary; lengthen a range to
+ * overlap a hard register) rather than more spellings -- five are already known
+ * bit-identical.  Then re-screen the cse flags on the closed-length body.
  */
 extern int gState;
 extern unsigned char gScript_883__0200e248[];
@@ -209,12 +193,8 @@ int OvlFunc_883_200aa54(void)
     p = base + off;
     off = 0;
     if (*(short *)((char *)p + off) == 0x10) {
-        off = 0x205;
-        q = (unsigned char *)(base + off);
-        off += 1;
-        a = *q;
-        q = (unsigned char *)(base + off);
-        b = *q;
+        a = *(unsigned char *)(base + 0x205);
+        b = *(unsigned char *)(base + 0x206);
         __SetUIColor(a, b);
         OvlFunc_883_200b4c8();
         return 0;

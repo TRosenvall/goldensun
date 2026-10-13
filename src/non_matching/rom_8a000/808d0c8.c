@@ -1,6 +1,13 @@
 /* Debug_PaletteEditor  --  asm/rom_8a000/rom_8ba38_a_c_a_c.s  (0x0808d0c8)
  * NON-MATCHING, 315 encodings of 337.  NOT a distance (ref 716 bytes / 337 encodings
- * against ours 720 / 339, two instructions over).  READ `--align` INSTEAD: 124 of 352,
+ * against ours 720 / 339) -- and ***NOT "two instructions over" either: it is ONE.***
+ * CORRECTED, batch 347 brief E.  339 - 337 is a STREAM delta and the stream counts
+ * pool words, `bl` calls and `.short 0x0000` PADS as well as 16-bit instructions.
+ * Measured: ref 315 instructions / 21 32-bit entries / ONE pad, ours 316 / 21 / TWO.
+ * The four extra bytes are therefore one extra INSTRUCTION (2 bytes) and one extra
+ * PAD (2 bytes), not two instructions, and objcmp prints
+ * `INSTRUCTION COUNT  ref 315, ours 316` on the line directly above the figure.
+ * READ `--align` INSTEAD: 124 of 352,
  * DOWN FROM 380, and now converging rather than misaligned -- all ten relocations present,
  * same symbols and order, offsets differing by a constant +4 after the first WaitFrames.
  *
@@ -240,8 +247,24 @@
  * ============================================================================
  * WHAT IS LEFT: 124, AND IT IS ALMOST ALL REGISTER NAMING PLUS TWO CROSS-JUMPS
  * ============================================================================
- * The hunk-by-hunk length tally (59 hunks) nets to exactly +2 instructions, and only six
- * hunks have a nonzero length delta worth naming:
+ * The hunk-by-hunk length tally below nets to +2 ONLY BECAUSE IT WAS TAKEN OFF STREAM
+ * HUNK SPANS, which attribute pads and pool words to instruction counts.  The real net
+ * is +1 instruction and +2 stream entries (scratch_elev/b347/E/e_region.py classifies
+ * every encoding and prints both deltas per hunk).  Two items below are mis-attributed:
+ * item 5's "+1" is a PAD, worth +1 stream and ZERO instructions, and the +5/-2 pair in
+ * items 1 and 2 does not survive instruction-only counting either -- the measured
+ * running total crosses zero eleven times and reaches +1 for the first and last time at
+ * ONE hunk.  THE WHOLE INSTRUCTION SURPLUS IS ONE `mov fp, r3` AT STREAM 174-180:
+ *     ref   b.n .. / movs r1,#0 / mov r9,r1 / str r1,[sp,#8] / b.n ..
+ *     ours  b.n .. / movs r3,#0 / mov r9,r3 / str r3,[sp,#8] / MOV FP,R3 / b.n ..
+ * i.e. in the row-WRAP block ours materialises a THIRD folded copy of the zero -- row
+ * in r9, row<<12 in sp+8 and row<<5 in r11 -- where the reference carries only two and
+ * reaches r11 through the block it branches into.  With row folded to 0 the `lsl r1,#5`
+ * that the shared tail performs becomes a plain `mov`, so ours stops sharing the tail
+ * and pays for the copy inline.  THAT is the +1, and it is a REUSE failure (the batch's
+ * direction: ours longer means gcc failed to reuse, never that a statement is missing),
+ * not the five-instruction wrap-block story the next item tells.
+ * Only six hunks have a nonzero STREAM length delta worth naming:
  *  1. +5 across the two row-WRAP blocks.  The ROM's row-- wrap block ends
  *     `mov r3,r9 / mov r1,r9 / lsl r3,#12 / b .L8d10e`, sharing `lsl r1,#5 / str r3,[sp,#8]
  *     / mov r11,r1` with the row++ no-wrap block; ours picks r2/r3 where the ROM picks r3/r1,
@@ -280,6 +303,31 @@
  * attempts.  It is the "right instructions, wrong registers" class, i.e. the class
  * docs/elevation.md says a pin or a pressure change answers -- and the brief forbids pins
  * here, correctly, since a landing needs none.
+ * ============================================================
+ * BATCH 347: THE TWO CHEAP AXES, MEASURED AND CLOSED
+ * ============================================================
+ * tools/autosweep.py, this body unchanged.  Do not re-screen either:
+ *   ANCHOR  79 of 79 statement boundaries, device-free.  Sixteen rows read a
+ *           LOWER ndiff (311 at best, after `g = (c >> 5) & 0x1f;`) and every
+ *           one of them carries `dsize=4`, i.e. it is the same misalignment the
+ *           base has and not an improvement.  None closes the length gap.
+ *   FLAG    -fno-strength-reduce and -fno-rerun-loop-opt BIT-IDENTICAL to base;
+ *           -fno-schedule-insns2 314 but aligned 126 -> 169; -fno-strict-aliasing
+ *           314 but aligned 126 -> 128; -fno-rerun-cse-after-loop 324; -O1 326
+ *           (10 instructions SHORT); -fno-gcse 326 (13 SHORT); -ffixed-r7 334.
+ *           Nothing helps.  The two that read 314 are the trap the brief warns
+ *           about -- a lower ndiff with a WORSE aligned residue.
+ * The park's own `-fno-gcse` 374 and `-fno-rerun-loop-opt` 380 rows above were
+ * measured against an OLDER body and no longer reproduce; the figures in this
+ * section are the current ones.
+ *
+ * NEXT, and it is one question now rather than a 124-wide fog: what stops the
+ * row-wrap block from cross-jumping into the tail that loads r11?  jump.c's
+ * `cross_jump` compares blocks TEXTUALLY, so the fold of `row << 5` to a `mov`
+ * is enough to break the match on its own -- which means the lever is whatever
+ * keeps `row` out of the wrap arm's constant-propagation, not another init
+ * ordering.  Four init orderings and two counter placements were already tried
+ * (124 / 128 / 132 / 136) and none of them touches this.
  */
 #include "gba/types.h"
 

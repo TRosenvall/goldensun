@@ -748,8 +748,23 @@ def main():
             print("NOT closed.  Re-run with --max set to the full boundary count before")
             print("recording anything about that axis.")
         else:
-            print("\nBoth cheap axes are CLOSED on this park.  That is a recorded")
-            print("negative worth putting in its header before an agent starts.")
+            # SAY WHICH AXES ACTUALLY RAN.  With --flags or --anchor alone this
+            # printed "Both cheap axes are CLOSED", which is a false completeness
+            # claim and exactly the kind of sentence that gets copied into a park
+            # header as a recorded negative (347 brief E).  A closed axis is only
+            # the axis that was swept.
+            ran = [n for n, on in (("flag", a.flags),
+                                   ("anchor", a.anchor),
+                                   ("barrier", a.barrier)) if on]
+            if len(ran) >= 2:
+                print(f"\nThe {' and '.join(ran)} axes are CLOSED on this park."
+                      f"  That is a recorded")
+                print("negative worth putting in its header before an agent starts.")
+            else:
+                print(f"\nThe {ran[0] if ran else 'requested'} axis is CLOSED on this"
+                      f" park -- AND ONLY THAT ONE.")
+                print("The other cheap axis was NOT RUN, so do not record it as closed;")
+                print("re-run without the axis flag to sweep both.")
     return 0
 
 

@@ -1,18 +1,37 @@
 /* Anim_Sleep  [rom_c9000]  --  asm/rom_c9000/rom_d5258_c_c_c_c_c_c_c.s @ 0x080d59b0
  *
- * NON-MATCHING: 147 encodings of 291 differ (objcmp).
- * SIZE IS EXACT (664 bytes) AND THE INSTRUCTION COUNT IS EXACT (291 against 291).
- * All 28 relocations are present, in the ROM's exact order, with the ROM's exact
- * symbols -- including BOTH `_call_via_r4` indirect calls, which the ROM also
- * makes through r4.
- * 147 IS THEREFORE A TRUE DISTANCE IN AGGREGATE, but it is NOT a clean one:
- * 14 of the 28 relocation OFFSETS are shifted, in three contiguous groups --
- * +4 on the first pool's two words (iwram_3001eec, _FILE_a8), +2 on everything
- * from the first Random to _Func_80bd7dc, and -2 from _GetBattleActor through
- * Func_80d6888, after which they realign at _call_via_r4 (0x1be) and stay
- * aligned to the end.  So there are exactly TWO local length shifts and they
- * cancel: one instruction gained before the init loop and one lost in the matrix
- * loop.  Both are identified below.  Progression: 252 -> 152 -> 149 -> 147.
+ * NON-MATCHING: objcmp 147 of 291 (STREAM), aligncmp 68 in 34 hunks.
+ * 664 bytes in both and 41 32-bit entries in both.
+ *
+ * *** 147 IS NOT A DISTANCE, AND THIS HEADER USED TO SAY IT WAS. ***  The old
+ * wording -- "SIZE IS EXACT (664 bytes) AND THE INSTRUCTION COUNT IS EXACT
+ * (291 against 291) ... 147 IS THEREFORE A TRUE DISTANCE IN AGGREGATE" -- read
+ * objcmp's STREAM length as an instruction count.  291 counts 16-bit
+ * instructions PLUS 32-bit entries (pool words AND `bl` calls) PLUS pads.  The
+ * 16-bit instruction counts are ref 249 against ours 248, and our stream
+ * carries a `.short 0x0000` alignment pad in front of the first literal pool
+ * that absorbs the difference -- which is exactly why the byte size and the
+ * stream length both looked equal.  objcmp prints the real counts, and its own
+ * pad note, on the two lines DIRECTLY ABOVE the figure.
+ *
+ * WHAT THE FALSE CLAIM CAUSED THIS PARK TO CONCLUDE.  It read the relocation
+ * offsets (+4 on the first pool's two words, +2 from the first Random to
+ * _Func_80bd7dc, -2 from _GetBattleActor through Func_80d6888, realigning at
+ * _call_via_r4) and concluded "there are exactly TWO local length shifts and
+ * they CANCEL: one instruction gained before the init loop and one lost in the
+ * matrix loop".  Counted per region (batch 347 brief D) that is wrong twice:
+ *   - the pre-init-loop region gains NO instruction.  It gains the PAD, which
+ *     is what the +4 on the first pool is: our body hoists `ldr r6,[r6,#32]`
+ *     above the branch and the pool, and the half-word hole follows.
+ *   - the matrix-loop header is not one site but THREE, and they do not cancel:
+ *         ref[119:124] vs ours[120:126]   +1   (an extra `mov r8, r3`)
+ *         ref[125:130] vs ours[127:129]   -3   (the slot add AND the reload)
+ *         ref[163]     vs ours[162:163]   +1   (`adds r2,r3,#0` at the bottom)
+ *     net -1, and the whole gap is there.  Everything outside that header is
+ *     instruction-neutral.
+ * This is the brief's warning in its own shape: a net -1 that is really -3 at
+ * one site and +2 across two others, needing opposite fixes.
+ * Progression: 252 -> 152 -> 149 -> 147.
  *
  * Verify with:
  *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
@@ -138,10 +157,54 @@
  * ROM shares r7 between `slot` and the init/draw counter, so a whole-function pin
  * would conflict).
  *
- * No new symbol is warranted.  No per-file Makefile flag override was found
- * (none tried on this function; the file-mate Anim_Curse measured all three of
- * -fno-gcse / -fno-schedule-insns2 / -fno-rerun-cse-after-loop as negative or
- * inert on the same stem).
+ * ============================================================
+ * BATCH 347: THE FLAG AXIS HAS NOW BEEN RUN, AND IT REFUTES THE PASS CLAIM
+ * ============================================================
+ *
+ * The old header said "No per-file Makefile flag override was found (none tried
+ * on this function...)" -- i.e. a bound asserted from a sweep that had never
+ * run.  tools/autosweep.py --flags, all nine groups, unchanged body:
+ *
+ *   -O1                        259 of 291   aligned 68 -> 145, count +1   WORSE
+ *   -fno-gcse                  238 of 291   aligned 68 -> 67,  COUNT +0   <<<<
+ *   -fno-schedule-insns2       194 of 291   (no aligned improvement)
+ *   -ffixed-r7                 277 of 291   aligned 68 -> 159, count +9   WORSE
+ *   -fno-strict-aliasing       147 of 291   inert
+ *   -fno-strength-reduce       147 of 291   inert
+ *   -fno-rerun-cse-after-loop  249 of 291   aligned 68 -> 70,  count +1   WORSE
+ *   -fno-rerun-loop-opt        147 of 291   inert
+ *
+ * *** -fno-gcse EQUALISES THE INSTRUCTION COUNT AND IS THE ONLY ROW THAT
+ * IMPROVES THE ALIGNED RESIDUE. ***  So the hold is gcse, NOT cse2, and the
+ * "THE BLOCKER: cse2 KEEPS *slot LIVE" heading above is a mis-attribution --
+ * -fno-rerun-cse-after-loop makes this park WORSE on both numbers.  The
+ * observation under that heading is sound and reproduces exactly; only the pass
+ * name was wrong, and the pass name is what was steering the probes.
+ *
+ * Under -fno-gcse the preheader DOES take the reference's shape -- the slot
+ * pointer reaches r7 and the loop reloads through it -- but as a copy
+ * (`adds r7,r2,#0`) rather than the reference's `adds r7,r1,r2`, because the
+ * pointer is still formed before the guard.  So the residual question is
+ * narrower than the park thought: the reference keeps BASE AND OFFSET IN
+ * SEPARATE REGISTERS THROUGH THE GUARD (`ldr r2,=0x7828 / mov r1,r9 /
+ * ldr r3,[r1,r2]`, a reg+reg load, i.e. combine folded the address add INTO the
+ * load because the address had exactly one use) and only forms the pointer in
+ * the preheader.  We form one pointer and share it, so there is no fold.
+ *
+ * MEASURED NEGATIVE, BATCH 347 -- the offset-as-a-variable route, which is the
+ * mirror of what closed this batch's OvlFunc_883_200aa54:
+ *   - `unsigned int so = 0x7828;` set once at the top, guard and slot both
+ *     through `base + so`:                         250 (+1), aligned 94
+ *   - the same with `so` re-set immediately before the guard:
+ *                                                  251 (+2), aligned 72
+ *   - the same with slot computed last in the preheader:
+ *                                                  251 (+2), aligned 72
+ * MEASURED INERT, BATCH 347 -- five preheader statement orders (slot last, slot
+ * between lookp and io, io before lookp, and the member-array idiom for the
+ * guard combined with each): all 248 / 147 / aligned 68 in 34 hunks, four of
+ * the five BIT-IDENTICAL.  Preheader statement order does not reach this.
+ *
+ * No new symbol is warranted.
  *
  * ================================================================
  * SPLIT SHAPE

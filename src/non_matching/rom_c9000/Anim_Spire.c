@@ -1,29 +1,114 @@
 /* Anim_Spire -- 0x080e2538, the SECOND of the two functions in
  * asm/rom_c9000/rom_e0564_c.s (Anim_Thor is the first and is unattempted).
  *
- * NON-MATCHING, 249 of 432 encodings differ.
- * SIZE is the ROM's (956 bytes = 956) and INSTRUCTION COUNT is the ROM's
- * (432 = 432), so 249 is a TRUE distance and not a saturated figure -- but it
- * is heavily INFLATED by position.  tools/aligncmp.py reads 375 of 432
- * aligned-equal (86.8%) with only 64 differing in 29 hunks, because ONE extra
- * instruction at index 185 shifts every later index by one and objcmp compares
- * position by position.  READ THE ALIGNCMP VIEW: the real distance is 64, and
- * closing the single insert at 185 should collapse objcmp's figure with it.
- * All 35 relocations are in the ROM's SYMBOL SEQUENCE (objcmp's
- * `RELOCATIONS differ` is 15 shifted OFFSETS from the same one-instruction slip).
- * objcmp verbatim:
- *     XX ENCODINGS differ in 249 place(s) (ref 432, ours 432)
- *     XX RELOCATIONS differ          <- offsets only; the SYMBOL SEQUENCE matches
+ * NON-MATCHING, 36 of 432 encodings differ.  WAS 249 (batch 347 brief E).
+ * THE LENGTH GAP IS CLOSED: 384 = 384 16-bit instructions, 46 = 46 32-bit
+ * entries, 956 = 956 bytes, and the aligned residue is 31 in 14 hunks
+ * (tools/aligncmp.py: 407 of 432 aligned-equal, 94.2%).  Both figures moved the
+ * same way for once: 249 -> 36 and aligned 64 -> 31.
+ *
+ * ---------------------------------------------------------------------------
+ * THE HEADER THIS REPLACES SAID 249 WAS A TRUE DISTANCE.  IT WAS NOT, AND THAT
+ * SENTENCE IS WHY THIS PARK SAT.
+ * ---------------------------------------------------------------------------
+ * It read "SIZE is the ROM's (956 = 956) and INSTRUCTION COUNT is the ROM's
+ * (432 = 432), so 249 is a TRUE distance".  432 is objcmp's STREAM figure: it
+ * counts pool words, `bl` calls and `.short 0x0000` PADS alongside the 16-bit
+ * instructions.  The reference carried TWO pads and the old body ONE, so a pad
+ * absorbed exactly one extra instruction and left both the stream length and
+ * the byte size equal while the instruction counts were 384 against 385.
+ * objcmp prints `INSTRUCTION COUNT  ref 384, ours 385` on the line DIRECTLY
+ * ABOVE the figure, plus its own NOTE that a pad is absorbing the difference.
+ *
+ * WHAT THE FALSE CLAIM CAUSED THE PARK TO CONCLUDE.  Having declared the figure
+ * trustworthy, the header then reasoned about the residue -- and reached for
+ * RELOAD rather than for the one-instruction surplus it had itself spotted two
+ * paragraphs earlier ("ONE extra instruction at index 185").  Its verdict was
+ * "This is reload's inheritance decision (reload_reg_reaches_end /
+ * reload_inheritance_insn), not a source construct, so the lever -- if there is
+ * one -- is whatever changes `last`'s reload class or its death point.  It is
+ * NOT the REG_ALLOC_ORDER class."  Every word of that is refuted:
+ *   - IT IS A SOURCE CONSTRUCT.  Deleting the `last` variable -- writing
+ *     `Leecf7[cnt - 1]` at both sites instead -- removes the extra instruction
+ *     and takes the figure 249 -> 36 in one edit.
+ *   - AND NO INHERITANCE PASS COULD HAVE REACHED IT ANYWAY.  The loop top is a
+ *     real CODE_LABEL (`.L19` in the generated asm, the back edge's target), and
+ *     a reload register's contents are discarded at every label:
+ *     `reload1.c:3977-3978` CLEAR_HARD_REG_SET (reg_reloaded_valid) under the
+ *     comment "A reload reg's contents are unknown after a label", which is the
+ *     gate `choose_reload_regs` tests at `reload1.c:5339-5340`.  reload_combine
+ *     refuses to cross one too (`reload1.c:8417-8420`, "We cannot do our
+ *     optimization across labels"), and reload_cse's cselib forgets everything
+ *     at a CODE_LABEL (`simplify-rtx.c:3180-3181`).  A park that names reload
+ *     inheritance across a loop-top label is naming a mechanism that does not
+ *     exist.
+ * The park's recorded-negative list was produced under the same premise and two
+ * of its three rows are now VOID, because they are about a variable that no
+ * longer exists ("`frame = 0;` before `last = cnt - 1;` -- 434 instructions" and
+ * "`last` declared before `cnt` -- 252").
+ *
+ * ---------------------------------------------------------------------------
+ * THE LEVER: `cnt - 1` IS NOT A SOURCE VARIABLE.  IT IS gcc's OWN CSE OF A
+ * REPEATED SUBEXPRESSION, AND NAMING IT DESTROYED THE REUSE.
+ * ---------------------------------------------------------------------------
+ *     was    last = cnt - 1;
+ *            while (frame != Leecf7[last] + 0x50) {
+ *                if (frame == Leecf7[last] + 0x30) {
+ *     is     while (frame != Leecf7[cnt - 1] + 0x50) {
+ *                if (frame == Leecf7[cnt - 1] + 0x30) {
+ * with the `int last` declaration deleted.  249 -> 36, 385 -> 384 instructions,
+ * aligned 375 -> 407 of 432, hunks 29 -> 14.
+ *
+ * WHY, READ OUT OF `.18.greg`.  Spelled as a local, `last` gets a low-numbered
+ * DECL pseudo that lands in this function's spilled frame-map group -- the
+ * dispositions printed no reg_renumber for 33, 34, 35, 36, 37, 157 and 335, and
+ * those are exactly the declaration list the frame map mirrors (pos1 0x2c,
+ * pos2 0x20, base 0x1c, ctx 0x18, fn 0x14, cnt 0x10, last 0xc).  Each of its
+ * three uses then takes its own reload, and the one at the loop top cannot
+ * inherit the guard's register because of the label, so it pays
+ * `ldr r0, [sp, #0xc]`.  Left as a repeated expression the index becomes a
+ * HIGH-numbered cse temporary (the spilled set becomes 33, 34, 35, 36, 158, 328,
+ * 338 -- 37 is gone, 328/338 are cse's), it still occupies sp+0xc and the frame
+ * is still `sub sp, #0x38`, and the guard now reaches the loop top with the
+ * ROM's own register roles:
+ *     ldr r2,[sp,#0x10] / mov r1,#0 / sub r2,#1 / mov fp,r1 / str r2,[sp,#0xc]
+ *     ldr r1,=.Leecf7 / mov r4,#0x50 / ldrb r3,[r1,r2] / neg r4,r4 / cmp r3,r4
+ *     bne .LCB / b .exit / .LCB: .Ltop: ldrb r3,[r1,r2]
+ * byte-for-byte, base in r1 and index in r2 as the ROM has them, with no load at
+ * the top.  Note the shape of the error: the OLD body also carried the symbol
+ * across the label without reloading it, which is what made "inheritance" look
+ * plausible -- but that register is an ALLOCATED pseudo, not a reload, and only
+ * the index was spilled.
+ *
+ * > GENERAL FORM, and it is the join-point twin of the note in
+ * > src/non_matching/rom_8a000/808d0c8.c ("the ROM's four redraw entry points are
+ * > gcse's own PRE hoist, not source variables; naming them destroyed them"):
+ * > A VALUE THE ROM APPEARS TO HOLD IN A VARIABLE MAY BE A CSE TEMPORARY, AND
+ * > NAMING IT MOVES IT INTO THE DECL/FRAME-MAP GROUP WHERE IT IS SPILLED PER USE.
+ * > The tell is a reference that reloads the value at some uses and not others
+ * > across a label -- a DECL pseudo cannot do that and a cse temporary can.
  *
  * Verify with:
  *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
  *     goldensun-build python3 tools/objcmp.py \
  *     src/non_matching/rom_c9000/Anim_Spire.c \
  *     asm/rom_c9000/rom_e0564_c.s --func Anim_Spire
- *   (residue view: tools/aligncmp.py with the same two paths plus
- *    `Anim_Spire -v`)
+ *   (residue view, and the number to rank variants by:
+ *    docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
+ *      goldensun-build python3 tools/aligncmp.py \
+ *      src/non_matching/rom_c9000/Anim_Spire.c \
+ *      asm/rom_c9000/rom_e0564_c.s Anim_Spire -v
+ *    per-REGION instruction vs stream delta: the same two paths through
+ *    scratch_elev/b347/E/e_region.py)
+ *   THE REFERENCE KEEPS A LITERAL POOL INSIDE THE FUNCTION (the `.align 2, 0 /
+ *   .Le25a0: .word 0x100 / .Le25a4: .word 0 / .pool` block after the
+ *   `b .Le25b8` at +0xa0), so `tryc.py --align` is USELESS here -- objcmp only.
  *
- * SPLIT SHAPE IF IT LANDS -- THE MOST EXPENSIVE OF THE THREE.
+ * SHIMS: none -- `python3 tools/shimcount.py` is clean, 0 pins, no fakematch row.
+ *
+ * SPLIT SHAPE IF IT LANDS -- NOT RUN NOW, because install_batch.py refuses a
+ * `split` on an entry whose figure is not 0 and is right to: a split for a park
+ * is tree churn plus promoted `.global` labels for no match.
  * `python3 tools/datacheck.py asm/rom_c9000/rom_e0564_c.s`:
  *     data sections : .rodata
  *     functions     : Anim_Thor, Anim_Spire
@@ -31,130 +116,109 @@
  *                     .Leec98 .Leeca1   (already global -- NOT the set a split needs)
  *     Anim_Spire reads .Leecb2 .Leecf2 .Leecf7 .Leecfc .Leecff .Leed0e .Leed1e
  *     *** SPLIT MUST EXPORT: .global for all SEVEN of those
- * so this is a TEXT/DATA split: the .rodata keeps its own object beside
- * Anim_Thor and gains seven `.global` lines, and this file reads all seven as
- * `extern ... __asm__(".LeecXX")`.  Note the TYPES, all read off the ROM:
- * .Leecf2 is SIGNED char (`ldrsb`), .Leecb2 / .Leecf7 / .Leecfc / .Leecff /
- * .Leed0e are unsigned char (`ldrb`), .Leed1e is unsigned short (`ldrh` with a
- * doubled index).
- * THE REFERENCE KEEPS A LITERAL POOL INSIDE THE FUNCTION (the `.align 2, 0 /
- * .Le25a0: .word 0x100 / .Le25a4: .word 0 / .pool` block after the `b .Le25b8`
- * at +0xa0), so `tryc.py --align` is USELESS here -- objcmp only.  gcc puts the
- * same two words in the same mid-function pool, which is why the first 100
- * encodings align exactly.
- * SHIMS: none -- `python3 tools/shimcount.py` is clean.
+ * So TWO reasons for split_s.py, not one: the piece holds two functions and only
+ * this one is parked, AND the `.s` defines nine non-function symbols that
+ * converting whole would delete (piece.py's `!! EXPORTS 9 NON-FUNCTION
+ * SYMBOL(S)`; a gate went red on exactly this in batch 345).  The .rodata keeps
+ * its own object beside Anim_Thor and gains seven `.global` lines; this file
+ * reads all seven as `extern ... __asm__(".LeecXX")`.  Types, all read off the
+ * ROM: .Leecf2 is SIGNED char (`ldrsb`), .Leecb2 / .Leecf7 / .Leecfc / .Leecff /
+ * .Leed0e unsigned char (`ldrb`), .Leed1e unsigned short (`ldrh`, doubled index).
+ * And ignore "neither ships alone": split_s.py cuts before/target/after, so
+ * Anim_Thor and Anim_Spire each split out ALONE.
  *
  * ================================================================
- * THREE LEVERS TOOK IT 317 -> 249 (51.3% -> 86.8% ALIGNED), AND TWO OF THEM
- * ARE ABOUT WHO OWNS THE OUTER LOOP'S INVARIANTS
+ * THE THREE LEVERS THAT TOOK IT 317 -> 249 ARE UNCHANGED AND STILL LOAD-BEARING
  * ================================================================
- *
- * 317 of 432, 6 instructions SHORT (51.3% aligned).  Pass 1.
- *
- * 317 -> 315, 2 SHORT  THE PARTICLE-SEED LOOP'S BASE IS `boff + i * 0x8c`, NOT
- *   `&gBuffer[i * 0x15]`.  The ROM computes the 21-Part stride as a giv PLUS a
- *   residual multiply -- r7 starts at 0 and gains 0xe0 << 1 (= 16 Parts) per
- *   outer iteration, and `movs r3,#0x8c / muls r4,r3` adds 5 Parts more:
- *       Part *g = (Part *)((char *)gBuffer + boff + i * 0x8c);
- *       ... boff += 0xe0 << 1;
- *   A single `&gBuffer[i * 0x15]` gives one `muls` by 0x24c and no giv at all,
- *   and the missing outer-latch `adds r7,r7,r4` is two of the six missing
- *   instructions.  The 0x1c0 / 0x8c decomposition is the ROM's, so `boff` is a
- *   source variable here exactly as in Anim_Venus / Anim_Jupiter / Anim_Mars.
- *
+ * 317 -> 315  THE PARTICLE-SEED LOOP'S BASE IS `boff + i * 0x8c`, NOT
+ *   `&gBuffer[i * 0x15]`.  r7 starts at 0 and gains 0xe0 << 1 per outer
+ *   iteration, and `movs r3,#0x8c / muls r4,r3` adds 5 Parts more.  A single
+ *   `&gBuffer[i * 0x15]` gives one `muls` by 0x24c and no giv at all.
  * 315 -> 314  THE BLIT'S THREE TABLES ARE READ IN ARGUMENT ORDER, VIA EMBEDDED
- *   ASSIGNMENTS.  Anim_Flare's pool-ORDER lever, unchanged:
- *       fn(ctx, base + Leed1e[idx] + 0x83c,
- *          *(short *)((char *)g + 2) - ((w = Leecff[idx]) >> 1),
- *          *(short *)((char *)g + 6) - ((h = Leed0e[idx]) >> 1), w, h);
- *   with `u8 w; u8 h;`.  Assigning w and h as statements before the call gives
- *   Leecff the first `ldr` where the ROM gives it to Leed1e.
- *
- * 314 -> 249, AND THE COUNT BECOMES EXACT  THE Leecb2 BASE MUST BE A NAMED
- *   POINTER HOISTED OUT OF THE OUTER LOOP.
- *   > A `ptr = SYMBOL;` written INSIDE a loop body is not the same as one
- *   > written in its preheader: gcc-2.96 will not always promote the address to
- *   > a callee-saved register from inside, and when it does not, every iteration
- *   > pays its own pool `ldr`.
- *   The ROM keeps &Leecb2 in sl for the whole outer loop (`ldr r2,=.Leecb2 /
- *   mov sl,r2` in the preheader, `mov r6,sl` in the body).  Writing
- *   `unsigned char *tp = Leecb2;` inside the body leaves the `ldr` in the body.
- *   Writing
- *       tbase = Leecb2;        (in the preheader, before `boff = 0;`)
- *       do { unsigned char *tp = tbase; ... } while (...);
- *   moves it out, and that single edit closed the last 2 missing instructions
- *   and 11 more encodings.
+ *   ASSIGNMENTS (Anim_Flare's pool-ORDER lever).  Assigning w and h as
+ *   statements before the call gives Leecff the first `ldr` where the ROM gives
+ *   it to Leed1e.
+ * 314 -> 249  THE Leecb2 BASE MUST BE A NAMED POINTER HOISTED OUT OF THE OUTER
+ *   LOOP.  `tbase = Leecb2;` in the preheader, `tp = tbase;` in the body; a
+ *   `ptr = SYMBOL;` written INSIDE the loop leaves the `ldr` in the body where
+ *   the ROM keeps &Leecb2 in sl for the whole loop.
  *
  * WHAT IS ALREADY RIGHT AND MUST NOT BE DISTURBED
  *   - `pp = tbl; base = *pp++; slot = (State **)(base + 0x7828); ctx = *pp;`
  *     -- `base` is SPILLED (sp+0x1c) and `slot` lives in r8; the ROM computes
- *     the 0x7828 address ONCE here and then re-derives it from `base` later, so
- *     the knockback loop must NOT reuse `slot` (it reads
- *     `(*(State **)(base + 0x7828))->f14`).
- *   - `GetBattleActorPos2((*slot)->ids[(*slot)->f14 - 1], &pos2)` for the ROM's
- *     `ldr r3,[r2,#0x14] / lsl r3,#1 / add r3,#0x22 / ldrsh r0,[r2,r3]`.
+ *     the 0x7828 address ONCE here and re-derives it from `base` later, so the
+ *     knockback loop must NOT reuse `slot`.
+ *   - `GetBattleActorPos2((*slot)->ids[(*slot)->f14 - 1], &pos2)`.
  *   - `mid = pos1.x + (pos2.x - pos1.x) / 2; pos1.x = mid;
  *      REG_BG2X = (0x40 - mid) << 8;`
- *   - `REG_BG2PA = 0x100; REG_BLDCNT = 0;` -- BOTH become pool words on Thumb
- *     (gcc emits `ldrh r3, .LC` even for the zero), which is what puts two
- *     `.word`s in the mid-function pool.
- *   - `while (frame != Leecf7[last] + 0x50)` as a `while`, so
- *     duplicate_loop_exit_test manufactures the entry guard the ROM has
- *     (`movs r4,#0x50 / negs r4,r4 / cmp r3,r4` -- the +0x50 folded through the
- *     comparison with frame == 0).
- *   - TWO SEPARATE `if`s, not an if/else, around the k loop:
- *         if (frame >= Leecf7[i] + 0x12) { ...0x15-particle loop... }
- *         if (frame <  Leecf7[i] + 0x12) { ...the single-sprite work... }
- *     The ROM RE-TESTS after the k loop (`cmp r11,r3 / bge / b`) instead of
- *     jumping, which only happens when the source states the condition twice.
+ *   - `REG_BG2PA = 0x100; REG_BLDCNT = 0;` -- BOTH become pool words on Thumb,
+ *     which is what puts two `.word`s in the mid-function pool.
+ *   - the frame-loop test as a `while`, so duplicate_loop_exit_test manufactures
+ *     the entry guard the ROM has (`movs r4,#0x50 / negs r4,r4 / cmp r3,r4`).
+ *   - TWO SEPARATE `if`s, not an if/else, around the k loop: the ROM RE-TESTS
+ *     after the k loop (`cmp r11,r3 / bge / b`) instead of jumping.
  *   - the k loop INDEXES, it does not walk: `Part *g = &gBuffer[i * 0x15 + k];`
- *     recomputed every iteration, with `i * 4` CSE'd to sp+8 -- the ROM's
- *     `ldr r3,[sp,#8] / add r3,r9 / lsl r3,#2 / add r3,r9 / add r3,r8` then
- *     `lsl r2,r3,#3 / sub r2,r3 / lsl r2,#2`.
- *   - `Leecf2[i]` and `Leecf7[i]` stay INLINE inside the inner loops.  They look
- *     invariant but the loops call Random / __modsi3 / the blit, so LICM cannot
- *     hoist a load across them -- and the ROM does not.
+ *     recomputed every iteration, with `i * 4` CSE'd to sp+8.
+ *   - `Leecf2[i]` and `Leecf7[i]` stay INLINE inside the inner loops: the loops
+ *     call Random / __modsi3 / the blit, so LICM cannot hoist a load across
+ *     them -- and the ROM does not.
  *   - `((u32)Random() % 0x60 - 0x30)` for `bl __umodsi3` (UNSIGNED) against
  *     `k % 5` and `g->t / 0x60 % 3` for `bl __modsi3` / `bl __divsi3` (signed).
  *   - `q->y += q->vy;` read BEFORE the `if (frame > Leecf7[i])` that adds
  *     0x80 << 9 -- the ROM reuses the OLD q->vy in r2 for the second store.
  *   - THE DECLARATION LIST IS THE FRAME MAP, DESCENDING: pos1 0x2c, pos2 0x20,
- *     base 0x1c, ctx 0x18, fn 0x14, cnt 0x10, last 0xc, with gcc's own `i * 4`
- *     temporary at 0x8 and `sub sp, #0x38`.
- *
- * MEASURED WORSE / INERT:
- *   - `frame = 0;` before `last = cnt - 1;`  -- 434 instructions, TWO LONG.
- *   - `last` declared before `cnt` -- 252, and the frame map is unchanged.
- *   - `tp = tbase;` before the `g` initialiser instead of after -- 250.
+ *     base 0x1c, ctx 0x18, fn 0x14, cnt 0x10, then gcc's OWN cse temporary at
+ *     0xc (where `last` used to sit) and its `i * 4` at 0x8, `sub sp, #0x38`.
  *
  * ================================================================
- * THE BLOCKER: ONE EXTRA `ldr rX,[sp,#0xc]` AT THE TOP OF THE FRAME LOOP,
- * WHICH IS RELOAD INHERITANCE, AND THE 4-BYTE POOL SHIFT IT CAUSES
+ * WHAT IS LEFT: 36 IN 14 HUNKS, ALL OF IT REGISTER NAMING AND FOUR LOCAL
+ * SCHED2 ORDERINGS.  NO LENGTH ERROR ANYWHERE: e_region.py reports i16 +0 and
+ * stream +0 with every hunk netting zero.
  * ================================================================
+ *  1. stream 102-108, the seed loop's preheader.  The ROM delays
+ *     `adds r3, r4, r0` (p = base + (0xe1 << 7)) until AFTER the pool load of
+ *     0xffc00000 and the `movs r2, #0`; ours emits it first and can then reuse
+ *     r1 for the pool word because base has died.  Also the reload register for
+ *     the spilled `base` is r4 in the ROM and r1 here, with the 0xe1 temp r0
+ *     against r2.  Order and register choice are coupled through that reuse.
+ *  2. stream 123-132, the same block one loop later.  Identical instructions in
+ *     a different order: the ROM emits `movs r3,#0 / mov r8,r3` FIRST, ours
+ *     emits the pair LAST, after `adds r5, r3, r2`.  `k = 0;` written as the
+ *     first statement of the loop body (inside an extra brace, so the two
+ *     block-scope declarations still follow it) is WORSE, 56 and aligned 394.
+ *  3. stream 234-239 and 251-264, the blit arguments.  Ours hoists the
+ *     `ldrsh r2,[r7,#2]` above the Leecff load and the .Leed0e pool load
+ *     earlier than the ROM does.  Forcing the evaluation order with comma
+ *     expressions -- `(w = Leecff[idx], *(short *)((char *)g + 2) - (w >> 1))`
+ *     -- is inert (37 for w alone, 36 for w and h, both with MORE hunks: 17 and
+ *     18 against 14).  The ROM's order is asymmetric between the two arguments
+ *     (table-then-field for w, field-then-table for h), which is sched2's
+ *     output and not an evaluation rule.
+ *  4. stream 373-378, an r3/r4 exchange on `movs #1 / movs #0x1c / add r9 /
+ *     add sl`.
+ * So the class is "right instructions, wrong registers" plus post-reload
+ * scheduling ties, with the one reload-register choice at (1) upstream of most
+ * of it.
  *
- * The duplicated guard at .Le26b2 ends `ldr r1,=.Leecf7 / movs r4,#0x50 /
- * ldrb r3,[r1,r2] / negs r4,r4 / cmp r3,r4 / bne .Le26ca`, and the ROM's loop
- * top at .Le26ca then does `ldrb r3,[r1,r2]` REUSING BOTH r1 (&Leecf7) and r2
- * (`last`) from the guard -- even though `last` is a spilled pseudo that the
- * guard has just written to sp+0xc.  Ours inherits r2 (the symbol) but not the
- * index, so it emits an extra `ldr r0,[sp,#0xc]`.  That single insertion is the
- * whole reason objcmp reads 249 instead of ~64: every `ldr [pc,#N]` after it is
- * two bytes out of step, which also costs the `.short 0x0000` the ROM's second
- * pool needs for alignment.
- *
- * This is reload's inheritance decision (`reload_reg_reaches_end` /
- * `reload_inheritance_insn`), not a source construct, so the lever -- if there
- * is one -- is whatever changes `last`'s reload class or its death point.  It is
- * NOT the REG_ALLOC_ORDER class.
- *
- * NEXT IDEAS, NONE TRIED:
- *   1. Spell the guard's comparison so `last`'s reload register survives, e.g.
- *      hoisting `Leecf7[last]` (not `last`) into a local read by both the guard
- *      and the loop top -- the ROM re-does the `ldrb` but not the index load,
- *      which is exactly the shape a `u8 tail = Leecf7[last];` would NOT give,
- *      so this needs measuring rather than reasoning.
- *   2. The rest of the 64 is low-register rotation in five blocks plus three
- *      one-position sched2 ties; they are downstream of (1).
+ * MEASURED INERT OR WORSE ON *THIS* BODY (the old list's `last` rows are void):
+ *   `boff = i;` instead of `boff = 0;` to share the ROM's single zero .... 36,
+ *     and BIT-IDENTICAL output -- cse folds i to 0, so this row measures nothing
+ *   `p->vy = 0;` before `p->y = 0xffc00000;` in the seed loop ........... 38
+ *   `tp = tbase;` before the `g` initialiser ............................ 37
+ *   `k = 0;` as the first statement of the outer loop body .............. 56
+ *   comma-expression `w` only ........................................... 37
+ *   comma-expression `w` and `h` ........................................ 36 (18 hunks)
+ * BOTH CHEAP AXES ARE CLOSED ON THIS BODY, re-swept after the edit because the
+ * old sweep measured a different program (tools/autosweep.py):
+ *   ANCHOR  all 79 of 79 statement boundaries inert or worse (best 36 = base).
+ *   FLAG    -fno-strict-aliasing 39, -fno-strength-reduce 91,
+ *           -fno-rerun-loop-opt 125, -fno-schedule-insns2 162,
+ *           -fno-rerun-cse-after-loop 274, -fno-gcse 280, -O1 345,
+ *           -ffixed-r7 393.  None beats 36 and every one of them moves the
+ *           instruction count or the aligned residue the wrong way.
+ * (Caution worth carrying: autosweep prints "Both cheap axes are CLOSED" even
+ *  when invoked with only `--flags` or only `--anchor`.  It means the axis it
+ *  ran.)
  */
 #include "gba/types.h"
 #include "gba/io.h"
@@ -207,7 +271,6 @@ void Anim_Spire(void *context)
     void *ctx;
     DrawFn fn;
     int cnt;
-    int last;
     int **tbl;
     int **pp;
     State **slot;
@@ -277,10 +340,9 @@ void Anim_Spire(void *context)
             } while (i != cnt);
         }
     }
-    last = cnt - 1;
     frame = 0;
-    while (frame != Leecf7[last] + 0x50) {
-        if (frame == Leecf7[last] + 0x30) {
+    while (frame != Leecf7[cnt - 1] + 0x50) {
+        if (frame == Leecf7[cnt - 1] + 0x30) {
             _Func_80bd7dc(0x84);
         }
         i = 0;

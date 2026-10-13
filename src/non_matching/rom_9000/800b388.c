@@ -6,12 +6,42 @@
  *       src/non_matching/rom_9000/800b388.c asm/rom_9000/rom_b074_a_c.s \
  *       --func Func_800b388
  *
- * SIZE, COUNT AND THE WHOLE RELOCATION SEQUENCE MATCH: 764 bytes, 363 encodings,
- * eleven relocations in the ROM's order (PhysMove, UpdateSpriteAnim, Func_8003d28,
- * iwram_3001e68, Func_8000888, Func_8003dec x2, PhysMove, Func_8003dec x2,
- * Func_8003f78), and the LITERAL POOL lands at the ROM's own offset -- the two
- * ABS32 words are at 0x1a8/0x1ac in both.  aligncmp reads 254 of 363
- * aligned-equal = 70.0%.  So 185 is a real distance and it is ONE stack slot wide.
+ * 764 bytes in both, 19 32-bit entries in both, eleven relocations in the ROM's
+ * order (PhysMove, UpdateSpriteAnim, Func_8003d28, iwram_3001e68, Func_8000888,
+ * Func_8003dec x2, PhysMove, Func_8003dec x2, Func_8003f78), and the LITERAL
+ * POOL lands at the ROM's own offset -- the two ABS32 words are at 0x1a8/0x1ac
+ * in both.  aligncmp reads 235 of 363 aligned-equal, 128 differing in 63 hunks.
+ *
+ * *** 185 IS NOT A DISTANCE, AND THIS HEADER USED TO SAY IT WAS. ***  The old
+ * wording -- "SIZE, COUNT AND THE WHOLE RELOCATION SEQUENCE MATCH: 764 bytes,
+ * 363 encodings ... So 185 is a real distance" -- read objcmp's STREAM length as
+ * an instruction count.  363 counts 16-bit instructions PLUS 32-bit entries
+ * (pool words AND `bl` calls) PLUS pads.  The 16-bit instruction counts are
+ * ref 342 against ours 341, and our stream carries a `.short 0x0000` pad
+ * immediately before the literal pool (our index 208) that absorbs the
+ * difference -- which is why both the byte size and the stream length looked
+ * equal.  The old header's "both come out at exactly 363 instructions" is the
+ * same mistake restated.
+ *
+ * WHAT THE FALSE CLAIM COST, AND WHAT IT DID NOT.  Unusually for this pool, the
+ * park's DIAGNOSIS survives the correction intact -- see below.  What the claim
+ * cost was the location: per-hunk counting (batch 347 brief D) shows TWENTY-FOUR
+ * length-changing hunks, twelve +1/-1 pairs that cancel LOCALLY, and the
+ * cumulative delta is -1 only over the stretch ending at ref[195] and 0 from the
+ * pool onwards.  So the single missing instruction is at ONE site, ref[195], and
+ * every other shift is reordering.  Read as an aggregate "one stack slot wide"
+ * the park had no way to say which of the 63 hunks to attack.
+ *
+ * THE ONE MISSING INSTRUCTION IS ref[195], `ands r2, r1`, and the site is:
+ *       rom   str r2,[sp,#24] / ... / mov r2, lr / lsls r3, r2, #8
+ *             / ldr r1,=mask / ldr r2,[sp,#24] / ... / ands r2,r1
+ *             / ... / str r2,[sp,#24]
+ *       ours  str r2,[sp,#20] / ... / ldr r2,[sp,#20] / ldr r3,=mask
+ *             / ands r2,r3 / lsls r3, r4, #8 / ... / str r2,[sp,#20]
+ * The extra instruction is the reference's `mov r2, lr`: it holds `sy` in r14,
+ * a HIGH register, so it must copy it into a low one before shifting.  We hold
+ * `sy` in r4 and shift it in place.  That is the register assignment the park
+ * already identified, now pinned to the exact instruction it costs.
  *
  * THE ONE DIFFERENCE: `sub sp, #0x38` against our `sub sp, #0x34`.  The ROM
  * SPILLS `flip` (sp+0xc, one `str` after UpdateSpriteAnim and two `ldr`s) and
@@ -93,10 +123,47 @@
  *   - declaration reordering that puts flip/hh/hx2/mode last: 185 differ, which
  *     is this file and the best measured; the original v1 ordering reads 189.
  *
- * NEXT: force `flip` to memory without changing the instruction count.  Every
- * pressure-raising local tried either shortened the function or was absorbed.
- * This is the same REG_ALLOC_ORDER class as HANDOFF.md records; the decisive
- * experiment is rebuilding gcc-2.96 with REG_ALLOC_ORDER starting at 4.
+ * ============================================================
+ * BATCH 347: THE FLAG AXIS IS NOW MEASURED AND CLOSED, AND FOUR ALLOCATION
+ * ROUTES ARE MEASURED NEGATIVE
+ * ============================================================
+ *
+ * tools/autosweep.py --flags, all nine per-file groups, unchanged body.  BASE
+ * IS BEST; no row improves either the count or the aligned residue:
+ *   -O1                        342 of 363   aligned 128 -> 397, count -4
+ *   -fno-gcse                  351 of 363   aligned 128 -> 169, count -9
+ *   -fno-schedule-insns2       251 of 363   no aligned improvement
+ *   -ffixed-r7                 355 of 363   aligned 128 -> 223, count +12
+ *   -fno-strict-aliasing       185 of 363   inert
+ *   -fno-strength-reduce       185 of 363   inert
+ *   -fno-rerun-cse-after-loop  256 of 363   aligned 128 -> 173, count -4
+ *   -fno-rerun-loop-opt        185 of 363   inert
+ * Note -ffixed-r7 is the one row that ADDS instructions (+12) -- consistent with
+ * the REG_ALLOC_ORDER reading, and a reminder that the fix wanted here is one
+ * register's worth of pressure, not twelve.
+ *
+ * ALLOCATION ROUTES MEASURED, all aimed at allocno_compare
+ * (global.c:600-618, floor_log2(n_refs)*n_refs/live_length*10000*size) to lower
+ * `flip` or raise `sy`:
+ *   - `flip = UpdateSpriteAnim(...)` moved EARLIER (lengthen its range, route 2
+ *     in reverse):                                    338 (-4), aligned 157
+ *   - `sy = fx32_multiply(...)` moved LATER past the sx clamp (route 2b,
+ *     shorten its range):                             343 (+1), aligned 140
+ *   - both together:                                  338 (-4), aligned 190
+ *   - `flip` SPLIT into two locals, one per test site (route 1/3):
+ *                                                     BIT-IDENTICAL to base;
+ *     the copy is absorbed, so the split never reaches the allocator.
+ * Route 2b is the only one that moves the count the right way and it costs 12
+ * aligned instructions to do it -- the brief's non-monotonicity rule pointing
+ * the wrong way.
+ *
+ * NEXT: `sy` must reach a HIGH register and `flip` must go to memory, and the
+ * four priority routes above are spent.  Untried: routes 4 and 5 (move a
+ * statement across a BLOCK boundary; lengthen a range so it overlaps a hard
+ * register and prunes its own preference, global.c:1630-1642, :897-909, :1016).
+ * This is the same REG_ALLOC_ORDER class as HANDOFF.md records -- r14 precedes
+ * r4-r7 in arm.h:989 -- and the decisive experiment remains rebuilding gcc-2.96
+ * with REG_ALLOC_ORDER starting at 4.
  *
  * SPLIT SHAPE: asm/rom_9000/rom_b074_a_c.s holds UpdateSprite (0x800b168, still
  * parked at src/non_matching/rom_9000/800b168.c) and Func_800b388, and

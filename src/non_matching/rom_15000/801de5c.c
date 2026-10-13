@@ -1,5 +1,16 @@
 /* Func_801de5c -- 0x0801de5c, asm/rom_15000/rom_1de5c_a_a.s.
  * NON-MATCHING, 351 encodings of 456.  NOT a distance (ref 1028 bytes / 456 encodings against ours 1008 / 452).  READ `--align`: 276 of 465.
+ * ***AND THE DIRECTION OF THE GAP IS THE OPPOSITE OF WHAT THIS HEADER USED TO
+ * SAY.  CORRECTED, batch 347 brief E.***  "452 encodings against 456" is a
+ * STREAM comparison, and the section below called it "the instruction COUNT ...
+ * i.e. four instructions and three pool words" short.  Measured per-encoding:
+ *     ref   396 16-bit instructions / 58 32-bit entries / 2 pads  = 1028 bytes
+ *     ours  397                     / 52                / 3 pads  = 1008 bytes
+ * So ours is ONE INSTRUCTION LONG and SIX 32-BIT ENTRIES SHORT, not four
+ * instructions short.  -24 bytes of pool, +2 of instruction, +2 of pad = the
+ * -20.  Anyone reading "four instructions short" goes looking for missing
+ * instructions; the only length error in the instruction stream is a SURPLUS of
+ * one, and the deficit is entirely POOL WORDS.
  *
  * (Claim line first on purpose: parkcheck reads the FIRST `N encodings of M`.)
  *
@@ -161,9 +172,12 @@
  * lives in memory", never "this is spilled at these particular points".
  *
  * ================== WHAT IS LEFT, AND HOW FAR ==================
- * The instruction COUNT is 452 against 456 and the SIZE is 20 bytes short, i.e.
- * four instructions and three pool words.  One blocker accounts for most of the
- * 276:
+ * (THE SENTENCE THAT STOOD HERE -- "the instruction COUNT is 452 against 456 and
+ * the SIZE is 20 bytes short, i.e. four instructions and three pool words" -- is
+ * the false one, corrected at the top: 396 against 397 instructions and 58
+ * against 52 pool entries.  It also contradicted the paragraph directly under
+ * it, which correctly describes the glyph loop as THREE INSTRUCTIONS LONGER
+ * than the ROM.  Net +1 overall.)  One blocker accounts for most of the 276:
  *
  * THE GLYPH POINTER IS SPILLED AND THE ROM KEEPS IT IN r5.  In the inner
  * rasteriser loop the ROM has `ldmia r5!, {r2}`; we have
@@ -194,6 +208,61 @@
  * cascade.  A batch that gives this function its own brief, starts from this
  * file, and spends itself on the glyph-loop allocation with `.17.lreg` /
  * `.18.greg` dumps in hand has a real chance; a four-target slot does not.
+ * ============================================================
+ * BATCH 347: THE SIX MISSING POOL WORDS HAVE A NAMED PASS, AND IT IS THE LARGEST
+ * SINGLE ITEM IN THE RESIDUE
+ * ============================================================
+ * THE TILE-WRITE TAIL.  Phase 4 writes eight words to `0x6000000 + tile * 32`.
+ * The reference loads EACH destination constant from ITS OWN POOL WORD:
+ *     movs r4,#0x80 / lsls r4,#1 / adds r3,r0,r4 / ldr r3,[r3]
+ *     str  r3,[r1]  / ldr r3,=0x600000N / adds r1,r2,r3
+ * -- note that r3 carries BOTH the pooled constant AND the loaded data word, so
+ * the register holding the constant is clobbered between consecutive sites.
+ * Ours loads 0x6000000 once and WALKS it:
+ *     ... ldr r3,[r3] / adds r0,#4 / adds r2,r1,r0 / str r3,[r2]
+ * with the constant living in r0, which nothing else touches.  Six `.word`
+ * entries and 24 bytes, i.e. the whole size deficit, plus the register naming of
+ * the last forty encodings.
+ *
+ * THE PASS, COUNTED PER DUMP RATHER THAN ARGUED.  All EIGHT distinct constants
+ * 0x6000000, 04, 08, 0c, 10, 14, 18, 1c are still present in `.17.lreg`; exactly
+ * ONE (0x6000004) is present in `.18.greg`.  The passes between those two dumps
+ * are global_alloc (toplev.c:3350), reload (:3354) and reload_cse_regs (:3369),
+ * with the DFI_greg dump written only afterwards at :3390-3396 -- and the only
+ * thing in that window that rewrites a constant load into an add is
+ * `reload_cse_move2add` (reload1.c:8840).  Its own comment at reload1.c:8793-8800
+ * says it tracks `reg_offset[n]` per HARD REGISTER and gives up across a label;
+ * what defeats it in the reference is not a label but the clobber -- the ROM's
+ * choice to spend r3 on both roles invalidates `reg_set_luid[r3]` between every
+ * pair of sites, so move2add never sees a register still holding the previous
+ * constant.
+ *
+ * SO THE LEVER IS REGISTER PRESSURE IN THE TAIL, not the addresses' spelling:
+ * ours has a spare low register for the constant and the ROM does not.  That is
+ * the same shape as the glyph-pointer blocker this header already describes --
+ * "the ROM's build had MORE register pressure than ours, not less" -- which makes
+ * the two a single question rather than two, and raises the odds that the coupled
+ * pair the header asks for (the second colour-map pointer, plus whatever stops
+ * the 0xf hoist) also fixes the tail.  Worth trying BEFORE anything addressed at
+ * the pool words themselves.
+ *
+ * PER-REGION INSTRUCTION SPLIT (scratch_elev/b347/E/e_region.py, which separates
+ * the i16 delta from the stream delta -- aligncmp's hunk spans do not).  The
+ * running i16 total crosses zero fourteen times across 46 hunks; the two biggest
+ * single items are +5 at stream 146 (the glyph head) and -6 at stream 185-192,
+ * and the eight tile-write sites each read +2/-1.  NET i16 +1, NET stream -4.
+ * The aligned residue is 206 of 456 (45.2%), 287 differing in 87 hunks -- this is
+ * the furthest of the four parks in batch 347 brief E by a wide margin, and the
+ * figure 351 was never readable as a distance in either direction.
+ *
+ * BOTH CHEAP AXES MEASURED AND CLOSED (tools/autosweep.py), so do not re-screen:
+ *   ANCHOR  115 of 115 statement boundaries, device-free.  Sixteen rows read a
+ *           lower ndiff (348 at best) and every one carries `dsize=-20`, the
+ *           base's own misalignment; none closes the length gap.
+ *   FLAG    -fno-strict-aliasing and -fno-strength-reduce BIT-IDENTICAL to base;
+ *           -fno-schedule-insns2 364; -fno-rerun-loop-opt 381 (aligned 315);
+ *           -fno-rerun-cse-after-loop 382; -fno-gcse 376 (5 instructions SHORT,
+ *           aligned 303); -ffixed-r7 422; -O1 439.  Nothing helps.
  */
 #include "gba/types.h"
 

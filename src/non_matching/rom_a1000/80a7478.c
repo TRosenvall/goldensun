@@ -1,9 +1,27 @@
 /* Func_80a7478 -- RunStatusScreen, 0x080a7478, 222 ROM instructions.
  * NON-MATCHING, 178 of 243 encodings differ.
- * SIZE EXACT (600 = 600) and INSTRUCTION COUNT EXACT (243 = 243), so 178 is a
- * TRUE DISTANCE -- but most of it is the pool-offset cascade behind ONE defect;
- * the alignment-tolerant view (tools/aligncmp.py) reads 209 aligned-equal of
- * 243, 46 differing in 28 hunks.
+ * ***178 IS NOT A DISTANCE.  CORRECTED, batch 347 brief E.***  The line this
+ * replaces read "SIZE EXACT (600 = 600) and INSTRUCTION COUNT EXACT
+ * (243 = 243), so 178 is a TRUE DISTANCE".  243 is objcmp's STREAM figure,
+ * which counts pool words, `bl` calls and `.short 0x0000` PADS alongside the
+ * 16-bit instructions.  Measured: ref 184 instructions / 57 32-bit entries /
+ * TWO pads; ours 185 / 57 / ONE pad.  The reference's second pad absorbs our
+ * extra instruction, which is exactly why the stream length and the byte size
+ * both come out equal while the instruction counts do not.  objcmp prints
+ * `INSTRUCTION COUNT  ref 184, ours 185` on the line DIRECTLY ABOVE the figure
+ * and adds its own NOTE that a pad is absorbing the difference; this header
+ * said the opposite anyway, for thirty-odd batches.
+ * The alignment-tolerant view (tools/aligncmp.py) reads 209 aligned-equal of
+ * 243, 46 differing in 28 hunks, and THAT is the number to rank variants by.
+ *
+ * WHAT THE FALSE CLAIM COST HERE, stated precisely because it is milder than on
+ * the batch's other three: this header's own BATCH 335 section had already
+ * worked out that the body is net ONE instruction long (+2 then -1), so the two
+ * halves of the file contradicted each other, and a reader who believed the
+ * claim line had no reason to trust the +2/-1 decomposition underneath it.  The
+ * decomposition is the half that is right -- reproduced to the instruction in
+ * batch 347 -- and it is REFINED below: the +2 is TWO SITES OF +1 in different
+ * regions, not one site of +2.
  *
  * Verify with:
  *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
@@ -167,6 +185,64 @@
  * away on pure post-reload scheduling order, with its only remaining handle --
  * alias set zero as a priority lever -- measured inert in batch 335.  See that
  * park's header.
+ * ============================================================
+ * BATCH 347: THE PER-REGION SPLIT, AND THE +2 IS TWO SITES OF +1
+ * ============================================================
+ * tools/aligncmp.py gives stream hunks; scratch_elev/b347/E/e_region.py gives
+ * the same alignment with every encoding classified 16-bit / 32-bit / pad, so
+ * the INSTRUCTION delta can be read per region.  Running total, in stream
+ * order (i16 delta, cumulative):
+ *
+ *   stream  48- 63   +1   the first constant-materialisation block
+ *                         (-1 at 48, +1 at 51, +4 at 52, -2 at 55, -1 at 60)
+ *   stream  82- 92   +1   the second one, cumulative now +2
+ *   stream 154-162    0   (+2, -1, -1) -- a pure reorder, no length error
+ *   stream 186-190    0   (+1, -1) -- ditto
+ *   stream 228-230   -1   THE LAST FLAG CLEAR, cumulative +1
+ *   stream 237        0   the reference's SECOND PAD, which is what hides the
+ *                         remaining +1 from the stream figure and the size
+ *   NET i16 +1, NET stream +0
+ *
+ * So the surplus this header calls "the allocation race" is +1 in EACH of two
+ * separate regions.  That matters because a gap of 2 at one site and two gaps of
+ * 1 need opposite fixes, and nothing before this had counted them apart.
+ *
+ * REPRODUCED EXACTLY: the batch-335 `-1` fix.  `t = &(*g)[ofs]; *t = 0;` with
+ * `unsigned char *t;` declared after `d` gives the reference's add-then-store,
+ * 186 instructions (one longer again), 604 bytes against 600, stream 245, and
+ * the aligned residue IMPROVES 209 -> 215 in 25 hunks against 28.  Not kept in
+ * the body below, for the same reason as before -- with the two surplus regions
+ * open it makes the positional figure worse (183 of 243) -- but it is the only
+ * change on this function that has ever moved the aligned residue the right way.
+ *
+ * BOTH CHEAP AXES ARE NOW CLOSED, measured (tools/autosweep.py), so do not
+ * re-screen them:
+ *   ANCHOR  62 of 62 statement boundaries.  Eight rows read LOWER than base and
+ *           every one is a phase artifact: `first` never moves off index 20 and
+ *           dsize stays 0.  The best of them, 174 of 243 for a
+ *           `do { } while (0);` before the `for (i = 7; i >= 0; i--)` loop, was
+ *           taken apart with aligncmp and reads 207 aligned in 31 hunks against
+ *           the base's 209 in 28, instruction count still 185.  CROSSED with the
+ *           `-1` fix above it reads 207 in 33 hunks.  Both WORSE.
+ *   FLAG    -fno-gcse and -fno-strict-aliasing BIT-IDENTICAL; -fno-sched-insns2
+ *           186; -fno-rerun-cse-after-loop 190 (+2 instructions, aligned 62);
+ *           -fno-rerun-loop-opt 193 (+2, aligned 74); -fno-strength-reduce 202
+ *           (+3, aligned 122); -ffixed-r7 205 (+3, aligned 91); -O1 226 (+3,
+ *           aligned 132).  Nothing helps and everything that moves the count
+ *           moves it the WRONG WAY.
+ *
+ * WHERE TO LOOK NEXT, given the direction is OURS LONGER: the search is what
+ * lets gcc REUSE a value, not what statement to add.  The two +1 regions are
+ * both a constant being materialised into a callee-saved register and copied out
+ * at each use where the reference rematerialises it -- so the question is which
+ * of the two regions owns which surplus instruction, which the window view
+ * (scratch_elev/b347/E/e_window.py, same three arguments plus a stream range)
+ * answers in one command.  The batch-347 pass did not get to it: the round went
+ * on the sibling park Anim_Spire, where the same class of error -- a value named
+ * in the source that the ROM leaves as a cse temporary -- was worth 249 -> 36.
+ * THAT IS THE FIRST THING TO TRY HERE.  This file names `one`, `z1`, `ofs`, `d`
+ * and three function-pointer locals; the inert list below shows naming more of
+ * them does not help, but it has never tried naming FEWER.
  */
 #include "dma.h"
 
