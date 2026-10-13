@@ -1,111 +1,113 @@
 /* OvlFunc_887_20093e4  [ovl_787e04]  --  0x020093e4
  *
- * NON-MATCHING, 127 of 144 encodings  (MEASURED, batch 319 recipe backfill).
- *   COUNT DIFFERS (ref 144, ours 142) -- so this positional figure measures
- *   MISALIGNMENT, not distance.  Read the count before the figure.
- *   RELOCATIONS differ, but THE SAME SYMBOLS AT A SHIFTED OFFSET -- which
- *   this project treats as a CONSEQUENCE of the length difference, not a
- *   separate blocker.  Re-classified in batch 322; the figure IS a distance.
- *   SIZE ref 352 bytes, ours 348.
+ * NON-MATCHING, 127 of 144 encodings  (re-measured batch 347 brief B).
+ *   THE FIGURE IS NOT A DISTANCE.  16-bit INSTRUCTION COUNT ref 111, ours 109 --
+ *   an INSTRUCTION GAP OF -2.  SIZE ref 352 bytes, ours 348.  144 == 144 is the
+ *   STREAM length (pool words, `bl` calls and pads included).  ALIGNED residue
+ *   28 in 18 hunks.
+ *   The old header contained BOTH claims, four lines apart: "COUNT DIFFERS (ref
+ *   144, ours 142) -- so this positional figure measures MISALIGNMENT, not
+ *   distance" and then "Re-classified in batch 322; the figure IS a distance."
+ *   The second is false and is removed.  The first was right in substance and
+ *   wrong in evidence: 144/142 is the stream, the instruction counts are 111/109.
  *
  * Verify with:
  *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
  *     goldensun-build python3 tools/objcmp.py \
  *     src/non_matching/ovl_787e04/20093e4.c \
  *     asm/overlays/rom_787e04/ovl_30_c_a_c_a_c_c_c_c_c_c_c_c_c_c_c_c_c_c.s --func OvlFunc_887_20093e4
+ *   ... and tools/aligncmp.py with the same two paths plus the function name.
  *
- * This recipe was ADDED by the batch-319 backfill: the park had none, so
- * parkcheck.py could not report its figure and nothing had ever checked it.
+ * THE GAP IS ONE SITE OF 2, AND IT IS REGION 1 OF THE FOUR BELOW.  Counted per
+ * region from aligncmp, which is the only way to tell one site of 2 from two
+ * sites of 1:
  *
- * Source asm: goldensun/asm/overlays/rom_787e04/ovl_30_c_a_c_a_c_c_c_c_c_c_c_c_c_c_c_c_c_c.s
+ *     region 1, the `-1` triple      ref 7 instructions, ours 5   -2
+ *     region 2, the iwram store      ref 6, ours 6                 0
+ *     region 3, `mov r1, #0x80`      ref 1, ours 1                 0
+ *     region 4, four arg-interleaves ref 12, ours 12               0
  *
- * A 140-instruction straight-line cutscene, 29 calls, no branches. Attempted
- * DELIBERATELY as an experiment rather than picked as a candidate: nothing over
- * 65 instructions had been tried, and 45% of the remaining work sits in the 244
- * functions over 400. See reports/large-functions.md.
+ * So all three count-neutral regions are PURE ORDER, and the whole length
+ * shortfall is the triple.  The old header's "140 against 140" was the stream.
  *
- * RESULT: 140 against 140, with the two streams agreeing everywhere except
- * FOUR small regions totalling 28 instructions. Eighty percent of the function
- * is right on a first transcription. Nothing about the LENGTH is the problem.
+ * REGION 1, verbatim:
+ *     rom    mov r0,#1 / mov r1,#1 / mov r2,#1 / mov r3,#0
+ *            neg r1,r1 / neg r2,r2 / neg r0,r0
+ *     ours   mov r2,#1 / neg r2,r2 / mov r3,#0 / mov r0,r2 / mov r1,r2
+ * gcc builds -1 once and copies twice; the ROM builds it three times.
  *
- * The four regions, and what each one is:
+ * THE PARK'S MECHANISM WAS THE WRONG PASS.  It cited `update_equiv_regs` in
+ * local-alloc.c and the pair of conditions `REG_N_REFS == 2` and
+ * `REG_BASIC_BLOCK < 0`.  Those are real -- local-alloc.c:886-889 in this tree's
+ * gcc (relative lines 220-223 of the function that starts at local-alloc.c:667) --
+ * but they gate the wrong transformation: `reg_equiv_replace` REBUILDS a constant
+ * at a single use, which is the direction we WANT, and its own comment says "If
+ * the register is only used in one basic block, this can't succeed or combine
+ * would have done it."  It is not what commons three -1s into one.
  *
- * 1. THE `-1` TRIPLE, 7 instructions. `__Func_80933f8(-1, -1, -1, 0)`.
+ * WHAT ACTUALLY DOES IT, with the line that decides it.  cse substitutes a
+ * register for a constant when the register is cheaper, and the cost comes from
+ * arm_rtx_costs's CONST_INT case, config/arm/arm.c:2077-2095:
  *
- *        rom    mov r0,#1 / mov r1,#1 / mov r2,#1 / mov r3,#0
- *               neg r1,r1 / neg r2,r2 / neg r0,r0
- *        ours   mov r2,#1 / neg r2,r2 / mov r3,#0 / mov r0,r2 / mov r1,r2
+ *     case CONST_INT:
+ *       if (outer == SET)
+ *         {
+ *           if ((unsigned HOST_WIDE_INT) INTVAL (x) < 256) return 0;
+ *           if (thumb_shiftable_const (INTVAL (x)))        return COSTS_N_INSNS (2);
+ *           return COSTS_N_INSNS (3);
+ *         }
  *
- *    gcc builds -1 once and copies; the ROM builds it three times. This is the
- *    rematerialisation class from src/non_matching/ovl_77dd1c/200c5b8.c, where
- *    it is the whole blocker. Tried here: `0 - 1`, `~0`, three named int
- *    locals, and the callee undeclared. All identical output.
+ * -1 is 0xffffffff unsigned, so not < 256, and it is not thumb_shiftable_const
+ * (arm.c:8579), so its SET cost is THREE instructions' worth -- against one for a
+ * register copy -- even though gcc then emits it in TWO (`mov #1 / neg`).  The
+ * cost model overstates the constant, so cse always wins the comparison.  No
+ * spelling of -1 in C changes rtx_cost of (const_int -1).
  *
- * 2. THE IWRAM STORE, 6 instructions. Structurally correct -- the ROM's
- *    `add r3,r2 / add r2,#0x42 / str r2,[r3]` is reproduced -- but with the two
- *    registers' roles swapped, because gcc schedules the pointer's load after
- *    the offset's shift and the ROM does it before. A scheduling difference
- *    inside four instructions, not a wrong construct.
+ * THE BOUND, RESTATED WITH A MEASURED CEILING RATHER THAN AS AN ABSOLUTE.
+ * The old header said "In plain C it is unreachable ... register pinning -- a
+ * fakematch -- is the only way through."  The substance survives, but it is now
+ * a number instead of an assertion: DEFINITION ORDER BUYS EXACTLY ONE OF THE TWO
+ * MISSING BUILDS AND NO MORE.  Naming the three as `int` locals assigned BEFORE
+ * `__CutsceneStart()` -- a call they are live across, which is the discriminator
+ * in docs/elevation.md's definition-order lever -- gives ours 110 against ref
+ * 111, i.e. gap -1.  FOUR placements all plateau there:
+ *     three names before the first call                 110,  aligned 33
+ *     the same with the arguments reversed              110,  aligned 33
+ *     one name before the call, two after               110,  aligned 33
+ *     two names + one literal                           110,  aligned 33
+ * and what gcc actually does is build -1 ONCE into r5 (callee-saved, so it
+ * survives the call) and copy it three times -- 2 + 3 instead of 2 + 2.  The
+ * ceiling is structural: one C variable is one pseudo, so N names can only ever
+ * add ONE build.  All four are WORSE on the aligned residue (28 -> 33), so the
+ * park body below is still the best form.
  *
- * 3. `mov r1, #0x80` displaced by three positions in the __UploadSpriteGFX
- *    argument block. Ordinary argument-order; the declaration lever was not
- *    swept on it because regions 1 and 4 dominate.
+ * MEASURED INERT at production flags (all bit-identical at 127, aligned 28):
+ *   `0 - 1` / `~0` / `-1` mixed in one argument list; the callee prototyped
+ *   `(short, short, short, int)`; three names defined immediately before the
+ *   call rather than before the preceding call.
+ * FLAG AXIS CLOSED, and two rows are traps: -O1 reads ndiff 132 and takes the
+ *   aligned residue 28 -> 54; -fno-schedule-insns2 reads 125, better than the
+ *   base 127, and takes it 28 -> 49.  The other six groups are bit-identical.
+ * ANCHOR AXIS CLOSED: all 45 statement boundaries, best 127 against base 127.
  *
- * 4. FOUR ARG-INTERLEAVE SITES, 12 instructions.
- *
- *        rom    mov r1,#0xf0 / mov r0,#0x12 / lsl r1,#1 / mov r2,#0xb0
- *        ours   mov r1,#0xf0 / lsl r1,#1 / mov r0,#0x12 / mov r2,#0xb0
- *
- *    Exactly the class in src/non_matching/overlays/interleaved_arg_setup.c,
- *    which has four members and no lever. Here it appears FOUR TIMES IN ONE
- *    FUNCTION, in three calls to __Func_80921c4 and one to __Func_8092adc.
- *
- * THAT IS THE FINDING. Both of the blockers that stop this function are
- * already-parked classes, and neither is new. What is new is the density: a
- * blocker that appears at one call site in twenty is nearly certain to appear
- * somewhere in a function with twenty-nine call sites. Measured across the
- * whole remaining corpus, 23% of functions under 20 instructions carry at least
- * one of three known blocker shapes, against 99% of those over 400.
- *
- * So this function is not blocked by being long. It is blocked by containing
- * five instances of two classes we already could not solve at any size.
- *
- * WHAT WAS ESTABLISHED and should be kept in any further attempt:
- *   - the zero stored at +0x55 and +0x27 is ONE named local used twice; the
- *     ROM keeps it in a callee-saved register across both stores. Rebuilt at
- *     each store it also poisons the `~0x20` mask, which gcc then builds as
- *     `sub r3,#0x21` from the live zero instead of `mov #0x21 / neg`.
- *   - the iwram store advances a named pointer and reuses the offset variable
- *     as the stored value (`off += 0x42`), which is what the ROM does.
- *   - `~0x20` is a named `int`; the ROM has `mov r3,#0x21 / neg r3,r3`.
- *   - every other constant is written inline, including the four `<<` shifts
- *     that gcc folds and rematerialises.
- *
- * Progress by variant, measured with `tryc.py --align` (which is in the tree
- * because this function needed it -- the positional count said "132 differ" for
- * all of them):
- *
- *     first transcription                                32 of 140
- *     + shared zero, + pointer-walk iwram store          28 of 140
- *
- * SETTLED, batch 42, by reading the compiler rather than probing it.
- *
- * gcc-2.96 rebuilds a constant at its use instead of keeping it live in exactly
- * one place -- `update_equiv_regs` in local-alloc.c -- and only when BOTH of
- * these hold:
- *
- *     REG_N_REFS (regno) == 2        set once, used exactly once
- *     REG_BASIC_BLOCK (regno) < 0    the pseudo spans MORE THAN ONE basic block
- *
- * A straight-line function has one basic block, so the second condition can
- * never hold, whatever the C says -- it is a property of the control-flow graph
- * and not of the source. The only other pass that could do it is `combine`, and
- * combine can only fold a constant into its consumer if the target takes it as
- * an immediate, which a two-instruction constant does not.
- *
- * So this is NOT waiting on a construct that has not been found. In plain C it
- * is unreachable, and register pinning -- a fakematch -- is the only way
- * through. See docs/elevation.md and reports/fakematch-worklist.md.
+ * ---- retained from the previous header, all re-measured and still true ----
+ * Regions 2-4 are order, not construct:
+ *   2. THE IWRAM STORE, 6 instructions.  `add r3,r2 / add r2,#0x42 / str r2,[r3]`
+ *      is reproduced with the two registers' roles swapped, because gcc schedules
+ *      the pointer's load after the offset's shift and the ROM does it before.
+ *   3. `mov r1, #0x80` displaced by three positions in the __UploadSpriteGFX
+ *      argument block.
+ *   4. FOUR ARG-INTERLEAVE SITES, 12 instructions:
+ *        rom  mov r1,#0xf0 / mov r0,#0x12 / lsl r1,#1 / mov r2,#0xb0
+ *        ours mov r1,#0xf0 / lsl r1,#1 / mov r0,#0x12 / mov r2,#0xb0
+ *      The class in src/non_matching/overlays/interleaved_arg_setup.c, here four
+ *      times in one function.
+ * KEEP IN ANY FURTHER ATTEMPT: the zero stored at +0x55 and +0x27 is ONE named
+ * local used twice; the iwram store advances a named pointer and reuses the
+ * offset variable as the stored value (`off += 0x42`); `~0x20` is a named `int`.
+ * A 140-instruction straight-line cutscene, 29 calls, no branches; attempted as
+ * a size experiment (see reports/large-functions.md) and 80% right on a first
+ * transcription.
  */
 struct Spr { unsigned char pad_00[5]; unsigned char f5; unsigned char pad_06[3];
              unsigned char f9; unsigned char pad_0a[0x12]; unsigned char f1c;

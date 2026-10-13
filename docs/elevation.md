@@ -10269,6 +10269,35 @@ with the note that the likeliest reading is two different symbols coinciding in
 value, and that this is inference from a contradiction rather than a
 measurement.
 
+**RESOLVED, batch 347 brief B — and the inference was wrong.** Both instances
+were read as "two different symbols coinciding in value". They are not:
+**gcc-2.96 always pools a symbol address, and the ROM here builds its value with
+`mov`+`lsl`.** A symbol cannot be the explanation for a `mov`+`lsl` build, so the
+contradiction never needed one.
+
+What it actually needed was the right pass and the right gate:
+
+* **The repeated-constant hoist is `cse` PASS 1, not partial redundancy
+  elimination.** Measured with `-fno-gcse` in force: `.00.rtl` holds five
+  `const_int` sets and `.03.cse` holds one. So the hoist survives `-fno-gcse`
+  entirely, which is why probes aimed at gcse measured inert.
+* **The gate is `LABEL_NUSES (JUMP_LABEL (p)) == 1`** in
+  `cse_end_of_basic_block` — the function opens at `cse.c:6534` and **the test is
+  at `cse.c:6642`**, shared by both of that function's extension arms. (Brief B
+  cited the gate as `:6534`; it is the function, not the test. Checked against
+  the compiler source.)
+
+That gate is the whole "dominance contradiction": the hoist reaches across a
+conditional jump only when the target label has exactly one use, so a block
+reached twice rebuilds the constant *correctly*, with no second symbol involved.
+
+And the corroborating caution, measured on the same park: **`-fno-cse-follow-jumps`
+and `-fno-cse-skip-blocks` are each BIT-IDENTICAL ALONE and decisive TOGETHER**
+(instrument-only, 50 of 122 at a true distance, aligned 20). A one-flag-at-a-time
+sweep therefore records **two false clean negatives** on exactly the mechanism
+they jointly control. `autosweep`'s flag axis tries one group at a time and
+cannot see this.
+
 `OvlFunc_891_2008098` is a second instance, and a cleaner one because everything
 around it matches. Instructions 0-53 are exact; the ROM then builds a fresh 2
 into a scratch register for a stack argument while the loop's stack value -- also
@@ -36034,3 +36063,37 @@ that.
 
 Compare the standing rule about preconditions: here the precondition held, the
 arithmetic was right, the flip happened, and the outcome still did not follow.
+
+## Batch 347 — NAME THE ADDRESS, NOT THE OFFSET
+
+`OvlFunc_963_2008124` went **57 → 33** on this one change: `p = g + 0x242;` as
+its own statement, naming the **address** rather than the offset that was being
+added at each use.
+
+Worth recording beside the `(plus reg reg)` fold rule, because the two look alike
+and pull opposite ways:
+
+* **Naming the OFFSET** makes a byte address `(plus reg reg)` — a legal Thumb
+  `ldrb` address — so combine folds the add away. Removing the offset variable
+  restores the reference's separate add. (Batch 347 brief D closed a gap this
+  way, and measured the same lever firmly negative on another park: the fold is
+  **two-way and per site**.)
+* **Naming the ADDRESS** takes the arithmetic out of the addressing mode
+  altogether, which is a different effect and the one that paid here.
+
+Also from that park: a single `0x69` halfword store was costing **three
+mid-function pool dumps** through `*thumb_movhi_insn` alt 1's `pool_range` 64
+(`arm.md:4353`); spelling it `_AREA_69` collapsed them into the ROM's one tail
+pool. The park had ranked its two pooled area-id comparisons **last** and
+dismissed them — "gcc is right and the ROM went the long way round" — and they
+were the whole −2.
+
+## AND THE RUNG THAT EQUALISES THE COUNT IS NOT ALWAYS THE RUNG THAT HELPS
+
+On the same park, the rungs that **equalised the instruction count** left the
+aligned residue at 100, while the rung that **reopened** the count took aligned
+78 → 57. Judging either on its figure alone would have discarded the useful one.
+
+This is the non-monotonicity rule in its sharpest form so far: closing the gap is
+the step that makes the figure *readable*, not the step that makes the body
+*closer*. Do both, and rank on the aligned residue.

@@ -1,66 +1,115 @@
-/*
+/* OvlFunc_952_200be40  --  0x0200be40  [asm/overlays/rom_7d768c/ovl_30_c_a_c_a_a.s]
  *
- * NON-MATCHING, 93 of 122 encodings  (MEASURED, batch 319 recipe backfill).
- *   RELOCATIONS differ, but THE SAME SYMBOLS AT A SHIFTED OFFSET -- which
- *   this project treats as a CONSEQUENCE of the length difference, not a
- *   separate blocker.  Re-classified in batch 322; the figure IS a distance.
- *   SIZE ref 324 bytes, ours 328.
+ * NON-MATCHING, 93 of 122 encodings  (re-measured batch 347 brief B).
+ *   THE FIGURE IS NOT A DISTANCE.  16-bit INSTRUCTION COUNT ref 81, ours 79 --
+ *   an INSTRUCTION GAP OF -2.  SIZE ref 324 bytes, ours 328, and ours is LARGER
+ *   while being two instructions SHORTER because it carries two extra pool words.
+ *   122 == 122 is the STREAM length (pool words AND `bl` calls AND pads), which
+ *   is what the old header read as a count.  ALIGNED residue 32 in 23 hunks.
+ *   The previous header's sentence "Re-classified in batch 322; the figure IS a
+ *   distance" IS FALSE and is removed; objcmp prints the instruction counts on
+ *   the line directly above the figure.
  *
  * Verify with:
  *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
  *     goldensun-build python3 tools/objcmp.py \
  *     src/non_matching/ovl_7d768c/200be40.c \
  *     asm/overlays/rom_7d768c/ovl_30_c_a_c_a_a.s --func OvlFunc_952_200be40
+ *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
+ *     goldensun-build python3 tools/aligncmp.py \
+ *     src/non_matching/ovl_7d768c/200be40.c \
+ *     asm/overlays/rom_7d768c/ovl_30_c_a_c_a_a.s OvlFunc_952_200be40
  *
- * This recipe was ADDED by the batch-319 backfill: the park had none, so
- * parkcheck.py could not report its figure and nothing had ever checked it.
- * OvlFunc_952_200be40 -- asm/overlays/rom_7d768c/ovl_30_c_a_c_a_a.s
+ * THE GAP IS TWO SITES OF 1, not one site of 2, and the second was invisible to
+ * the old header because the old header was counting the stream:
  *
- * BLOCKER: gcc HOISTS a repeated two-instruction constant to the common
- * dominator. 119 lines against 121 -- two short, and the two are the extra
- * `push {r6}` and its pop.
+ *   SITE A -- THE CONSTANT HOIST.  The ROM rebuilds `mov r1,#0xa0 / lsl r1,#7`
+ *     (0x5000) at both its uses and `mov r1,#0xc0 / lsl r1,#6` (0x3000) at all
+ *     three of its uses.  gcc computes both once before the first call and holds
+ *     them in callee-saved registers: 4 setup instructions replace 5 x 2 = 10
+ *     with 5 one-instruction copies, net -1.
+ *   SITE B -- THE MESSAGE BASE.  The ROM has `ldr r5, =0x2233` once and reaches
+ *     the other two ids with `add r0, r5, #1` and `add r0, r5, #2`.  gcc pools
+ *     0x2233, 0x2234 AND 0x2235 and loads each directly, net -1 instruction and
+ *     +2 pool words -- which is the whole of the 324-vs-328 size inversion.
  *
- * The function passes `0xa0 << 7` twice and `0xc0 << 6` three times, in two
- * different branches. The ROM rebuilds `mov r1,#0xa0 / lsl r1,#7` at each use.
- * gcc computes both once at the very top of the function -- BEFORE the first
- * call, ahead of even __SetFlag -- and holds them in r5 and r6.
+ * SITE B IS CLOSED BY A FLAG GROUP THE PARK NEVER TRIED.  -fno-gcse
+ * (GCSE_CFLAGS) takes the UNCHANGED body to an instruction gap of -1, size
+ * 324/320, aligned residue 32 -> 29, and the `add r0, r5, #1` / `#2` shape comes
+ * back exactly.  gcse's constant propagation is what rematerialises base+1 and
+ * base+2 as pool constants.  tools/autosweep.py's flag axis finds this in one
+ * command; both cheap axes are now CLOSED on this park (all eight flag groups,
+ * all 39 anchor placements -- -O1 reads ndiff 48 and is a TRAP: its aligned
+ * residue is 38, worse than the base 32).
  *
- * That is partial redundancy elimination hoisting to the dominator, not the
- * ordinary CSE recorded elsewhere in this file, and it is why the usual lever
- * fails: the per-use-site named locals that closed OvlFunc_948_20095f0 are
- * byte-identical here, whether all five are assigned at the top of the function
- * or each immediately before its own call. gcc folds the initialisers to the
- * same rtx and hoists once regardless.
+ * SITE A: THE PASS IS NAMED, AND IT IS NOT THE ONE docs/elevation.md NAMES.
+ * elevation.md's dominance section calls this "partial redundancy elimination, a
+ * different pass from the cse described above".  Measured from gcc's own dumps
+ * (-da, with -fno-gcse so PRE cannot be the actor): `.00.rtl` holds FIVE separate
+ * `(const_int 20480)` / `(const_int 12288)` sets, one per use site, and by
+ * `.03.cse` there is ONE set of each, with the else-arm use reading
+ * `(set (reg:SI 1 r1) (reg:SI 34))` plus a REG_EQUAL note -- the signature of a
+ * cse substitution.  So the actor is CSE PASS 1, and PRE is not involved.
  *
- * WHY THIS FUNCTION WAS PICKED, since the shape looked ideal and still failed:
- * 119 instructions, 38 calls, no high registers used, single-function file --
- * the profile the doc now recommends. It confirms that the 40-120 band helps
- * with ALLOCATION residues but does nothing for redundancy elimination, which
- * is a separate pass and fires on constants regardless of pressure.
+ * THE GATE, with the line that decides it.  cse_main calls
+ * cse_end_of_basic_block (cse.c:6534) with `flag_cse_follow_jumps` and
+ * `flag_cse_skip_blocks`.  Both of its two block-extension arms -- the
+ * follow-jumps arm (the target label preceded by a BARRIER) and the skip-blocks
+ * arm ("detect a branch around a block of code") -- sit behind ONE shared gate:
  *
+ *     && LABEL_NUSES (JUMP_LABEL (p)) == 1
+ *
+ * The else arm's label has exactly one use here, so cse extends its block across
+ * the `bne` and commons the constant.  PROVED BY INSTRUMENT: with
+ * `-fno-gcse -fno-cse-follow-jumps -fno-cse-skip-blocks` this function measures
+ * 50 of 122 with INSTRUCTION COUNT AND SIZE BOTH EQUAL -- a true distance -- and
+ * aligned residue 20 in 20 hunks, and the final `.s` builds `#160` twice.  Those
+ * last two flags are NOT Makefile flag groups, so this is an INSTRUMENT figure
+ * about the blocker, not a result; the shipped body is flag-free.
+ *
+ * REFUTED: "the two constants are DIFFERENT SYMBOLS in the original".  That
+ * inference is recorded both here and in docs/elevation.md's dominance section
+ * (and again in "A second instance of the dominance contradiction").  It cannot
+ * be right: gcc-2.96 ALWAYS pools a symbol's address, and the ROM builds these
+ * with `mov` + `lsl`.  A symbol would read `ldr r1, =_SYM`.  The contradiction
+ * elevation.md records is not a symbol-space problem -- it is the LABEL_NUSES
+ * gate above, which is a property of the CFG the original compiled, not of the
+ * constants.
+ *
+ * MEASURED INERT OR WORSE on site A (all at production flags unless stated):
+ *   -ffixed-r7, -fno-strict-aliasing, -fno-strength-reduce, -fno-rerun-loop-opt
+ *     bit-identical to the base at 93.
+ *   -fno-cse-follow-jumps ALONE, -fno-cse-skip-blocks ALONE: both
+ *     bit-identical at 93 -- the two arms reach the else block independently, so
+ *     only the PAIR closes it.  A single-flag sweep records this as a clean
+ *     negative and it is not one.
+ *   -fno-gcse crossed with -fno-rerun-cse-after-loop, -fno-rerun-loop-opt,
+ *     -fno-caller-saves, -fno-force-mem, -fcall-saved-r4: all gap -1, aligned
+ *     29-32, i.e. no better than -fno-gcse alone.
+ *   PRESSURE DOES NOT WORK.  -fno-gcse -ffixed-r7 goes to +4 instructions and
+ *     -fno-gcse -ffixed-r6 -ffixed-r7 to +8: denied a callee-saved register gcc
+ *     SPILLS the constant to the stack, it does not rebuild it.
+ *   ONE SHARED `int` FOR ALL FIVE CONSTANT ARGUMENTS (so each redefinition kills
+ *     the previous equivalence): +5 at production flags, +7 under -fno-gcse,
+ *     aligned 48 and 41.  One C variable is one pseudo, so it wins a callee-saved
+ *     register and pays copies at every site.
+ *   INVERTING THE `if` (long arm first, `!= 0`): aligned 32 -> 47.  The park's
+ *     arm order is right.
+ *
+ * NEXT, and it is a concrete engineering target rather than a symbol-space wish:
+ * make LABEL_NUSES of the else arm's entry label 2, or remove the BARRIER in
+ * front of it, and cse cannot extend.  Neither has been tried from C.
+ *
+ * ---- retained from the previous header, still true ----
  * The message base 0x2233 with `add r0, r5, #1` and `#2` derivations IS
- * reproduced correctly by a plain `base = 0x2233;` local -- that part works.
-  *
- * PROBED, five variants, and the rule is dominance -- not distance, not the
- * number of intervening calls:
- *
- *     both uses in mutually exclusive branches    -> rebuilds, push {lr}
- *     three uses, all in branches                 -> rebuilds, push {lr}
- *     one dominating use + one in a branch        -> HOISTS, push {r5,lr}
- *     the same with eight calls in between        -> HOISTS
- *     the same with the second use deep in an arm -> HOISTS
- *
- * THIS FUNCTION CONTRADICTS THAT. Its ROM rebuilds 0xa0<<7 at a dominating use
- * in the prologue and again inside the else branch, which under our flags gcc
- * will not do. There is no branch before the first use -- the listing is
- * push / SetFlag / CutsceneStart / Func_808e118 / the first 8092adc -- so the
- * dominance is not something I have mis-structured.
- *
- * The likeliest reading is that the two constants are DIFFERENT SYMBOLS in the
- * original and coincide only in value. That is inference from a contradiction
- * rather than a measurement, and this tree has no symbol space to write it
- * with, so it is recorded and not acted on.
-*/
+ * reproduced correctly by a plain `base = 0x2233;` local; under -fno-gcse that
+ * part is exact.  Per-use-site named locals for the hoisted constants are
+ * byte-identical to the literals, whether assigned at the top of the function or
+ * immediately before their own call: gcc folds the initialisers to one rtx before
+ * cse runs, so five named locals and one literal are the same input.
+ * 0x2233 is NOT a .sym candidate: it cannot be built with mov+lsl, so pooling it
+ * is forced and carries no information about the original spelling.
+ */
 extern void __SetFlag(int id);
 extern void __CutsceneStart(void);
 extern void __CutsceneEnd(void);
