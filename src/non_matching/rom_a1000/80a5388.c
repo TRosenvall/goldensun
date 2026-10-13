@@ -1,113 +1,125 @@
-/* Func_80a5388 -- NON-MATCHING: 159 encodings of 184 differ (objcmp).
- *
- * 159 IS NOT A DISTANCE: ref 184 instructions / ours 186, ref 428 bytes / ours 432.  This
- * body is TWO INSTRUCTIONS LONG and everything after the divergence is positional.  The
- * companion candidate (scratch, `goto cancel` into the loop body) is 149 of 184 with ref
- * 184 / ours 184 and ref 428 / ours 428 -- EQUAL SIZE AND COUNT -- but it relocates one
- * block, so neither number is a clean distance.  What is solid is the region-aligned
- * measure: 48 instructions in disagreeing regions of 188 for this body, 59 for the other.
+/* Func_80a5388 -- NON-MATCHING.
+ * 159 of 184 stream entries differ; ref 154 instructions / ours 155, ref 428
+ * bytes / ours 432.  THE GAP IS +1 INSTRUCTION, not two: the 184-vs-186 stream
+ * delta is one instruction plus the 2-byte alignment pad that instruction
+ * creates.  (The previous header read the stream delta as instructions.)
+ * Aligned residue (tools/tryc.py --align): 48 instructions in disagreeing
+ * regions of 188.  PINS 0 (shimcount clean).
  *
  * Verify with:
  *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
  *     goldensun-build python3 tools/objcmp.py \
- *     src/non_matching/rom_a1000/80a5388.c asm/rom_a1000/rom_a4f08_c_c.s --func Func_80a5388
+ *     src/non_matching/rom_a1000/80a5388.c asm/rom_a1000/rom_a4f08_c_c.s \
+ *     --func Func_80a5388
  *
- * NOTE: rom_a4f08.s CARRIES A DATA SECTION and holds FOUR functions
- * (Func_80a4f08, Func_80a51d0, Func_80a524c, Func_80a5388), so landing this one needs a
- * TEXT/DATA SPLIT.  tools/datacheck.py says:
- *     data sections : .rodata
- *     functions     : Func_80a4f08, Func_80a51d0, Func_80a524c, Func_80a5388
- *     -> converting a function here needs a TEXT/DATA SPLIT; the data must keep its own
- *        object.
- * The section is a single `.Laf08c: .incrom 0xaf08c, 0xaf20c` (0x180 bytes) at the very
- * END of the file, after all four functions, with NO `.global` -- and it is referenced by
- * `ldr r0, =.Laf08c` from Func_80a4f08 ONLY (asm/rom_a1000/rom_a4f08.s:138).  So
- * Func_80a5388 itself needs NOTHING exported; the label becomes an export only when
- * Func_80a4f08 is the one that leaves the file.  (Batch 290's rule still applies in the
- * other direction: datacheck's EXPORTS line cannot see a label that is not already
- * `.global`, so read the definitions and the references, as done here.)
+ * SPLIT WHEN IT LANDS (text/data, NO new export needed):
+ *   python3 tools/split_s.py asm/rom_a1000/rom_a4f08_c_c.s Func_80a5388
+ *     -> asm/rom_a1000/rom_a4f08_c_c_b.s  (the function, 199 lines)
+ *     -> asm/rom_a1000/rom_a4f08_c_c_c.s  (the .rodata blob, 6 lines)
+ *   datacheck.py: ".Laf08c (already global -- NOT the set a split needs)" and
+ *   "Func_80a5388 reads no data label -> split needs NO new export".  piece.py's
+ *   "EXPORTS 1 NON-FUNCTION SYMBOL" warning fires on the FILE, not on this
+ *   function; split_s.py already cuts the data into its own object.
  *
- * THREE THINGS LANDED, 181 -> the current body:
+ * ================= BATCH 346 BRIEF D =================
  *
- * 1. THE MODULO'S DIVISOR IS A VARIABLE, AND THIS IS CONFIRMED THREE TIMES IN THIS BANK.
- *    The ROM calls `__modsi3` with `mov r1,#2`.  A literal `% 2` is expanded INLINE
- *    (lsr/add/asr/lsl/sub, five instructions) -- the libcall only appears if the divisor is
- *    a variable at expand, which cprop then folds to 2.  `int n; n = 2; sel = (sel + n) % n;`
- *    gives the ROM's `add r0,#2 / mov r1,#2 / bl __modsi3` exactly, and it FIXED THE
- *    INSTRUCTION COUNT (188 lines against 188) and put `sel` into r8.
- *    THE CROSS-CHECK: the same `(x + n) % n` appears in Func_80a4f08
- *    (`ldr r0,[sp,#0x18] / ldr r1,[sp,#0x18] / add r0,r8 / bl __modsi3`, n = parameter 1)
- *    and in Func_80a60d4 (same shape, n = `*(signed char *)(state + 0x1e)` spilled to
- *    sp+0x18).  In those two the divisor STAYS a load because it is genuinely variable; here
- *    it is a local constant so cprop turns it into `mov r1,#2` while the libcall remains.
- *    A `mov rN,#K` DIVISOR FEEDING __modsi3 IS THEREFORE NOT EVIDENCE OF A CONSTANT IN THE
- *    SOURCE -- it is evidence of a VARIABLE that cprop resolved.
+ * THE PER-REGION SPLIT.  The net +1 is TWO SITES, +2 and -1, read off the
+ * relocation offsets (ref vs ours), which drift +4 and then settle at +2:
  *
- * 2. THE INDIRECT-CALL TYPEDEF AGAIN, AND AGAIN THE CAST FORM FAILS.
- *    `CopyFn copy; copy = Func_8001af8; copy(...)` is required for
- *    `ldr r3,=Func_8001af8 / bl _call_via_r3`; `((CopyFn)Func_8001af8)(...)` folds to a
- *    direct `bl Func_8001af8` and loses two instructions per site.
+ *   A. THE EARLY-OUT BLOCK, +2.  ours `mov r2,#1 / mov r8,r2 / b .L4` where the
+ *      ROM has only `b .La54c6`: find_cross_jump cannot merge this block's tail
+ *      with the B-button path's `mov r3,#1 / mov r8,r3` because the encodings
+ *      differ by one register.
+ *   B. THE `sel--` BLOCK, -1.  ours `sub r2,r2,#33 / add r8,r2` where the ROM
+ *      has `mov r3,#1 / neg r3,r3 / add r8,r3`: with the -1 landing in r2 --
+ *      the register the mask constant 0x20 was just built in --
+ *      reload_cse_move2add chains it into one `sub`; the ROM's -1 lands in r3,
+ *      which holds the `and` RESULT and not a known constant, so it cannot
+ *      chain.
  *
- * 3. STACK SLOT ORDER IS THE DECLARATION-ORDER LEVER AND ITS DIRECTION HELD.
- *    The ROM has `unit` at sp+4 and `moved` at sp+8.  Declaring `moved` BEFORE `unit` puts
- *    unit in the lower slot -- "later declaration takes the lower slot", confirmed again.
+ * SO BOTH SITES ARE ONE REGISTER, AND THE OLD HEADER WAS RIGHT ABOUT THAT AND
+ * WRONG ABOUT WHICH PSEUDO DECIDES IT.  Every scratch constant in our body is
+ * in r2 where the ROM's is in r3 (`mov r2,#0`+`mov r8,r2`, `mov r2,#0xbb`,
+ * `mov r2,#1`, `mov r2,#0`); the aligned diff contains nothing else.
  *
- * 4. TWO MESSAGE IDS ARE ONE INCREMENTED VARIABLE (the 80a7d68 lever, reused):
- *    `id = 0xb2c; _Func_801e7c0(id,...); id++; _Func_801e7c0(id,...);` gives the ROM's
- *    single `ldr r5,=0xb2c` plus `add r5,#1`.
+ *   * It is NOT local-alloc's find_free_reg.  From `.18.greg`, the ONLY two
+ *     sites where find_reg prints `Using reg 2` are insns 50 and 52:
+ *         (insn 50 (set (reg:SI 53) (plus:SI (reg/v:SI 32) (const_int 374))))
+ *         (insn 52 (set (reg:SI 54) (zero_extend:SI (mem:HI (reg:SI 53)))))
+ *     -- the `state + 0x176` address for Func_80a3ef0's SECOND argument.  374
+ *     fits no Thumb addsi3 immediate, so reload needs a scratch there.
+ *   * r3 is busy at insn 50: it holds `reg 50`, the `state[0x21b]` ldrb that
+ *     serves Func_80a3ef0's arguments 0 AND 3.  gcc-2.96 evaluates call
+ *     arguments FORWARD (calls.c:1451 precompute, calls.c:2948 store loop), so
+ *     argument 0's ldrb is expanded first and is live ACROSS insn 50.
+ *     find_reg charges spill_cost[3] and takes r2 (reload1.c:1636-1658; the
+ *     inv_reg_alloc_order tie-break at :1645-1652 only applies at EQUAL cost,
+ *     and REG_ALLOC_ORDER does prefer r3 -- arm.h:988-994).
+ *   * THAT ONE CHOICE SETS THE WHOLE FUNCTION'S SCRATCH REGISTER.  It adds r2
+ *     to used_spill_regs (reload1.c:1686, :1754); finish_spills builds
+ *     spill_regs in ASCENDING hard-register order (reload1.c:3527-3532), so
+ *     spill_regs == [2,3] instead of [3]; and allocate_reload_reg's round robin
+ *     starts at last_spill_reg+1 == 0 (reload1.c:821 init, :5003-5013), handing
+ *     out r2 where a one-element [3] would hand out r3 every time.
  *
- * 5. `sel` AND THE RETURN VALUE ARE THE SAME VARIABLE.  r8 is written with 0 at entry,
- *    incremented and decremented by the cursor keys, taken from __modsi3, set to 1 on the
- *    two cancel paths, tested by `cmp r3,#1` for the restore, and returned by `mov r0,r8`.
- *    One variable.  `pop {r1}` in the epilogue is the `int` return.
+ * SO THE LEVER IS: STOP `reg 50` BEING LIVE ACROSS THE `state + 0x176` ADD.  In
+ * the ROM the add and its ldrh are ADJACENT and the ldrb comes AFTER them
+ * (`mov r3,#0xbb / lsl r3,#1 / add r3,r9 / ldrh r1,[r3] / mov r10,r3 /
+ * ldrb r3,[r6]`), i.e. ARGUMENT 1 WAS EVALUATED BEFORE ARGUMENT 0 -- which
+ * gcc-2.96's forward argument order does not produce from this call expression.
+ * Finding the spelling that does is the whole of the remaining work.
  *
- * BLOCKER: THE SCRATCH REGISTER FOR A CONSTANT INTO A HIGH REGISTER.  The ROM uses r3 for
- * ALL EIGHT of them -- `mov r3,#0 / mov r8,r3`, `mov r3,#1 / str r3,[sp,#8]`,
- * `mov r3,#1 / neg r3,r3 / add r8,r3`, `mov r3,#1 / add r8,r3 / str r3,[sp,#8]`,
- * `mov r3,#0 / str r3,[sp,#8]`, both `mov r3,#1 / mov r8,r3`, and `mov r3,r8 / cmp r3,#1`.
- * This C alternates r2 and r3.  It is NOT a reload register: the .18.greg dump already
- * shows `(set (reg/v:SI 8 r8) (reg:SI 2 r2))` with the REG_EQUAL const on it, so
- * local-alloc's find_free_reg picked r2 -- r3 was not free over that interval.
+ * MEASURED THIS BATCH, ALL INERT AT 159 (all crossed against the body above):
+ *   - `item = *(unsigned short *)(state + 0x176);` hoisted and `item` passed:
+ *     BYTE-IDENTICAL to this body.  combine sinks the load back into the
+ *     argument -- `.17.lreg` still has the ldrb (insn 57) before the ldrh
+ *     (insn 59).
+ *   - `extern void Func_80a3ef0();` (unprototyped);
+ *   - argument 2 declared `unsigned short` in the prototype;
+ *   - `p = (unsigned short *)(state + 0x176);` named immediately before the call.
+ *   WORSE: the same `p` assigned before `_GetUnit` reads 170 (ours 156), and
+ *   reusing `*p` at `_EquipItem` too also reads 170.
+ *   - the arguments respelled `*(unsigned char *)(state + 0x21b)`.
+ *   - tools/autosweep.py: flag axis best 159 (`-ffixed-r7` 179); anchor axis
+ *     all 42 boundaries tested this batch, best 159.  BOTH AXES ARE NOW CLOSED.
  *
- * AND THAT ONE REGISTER COSTS THE TWO INSTRUCTIONS.  The early-out (`_EquipItem` returned
- * -2 or -1) and the B-button path both do `sel = 1` and then fall into the shared tail; the
- * ROM merges them by cross-jumping, leaving `b .La54c6`.  Here the early-out emits
- * `mov r2,#1 / mov r8,r2` and the B path emits `mov r3,#1 / mov r8,r3` -- DIFFERENT
- * ENCODINGS, so find_cross_jump cannot merge them and the copy stays.  The same register
- * split also lets sched2 interleave `sel = 0` and `moved = 1` in the prologue, where the
- * ROM's shared r3 is a WAW dependence that pins the order
- * (`mov r3,#0 / mov r8,r3 / mov r3,#1 / str r3,[sp,#8]`).  ONE REGISTER CHOICE EXPLAINS
- * BOTH THE LENGTH AND THE PROLOGUE.
+ * TWO BODIES CLOSE THE LENGTH GAP AND BOTH ARE WORSE -- DO NOT TAKE EITHER.
+ *   body                                            objcmp  insns     bytes      ALIGNED
+ *   this one                                        159     154/155   428/432    48 of 188
+ *   `goto cancel` INTO the loop body                149     154/153   428/428    59 of 188
+ *   `goto cancel`/`goto done` to labels AFTER it    126     154/154   428/428   132 of 188
+ * The last one is new and is the first body with counts AND byte size equal and
+ * the lowest figure ever recorded here -- and it is catastrophically worse.
+ * stmt.c's expand_end_loop rotation needs the loop's first conditional exit to
+ * jump to the loop's OWN exit label; replacing that `break` with `goto done`
+ * loses the rotation, so the ROM's `b .La5488` / loop-top-at-`Func_80a1a40`
+ * layout is gone.  THE FIGURE FELL BECAUSE THE PHASE OFFSET DISAPPEARED.
  *
- * CROSS-EVIDENCE FROM ITS FILE-MATE, WHICH SETTLES THE DIAGNOSIS.  Func_80a4f08 (landed
- * this batch) has the SAME `i--` under `gKeyRepeat & 0x20` with `i` in r8, and the ROM
- * there emits `sub r2, #0x21` -- reload_cse_move2add chaining the -1 off the `mov r2,#0x20`
- * the mask just left in r2 -- where THIS function's ROM emits `mov r3,#1 / neg r3,r3`.
- * ONE SOURCE IDIOM, TWO MATERIALISATIONS, DIFFERING ONLY IN WHICH REGISTER RECEIVED THE -1.
- * So the -1 is not a source question at all, and neither is the prologue order: the whole
- * residue is which low register local-alloc hands the constant.
+ * gKeyPress and gKeyRepeat MUST BE `volatile`: the ROM reloads gKeyPress twice
+ * with no call between the two `ldr r3,[r1]`, which cse would collapse.
  *
- * AND THE LEVER THAT WORKED ON Func_80a4f08 DOES NOT REACH THIS.  There the residue was
- * global_alloc (an EXACT priority tie at 14 refs each between `win` and `i`, broken by
- * live_length) and moving one assignment above the `state` load flipped it, 68 -> 19.  Here
- * the competing values already have the ROM's registers -- `sel` is r8, `win` is r7, `unit`
- * and `moved` are in the ROM's stack slots -- and the thing left is find_free_reg inside a
- * block.  A different pass, and statement order does not reach it.
- *
- * MEASURED NEGATIVES (all at 159, all inert):
- *  - EIGHT permutations of `sel = 0` / `n = 2` / `moved = 1` against the `state` load,
- *    including every order with the load first and with it last (one reads 155, the rest
- *    159; none changes the register);
- *  - `moved` declared first; `sel` declared last;
- *  - dropping the `r` local and testing `_EquipItem(...) + 2 <= 1U` inline.
- * The `goto cancel:` form INTO the loop body fixes the length (184/184, 428/428) but moves
- * the A-button `_PlaySound(0xaf)` block out of the position the ROM gives it (immediately
- * after the early-out branch, before the else body) -- visible as the only out-of-order
- * relocation, `_PlaySound` at 0x70 in the ROM against 0x126 here.  The two goals are
- * currently exclusive; the register is what would reconcile them.
- *
- * gKeyPress and gKeyRepeat MUST BE `volatile`: the ROM reloads gKeyPress twice with no call
- * between the two `ldr r3,[r1]`, which cse would collapse otherwise.
+ * ================= CARRIED FORWARD (batch 290 and earlier) =================
+ * 1. THE MODULO'S DIVISOR IS A VARIABLE: `int n; n = 2; sel = (sel + n) % n;`
+ *    gives the ROM's `add r0,#2 / mov r1,#2 / bl __modsi3`.  A literal `% 2` is
+ *    expanded INLINE.  A `mov rN,#K` divisor feeding __modsi3 is therefore NOT
+ *    evidence of a constant in the source -- it is a VARIABLE cprop resolved.
+ * 2. THE INDIRECT-CALL TYPEDEF: `CopyFn copy; copy = Func_8001af8; copy(...)`
+ *    is required for `ldr r3,=Func_8001af8 / bl _call_via_r3`; the cast form
+ *    folds to a direct `bl`.
+ * 3. STACK SLOT ORDER: declaring `moved` BEFORE `unit` puts unit in the lower
+ *    slot -- "later declaration takes the lower slot".
+ * 4. TWO MESSAGE IDS ARE ONE INCREMENTED VARIABLE (`id = 0xb2c; ...; id++;`).
+ * 5. `sel` AND THE RETURN VALUE ARE THE SAME VARIABLE (r8 throughout).
+ * 6. Older recorded negatives, still negatives: eight permutations of
+ *    `sel = 0` / `n = 2` / `moved = 1` against the `state` load (one reads 155,
+ *    the rest 159); `moved` declared first; `sel` declared last; dropping the
+ *    `r` local and testing `_EquipItem(...) + 2 <= 1U` inline.
+ * 7. CROSS-EVIDENCE from the landed file-mate src/rom_a1000/rom_a4f08_b.c:
+ *    the same `i--` under `gKeyRepeat & 0x20` emits `sub r2,#0x21` THERE in the
+ *    ROM and `mov r3,#1 / neg r3,r3` HERE -- one source idiom, two
+ *    materialisations, differing only in which register received the -1.  That
+ *    file-mate's own lever (global_alloc priority, 68 -> 19) does not reach this
+ *    function: the competing values already have the ROM's registers.
  */
 typedef int (*CopyFn)(void *dst, void *src, int len);
 

@@ -1,86 +1,112 @@
-/* Func_801b810 (PagePartyListBackward) -- 0x0801b810,
- * asm/rom_15000/rom_1aeec_a_a_c_a_c_c_c_c.s
+/* Func_801b810 (PagePartyListBackward) -- 0x0801b810, NON-MATCHING.
  *
- * NON-MATCHING: 161 encodings of 190 differ (objcmp).
- *
- * SIZE EXACT (408 bytes both).  Instruction count 185 against 184 -- ONE over.
- * RELOCATIONS DIFFER, and only by a uniform +4 byte shift: the candidate saves
- * r8 in the prologue and the ROM does not, which moves every `bl` four bytes
- * later.  All nine call targets are the ROM's nine, in the ROM's order.
+ * 176 of 190 stream entries differ; ref 175 instructions / ours 168, ref 408
+ * bytes / ours 392.  THIS BODY IS 7 INSTRUCTIONS SHORT, and that is the figure
+ * to beat: the previously installed body was 161 of 190 at ref 175 / ours 176
+ * with an ALIGNED residue of 53 of 202, and this one is 32 of 202.  The objcmp
+ * figure RISES because the length gap widened from +1 to -7; the aligned number
+ * is the one that means something (batch 346 brief, step 3).  PINS 0.
  *
  * Verify with:
  *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
  *     goldensun-build python3 tools/objcmp.py \
  *     src/non_matching/rom_15000/801b810.c \
  *     asm/rom_15000/rom_1aeec_a_a_c_a_c_c_c_c_a.s --func Func_801b810
+ * Aligned residue:
+ *   ... python3 tools/tryc.py src/non_matching/rom_15000/801b810.c \
+ *     --ref asm/rom_15000/rom_1aeec_a_a_c_a_c_c_c_c_a.s --align
  *
- * NO SHIMS, NO PINS, NO asm.  Its .s carries NO data section -- datacheck.py
- * prints nothing and exits 0 -- so no split is needed; but the file holds four
- * functions (Func_801b664, Func_801b810, Func_801b9a8, Func_801b9ec) and only
- * this one is attempted, so it cannot convert whole either.  Func_801b664 is
- * documented in the .s as "the forward counterpart, same shape", so whatever
- * closes this closes that.
+ * NO SPLIT NEEDED.  split_s.py: "asm/rom_15000/rom_1aeec_a_a_c_a_c_c_c_c_a.s
+ * holds only Func_801b810 and no data; convert it directly, no split needed".
+ * datacheck.py prints nothing.  (The old header's "the file holds four
+ * functions" refers to the pre-split rom_1aeec_a_a_c_a_c_c_c_c.s and is stale.)
  *
- * TWO LEVERS LANDED.
+ * ================= BATCH 346 BRIEF D: THE r8 BLOCKER IS SOLVED =================
  *
- * 1. THE PAGE COUNTER IS `unsigned`.  `k = p->f394; if (k > 5)` with `k` an
- *    `int` emits `bgt`; the ROM has `bhi`.  `unsigned int k` gives `bhi` and is
- *    worth 13 (174 -> 161).  The value arrives by `ldrh`, so unsigned is also the
- *    honest type.
+ * The old blocker read "ONE ALLOCNO TOO MANY -- THE CANDIDATE BUYS r8 AND THE
+ * ROM DOES NOT ... the address is pushed to r8", with the proposed cure (a temp
+ * copied into `b`) measured at 172 and declared insufficient.
  *
+ * DECLARING `a` AND `b` AS `unsigned short` INSTEAD OF `int` REMOVES r8
+ * ENTIRELY.  Both arrive by `ldrh` from `unsigned short` members, so this is
+ * also the honest type.  The prologue and epilogue now match the ROM exactly --
+ * tryc --align's first diff moves from index 1 to index 15 -- and all five r8
+ * instructions (`mov r7,r8 / push {r7}`, `pop {r3} / mov r8,r3`, and three
+ * `mov rN,r8` reloads) are gone.  ALIGNED RESIDUE 53 -> 32 of 202.
+ *
+ * THE PER-REGION SPLIT OF THE OLD +1, for the record (ten sites, not two):
+ *   prologue +2, epilogue +2, `&p->f39e` birth +1, the (a|b) block +1,
+ *   `p->f39e = k - 1` +1  --- against ---
+ *   the `k` compare copy -1, the `b == 1` compare copy -1, the `a != 0` compare
+ *   copy -1, `p->f3e = 0`'s `mov r0,#0` -1, the empty-loop guard's second
+ *   `ldrh` -2.
+ *
+ * WHAT REMAINS IS -7, IN ONE CLASS PLUS TWO SINGLES:
+ *
+ *  1. FOUR `mov rX, rY` COPIES IMMEDIATELY BEFORE A `cmp` -- on `k` before
+ *     `cmp r3,#5`, on `b` before `cmp r6,#1`, on `a` before `cmp r3,#0`, and on
+ *     `b` again in the `k <= 5` arm.  In three of the four the ROM's original
+ *     register stays live past the copy, so these are genuine SECOND PSEUDOS,
+ *     not scheduling.  cse.c:5982-5997 is the gate that would turn such a copy
+ *     into a dead store; it needs `prev_nonnote_insn (insn)` to be the insn
+ *     that set the source (cse.c:5992-5994) AND
+ *     `src_ent->first_reg == REGNO (SET_DEST)` (cse.c:5987).  The ROM's copies
+ *     survived a gate ours never reaches, because ours never creates the second
+ *     pseudo at all.  NEXT: find the spelling that creates it WITHOUT the +2
+ *     penalty the obvious `bb = b;` carries (see the table).
+ *  2. `mov r0,#0` before `strh r0,[r7,#0x3e]` -- the cse-zero class, unchanged
+ *     from the old header: canon_reg substituting qty_first_reg, where gcc
+ *     reuses the register already holding the provably-zero `orr` result.
+ *  3. THE EMPTY-LOOP GUARD'S SECOND `ldrh` of `p->f394`.  *** THE OLD HEADER'S
+ *     CLAIM THAT `if (p->f394 != 5) { k = p->f394 - 5; ... }` "reproduces it
+ *     INCLUDING the second ldrh" IS REFUTED. *** Neither the old body nor this
+ *     one emits it; cse commons the two reads because no call separates them.
+ *     Three other loop shapes were tried and all are worse (table below).
+ *
+ * MEASURED THIS BATCH (objcmp / ref-ours insns / bytes / tryc --align):
+ *   old body, `int a, b`                161  175/176  408/408   53
+ *   THIS BODY, `unsigned short a, b`    176  175/168  408/392   32
+ *   + `while (i != p->f394 - 5) i++;`   177  175/170  408/396   34
+ *   + `for (i=0; i != p->f394-5; i++);` 177  175/169  408/396   40
+ *   + `do {i++;} while (i != p->f394-5);` 175 175/168 408/392   --
+ *   + `unsigned short k`                176  175/173  408/408   85
+ *   + `kk = k; if (kk > 5)`             176  175/168  408/392   32  (cse unifies;
+ *                                                     BIT-IDENTICAL to this body)
+ *   + `bb = b;` at the top of the if    161  175/171  408/400   46
+ *   + `bb`, `aa` and `kk` all three     161  175/171  408/400   46
+ *   `ta`/`tb` temps outside, copied in  172  175/177  408/412   --   (this is the
+ *                                            old header's recorded 172)
+ *   autosweep on the OLD body: flag axis best 161 (`-fno-schedule-insns2` reads
+ *   157 but its aligned residue is 69 -> 80, NOT progress); anchor axis 40 of 49
+ *   boundaries, all inert -- boundaries 40..48 remain UNTESTED.
+ *   Flag axis CROSSED with `unsigned short a, b`: no production group helps.
+ *   (`-fno-force-mem`, which is NOT a Makefile group, takes aligncmp's differing
+ *   count 50 -> 46 -- recorded only as a hint at the mechanism.)
+ *
+ * ================= CARRIED FORWARD =================
+ * 1. THE PAGE COUNTER IS `unsigned`.  `unsigned int k` gives the ROM's `bhi`
+ *    where `int` gives `bgt`.  Worth 13 (174 -> 161) when it was found.
  * 2. A HALFWORD DECREMENT IS `add` WITH A POOLED 0xffff, NOT `sub #1`.
  *    `p->f39c = p->f39c - 1;` written against the MEMBER stays in HImode and
- *    gives the ROM's `ldr r1,=0xffff / ldrh r3,[r5] / add r3,r1 / strh r3,[r5]`.
- *    Routed through an `int` local it becomes `sub r3,#1`.  Same for
- *    `n->step = -0xc;`, which the ROM pools as 0xfff4 while the +0xc store three
- *    blocks above is a plain `mov r2,#0xc`.  This is the const.sym halfword
- *    exception the Func_801dd28 park records, appearing four times here.
+ *    gives `ldr r1,=0xffff / ldrh r3,[r5] / add r3,r1 / strh r3,[r5]`; routed
+ *    through an `int` local it becomes `sub r3,#1`.  Same for `n->step = -0xc;`
+ *    (pooled 0xfff4) while the +0xc store three blocks above is `mov r2,#0xc`.
+ * 3. THE EMPTY LOOP AT .L1b8e0 IS REAL and is reproduced: a loop whose only
+ *    effect is to leave r1 == r3.  gcc-2.96 has no pass that deletes it.
+ * 4. FIELD 0x10 OF THE NODE is read both as `ldrh` (feeding a halfword store,
+ *    so combine drops the extension) and as `ldrsh` (a real signed compare).
+ *    ONE `short y;` member gives both.
+ * 5. Older negatives, still negatives: a named `unsigned short *pf = &p->f39e;`
+ *    for both reads (161); splitting `k = p->f394; k = k - 5;` (161);
+ *    member-direct arms in the k<=5 else branch (177).
  *
- * THE EMPTY LOOP AT .L1b8e0 IS REAL AND IS REPRODUCED.
- *   mov r1,#0 / cmp r3,#5 / beq / ldrh r3 again / sub r3,#5
- *   .L1b8e0: add r1,#1 / cmp r1,r3 / bne .L1b8e0
- * A loop whose only effect is to leave r1 == r3.  gcc-2.96 has no pass that
- * deletes it.  `i = 0; if (p->f394 != 5) { k = p->f394 - 5; do { i++; } while
- * (i != k); }` reproduces it, INCLUDING the second `ldrh` of the same member --
- * the entry guard is the unsigned rewrite of `0 < (unsigned)(n - 5)` into
- * `n != 5`, which is why the compare is against 5 and not against 0.
- *
- * ONE MORE SOURCE FACT WORTH KEEPING: field 0x10 of the node is read BOTH as
- * `ldrh` (feeding `n->ty = n->y + v`, a halfword store, so combine drops the
- * extension) and as `ldrsh` (feeding `while (n->y != n->ty)`, a real signed
- * compare).  ONE `short y;` member gives both -- it does not need two types.
- *
- * MEASURED AND INERT / WORSE:
- *   a short-lived temp copied into `b` after the `(a|b)` test   172 (+2 insns)
- *   a named `unsigned short *pf = &p->f39e;` for both reads     161
- *   splitting `k = p->f394; k = k - 5;`                         161
- *   member-direct arms in the k<=5 else branch                  177 (6 insns short)
- *
- * BLOCKER: ONE ALLOCNO TOO MANY -- THE CANDIDATE BUYS r8 AND THE ROM DOES NOT.
- * PASS .18.greg.  The ROM lives inside `push {r5,r6,r7,lr}`; the candidate emits
- * `mov r7,r8 / push {r7}` and the matching two-instruction epilogue, +4
- * instructions, and pays for it by needing one fewer elsewhere (185 vs 184).
- *
- * The mechanism is a CONFLICT THE ROM DOES NOT HAVE.  The ROM keeps
- * &p->f39e in r6 from the prologue, kills it at `ldrh r2,[r6]` in the (a|b)
- * block, and then REUSES r6 for the long-lived copy of that halfword via
- * `mov r6,r2` -- so one hard register serves both roles on mutually exclusive
- * paths.  In the candidate the long-lived value is born directly out of the
- * address (`ldrh r5,[r1]`), so the two allocnos overlap at that instruction,
- * conflict, and the address is pushed to r8.  This is the exact shape the
- * "copying a derived value into its own local lets the source die in its
- * register" lever addresses, and the obvious spelling of it -- a short-lived
- * temp copied into `b` just inside the `if` -- costs two instructions instead of
- * saving four (172).  Something finer-grained is needed and I did not find it.
- *
- * A SECOND, SMALLER RESIDUE IS THE cse-ZERO CLASS, in the `(a | b) == 0` arm:
- * the ROM materialises `mov r0,#0 / strh r0,[r7,#0x3e]` while gcc reuses the
- * register that already holds the `orr` result, which is provably zero on that
- * path (`strh r1,[r7,#0x3e]`).  That is canon_reg substituting qty_first_reg,
- * and per the Func_801c49c finding the empty-asm barrier cannot reach it.  The
- * open route -- a dead store inside a conditionally skipped block, hitting
- * invalidate_skipped_block -- was NOT tried here; the r8 problem dominates and
- * should be solved first.
+ * THE ROM'S REGISTER PLAN, for whoever picks this up: r7 = p; r6 = &p->f39e
+ * from the prologue, REUSED as the long-lived `b` inside the `(a|b) != 0` arm
+ * via `mov r6,r2` (one hard register, two roles, mutually exclusive paths);
+ * r5 = &p->f39c, then reused as `n` in the else block; r1 = `k` and `a`.  The
+ * inner else (`p->f39e = p->f39e - 1`), the `.L1b8e6` block and the common tail
+ * all RECOMPUTE `&p->f39e` (`ldr r3,=0x39e / add r2,r7,r3`), so the address is
+ * live only from the prologue to the (a|b) test and into the `k <= 5` arm.
  */
 struct Node {
     unsigned char pad0[4];
@@ -124,7 +150,8 @@ extern void WaitFrames(int n);
 void Func_801b810(struct Party *p)
 {
     struct Node *n;
-    int a, b, i, v;
+    unsigned short a, b;
+    int i, v;
     unsigned int k;
 
     Func_801b9a8(p, p->f39e);

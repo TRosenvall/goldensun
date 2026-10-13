@@ -1,14 +1,11 @@
-/* Func_80a5788 -- the party-member equip/select loop, 0x080a5788,
- * 464 ROM instructions.
- * PARKED.
- * NON-MATCHING, 172 of 476 encodings differ.
+/* Func_80a5788 -- the party-member equip/select loop, 0x080a5788.  NON-MATCHING.
  *
- * SIZE IS 1040 AGAINST 1036 and the instruction count 478 against 476, so 172 is
- * NOT a true distance -- objcmp's index-by-index count saturates.  The honest
- * figure is tools/aligncmp.py: 454 of 476 aligned-equal (95.4%), 25 differing in
- * 20 hunks, and 14 of those 20 hunks are pool/branch offsets behind the two
- * defects below.  The relocation SYMBOL SEQUENCE is IDENTICAL (36 entries); 16
- * offsets differ, all by the same 4-byte shift.
+ * 36 of 476 stream entries differ, with ref 432 instructions / ours 432 and
+ * ref 1036 bytes / ours 1036 -- EQUAL LENGTH AND EQUAL SIZE, so this figure is
+ * a real distance and not a phase offset.  aligncmp: 457 aligned-equal (96.0%),
+ * 25 differing in 12 HUNKS.  PINS 0.
+ * The previously installed body was 172 of 476 at ref 432 / ours 433 and
+ * 1036 / 1040, aligncmp 454 (95.4%) in 20 hunks.
  *
  * Verify with:
  *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
@@ -16,16 +13,85 @@
  *     asm/rom_a1000/rom_a5534_c_a_a_a.s --func Func_80a5788
  *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
  *     goldensun-build python3 tools/aligncmp.py src/non_matching/rom_a1000/80a5788.c \
- *     asm/rom_a1000/rom_a5534_c_a_a_a.s Func_80a5788 -v
+ *     asm/rom_a1000/rom_a5534_c_a_a_a.s Func_80a5788
  *
- * THE SPLIT.  asm/rom_a1000/rom_a5534_c_a_a_a.s holds SIX functions -- Func_80a5788
- * (FIRST), Func_80a5b94, Func_80a5cc0, Func_80a5fe0, Func_80a602c, Func_80a60d4 --
- * and no .section .data; tools/datacheck.py is silent, so the split is pure text
- * and needs no `.global`.  Three of the six are already parked from this file
- * (src/non_matching/rom_a1000/80a5b94.c, 80a5cc0.c, 80a60d4.c).
+ * SPLIT WHEN IT LANDS (pure text, no exports -- datacheck.py prints nothing):
+ *   python3 tools/split_s.py asm/rom_a1000/rom_a5534_c_a_a_a.s Func_80a5788
+ *     -> asm/rom_a1000/rom_a5534_c_a_a_a_b.s  (this function, 518 lines)
+ *     -> asm/rom_a1000/rom_a5534_c_a_a_a_c.s  (Func_80a5b94 + Func_80a5cc0)
  *
- * SHIMS: ZERO (tools/shimcount.py reports none).
+ * ================= BATCH 346 BRIEF D =================
  *
+ * THE OLD +1 WAS ONE INSTRUCTION AT ONE SITE, and the old header's "+2 net" and
+ * "478 instructions" were both wrong.  tryc --align finds exactly three hunks
+ * of unequal length in the whole 433-instruction body and only one is an
+ * instruction: at the `% n` site, ours emitted
+ *     ldrb r3,[r3] / add r0,r5,r3 / mov r1,r3
+ * where the ROM has
+ *     ldrb r1,[r3] / add r0,r5,r1
+ *
+ * MECHANISM: A GLOBAL ALLOCNO IS NOT COALESCED TO A HARD ARGUMENT REGISTER, A
+ * LOCAL ONE IS.  local-alloc.c's reg_is_set records a copy suggestion in
+ * qty_phys_copy_sugg whenever it sees `(set (reg <hard>) (reg <pseudo>))`
+ * (local-alloc.c:1684-1687, :1700-1706), and block_alloc tries ONLY the
+ * suggested registers on its first pass (local-alloc.c:1344-1348, and
+ * find_free_reg's just_try_suggested at :2010-2016).  So a pseudo that lives in
+ * ONE basic block and is copied into an argument register GETS that argument
+ * register and the copy disappears.  A pseudo referenced in two blocks is a
+ * global allocno, local-alloc never sees it, global.c has no such suggestion,
+ * and it lands on REG_ALLOC_ORDER's first free register -- r3 (arm.h:988-994) --
+ * so the copy to the argument register SURVIVES.
+ *
+ * The old body shared ONE local `n` between the Func_80a3ef0 byte and the `% n`
+ * divisor, which made it a global allocno at BOTH sites: right at Func_80a3ef0
+ * (`ldrb r3,... / mov r0,r3`), wrong at __modsi3.  Splitting the two uses flips
+ * BOTH.  *** The old header's "it needs a register-allocation input, not a
+ * spelling" is refuted: it needs TWO SPELLINGS AT ONCE. ***
+ *
+ * THE TWO CHANGES IN THIS BODY:
+ *   1. `int m;` declared after `n`, and the modulo written
+ *      `m = st->f219; sel = (sel + m) % m;`.  The divisor pseudo becomes
+ *      block-local and reaches the ROM's `ldrb r1,[r3] / add r0,r5,r1`.
+ *   2. `n = st->arr21a[which];` HOISTED above `Func_80a5614(box, buf, ctx);` so
+ *      the value crosses that call.  That makes `n` a global allocno again at
+ *      the Func_80a3ef0 site, restoring the ROM's `mov r0, <reg>` copy.
+ *
+ *   body                        objcmp   insns      bytes        aligncmp
+ *   old (shared n)              172      432/433    1036/1040    454 (95.4%), 20 hunks
+ *   separate m, n single-use    352      432/431    1036/1032    453 (95.2%), 20 hunks
+ *   THIS ONE                     36      432/432    1036/1036    457 (96.0%), 12 hunks
+ *
+ * WHAT REMAINS, IN THREE HUNKS:
+ *  H1. THE HOIST IS IN THE WRONG PLACE, 6 instructions.  The ROM loads
+ *      `st->arr21a[which]` AT the Func_80a3ef0 site (`mov r3,#0x86 /
+ *      ldr r2,[sp,#0xc] / lsl r3,#2 / add r3,r11 / ldrb r3,[r2,r3] /
+ *      ldr r1,[r1,#0x18] / mov r0,r3`); this body loads it before
+ *      Func_80a5614 into r6 and then does `mov r0,r6`.  SAME COUNT, WRONG
+ *      POSITION.  The real answer is an `n` that is a global allocno WITHOUT
+ *      crossing a call -- a second reference in another basic block whose live
+ *      range stays inside the redraw block.  There is no natural one to borrow:
+ *      the ROM RE-LOADS `st->arr21a[which]` freshly at every other site
+ *      (verified at .La59f0: `ldrb r3,[r2,r0]`).
+ *  H2. The two prologue temps are in the ROM's SLOTS (`which<<1` at sp+8,
+ *      `st+2` at sp+0xc) but in swapped REGISTERS: ROM `mov r3,r11 ... lsl
+ *      r3,#1 / add r4,r7,#2`, ours `mov r4,r11 / add r3,r7,#2 / lsl r4,#1`.
+ *      4 encodings.
+ *  H3. The old blocker 2 is unchanged and still a pure register swap in the
+ *      `st->list[ctx[6]] != 0` block (r0<->r2, r2<->r1), 5 encodings.
+ *
+ * MEASURED INERT THIS BATCH, all crossed against the separate-`m` body:
+ *   `short n` / `unsigned short n` / `signed char n` / `char n` /
+ *   `unsigned char n` / `unsigned int n` (all 352, i.e. identical);
+ *   `n` reused for `st->f260[n] = ctx[6]` in the keyrepeat arm (352);
+ *   `n` reused in the tail's `st->f260[...]` (442, 4 instructions short);
+ *   a named `c6 = ctx[6]` for argument 1 (352);
+ *   `n` hoisted only above `st->h178[which] = ...` (374).
+ * On the SHARED-`n` body: `sel = sel + n; sel = sel % n;` (433 -> 434, +2);
+ *   `sel = (sel + n) % (int)st->f219` (433, unchanged).
+ * autosweep on the old body: flag axis best 172 (every group inert or far
+ *   worse); anchor axis 40 of 69 boundaries, all inert -- 40..68 UNTESTED.
+ *
+ * ================= CARRIED FORWARD =================
  * THE FINDING, AND IT TRANSFERS: THE OUTER LOOP IS A PLAIN `while (A && B)`, NOT
  * `while (1) { if (A && B) {...} else break; }`.  This was worth 201 -> 453 of 476
  * in one step, and it is a BLOCK-ORDER fact you can read straight off objcmp's
@@ -237,6 +303,7 @@ int Func_80a5788(int which)
     unsigned char i;
     int sel;
     int n;
+    int m;
 
     st = iwram_3001f2c;
     ret = 0;
@@ -267,9 +334,9 @@ int Func_80a5788(int which)
                         _Func_801e7c0(0xb89, box, 0, 0x58);
                     full = 0;
                 }
+                n = st->arr21a[which];
                 Func_80a5614(box, buf, ctx);
                 st->h178[which] = st->list[ctx[6]];
-                n = st->arr21a[which];
                 Func_80a3ef0(n, ctx[6], 0);
                 if (st->list[ctx[6]] != 0) {
                     o = st->objs[ctx[6]];
@@ -322,8 +389,8 @@ int Func_80a5788(int which)
                             sel++;
                         else
                             sel--;
-                        n = st->f219;
-                        sel = (sel + n) % n;
+                        m = st->f219;
+                        sel = (sel + m) % m;
                         st->f08 = st->arr[sel];
                         st->arr21a[which] = st->arr[sel];
                         st->s1c[which] = sel;
