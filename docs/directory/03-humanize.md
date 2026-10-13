@@ -1,6 +1,6 @@
 # Pass 4 — humanizing
 
-**4,349 landed functions are still named `Func_<addr>`** against 774 with a real name, across **4,530 split-named files** of 4,592 landed.
+**4,351 landed functions are still named `Func_<addr>`** against 774 with a real name, across **4,532 split-named files** of 4,594 landed.
 
 See `docs/humanization.md` for the method and the artifact taxonomy. Two
 structural facts bound this work:
@@ -18,9 +18,9 @@ structural facts bound this work:
 
 | bank | unnamed functions |
 |---|---|
-| overlays | 3238 |
+| overlays | 3239 |
 | rom_8a000 | 267 |
-| rom_15000 | 216 |
+| rom_15000 | 217 |
 | rom_b5000 | 156 |
 | rom_a1000 | 152 |
 | rom_c0 | 77 |
@@ -376,6 +376,7 @@ structural facts bound this work:
 | `Func_8022a38` | [src/rom_15000/rom_21dfc_c_b.c](../../src/rom_15000/rom_21dfc_c_b.c) |
 | `Func_8025180` | [src/rom_15000/rom_23178_a_a_a_a_a_b.c](../../src/rom_15000/rom_23178_a_a_a_a_a_b.c) |
 | `Func_80251d4` | [src/rom_15000/rom_23178_a_a_a_a_b.c](../../src/rom_15000/rom_23178_a_a_a_a_b.c) |
+| `Func_8026e80` | [src/rom_15000/rom_23178_a_a_a_a_c_a_a_a_b.c](../../src/rom_15000/rom_23178_a_a_a_a_c_a_a_a_b.c) |
 | `Func_8026fa8` | [src/rom_15000/rom_23178_a_a_a_a_c_a_a_b.c](../../src/rom_15000/rom_23178_a_a_a_a_c_a_a_b.c) |
 | `Func_80270d8` | [src/rom_15000/rom_23178_a_a_a_a_c_a_c_b.c](../../src/rom_15000/rom_23178_a_a_a_a_c_a_c_b.c) |
 | `Func_80284dc` | [src/rom_15000/rom_23178_a_a_a_a_c_b.c](../../src/rom_15000/rom_23178_a_a_a_a_c_b.c) |
@@ -2640,6 +2641,7 @@ structural facts bound this work:
 | `OvlFunc_926_2008bf4` | [src/overlays/rom_7b2078/ovl_314_c_c_a_c_c_c_a_a_a_a_a.c](../../src/overlays/rom_7b2078/ovl_314_c_c_a_c_c_c_a_a_a_a_a.c) |
 | `OvlFunc_926_2008cd4` | [src/overlays/rom_7b2078/ovl_314_c_c_a_c_c_c_a_a_a_a_a.c](../../src/overlays/rom_7b2078/ovl_314_c_c_a_c_c_c_a_a_a_a_a.c) |
 | `OvlFunc_926_2008db4` | [src/overlays/rom_7b2078/ovl_314_c_c_a_c_c_c_a_a_a_a_b.c](../../src/overlays/rom_7b2078/ovl_314_c_c_a_c_c_c_a_a_a_a_b.c) |
+| `OvlFunc_926_2008e94` | [src/overlays/rom_7b2078/ovl_314_c_c_a_c_c_c_a_a_a_a_c.c](../../src/overlays/rom_7b2078/ovl_314_c_c_a_c_c_c_a_a_a_a_c.c) |
 | `OvlFunc_926_2008f80` | [src/overlays/rom_7b2078/ovl_314_c_c_a_c_c_c_a_a_a_b.c](../../src/overlays/rom_7b2078/ovl_314_c_c_a_c_c_c_a_a_a_b.c) |
 | `OvlFunc_926_200902c` | [src/overlays/rom_7b2078/ovl_314_c_c_a_c_c_c_a_a_a_c_b.c](../../src/overlays/rom_7b2078/ovl_314_c_c_a_c_c_c_a_a_a_c_b.c) |
 | `OvlFunc_926_2009160` | [src/overlays/rom_7b2078/ovl_314_c_c_a_c_c_c_a_a_a_c_c.c](../../src/overlays/rom_7b2078/ovl_314_c_c_a_c_c_c_a_a_a_c_c.c) |
