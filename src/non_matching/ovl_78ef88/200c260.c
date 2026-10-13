@@ -1,3 +1,118 @@
+/* ===== BATCH 348 BRIEF A: STILL 3 of 85.  THE PARK'S NEXT ACTION IS NAMED WRONG. =====
+ *
+ * CURRENT FIGURE, in stream terms: **3 differing encodings of 85** (ref 85 /
+ * ours 85), first differing index 6.  16-BIT INSTRUCTIONS 70 / 70, POOL /
+ * 32-BIT ENTRIES 15 / 15, BYTES 200 / 200 -- all three length dimensions agree,
+ * so the figure is a real distance.  ALIGNED RESIDUE 2 (the three encodings
+ * include one transposition, which alignment forgives).  RELOCATIONS CLEAN.
+ * PIN-FREE, DEVICE-FREE, FLAG-FREE.  BODY UNCHANGED this batch.
+ *
+ * Verify with:
+ *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
+ *     goldensun-build python3 tools/objcmp.py src/non_matching/ovl_78ef88/200c260.c \
+ *     asm/overlays/rom_78ef88/ovl_314_c_c_c_c_a.s --func OvlFunc_896_200c260
+ *
+ * SPLIT: NONE NEEDED.  tools/piece.py: the reference .s holds exactly ONE
+ * function and reports no non-function exports, so it would convert whole.
+ * tools/datacheck.py CLEAN.  MANIFEST carries "split": null (this is a park).
+ *
+ * ===== THE MECHANISM, SHARPENED: THE GATE IS spill_cost, NOT bad_spill_regs =====
+ *
+ * Batch 336 closed with: "what is required is ONE insn at which r3, r2 AND r1
+ * are all in bad_spill_regs".  THAT NAMES THE WRONG SET, and the distinction
+ * matters because the two sets are reached by different things:
+ *
+ *   bad_spill_regs (reload1.c:1529-1538) = fixed_reg_set
+ *       | HARD regs in chain->live_throughout | HARD regs in chain->dead_or_set.
+ *     It is about HARD registers being live, and it makes a register `not_usable`
+ *     outright at reload1.c:1604-1606.  Reaching it for r1, r2 AND r3 at one insn
+ *     means three hard registers simultaneously live across a non-call insn,
+ *     which this function never has.
+ *
+ *   spill_cost[regno] (reload1.c:1481, set by count_pseudo at reload1.c:1495-1512
+ *     as `spill_cost[r] += REG_N_REFS (reg)`) is about PSEUDOS ALLOCATED to that
+ *     hard register being live at the insn.  find_reg reads it at reload1.c:1625
+ *     and the REG_ALLOC_ORDER tie-break at reload1.c:1641-1651 only runs among
+ *     EQUAL costs, so r0 is picked exactly when
+ *         spill_cost[0] == 0  AND  spill_cost[1], [2], [3] are all > 0.
+ *     That is a much weaker and genuinely reachable-looking condition, and it is
+ *     the one to aim at.
+ *
+ * MEASURED ON THIS BODY, .18.greg:
+ *     ;; 8 regs to allocate: 34 43 46 33 35 37 32 36
+ *     ;; Register dispositions:
+ *     ;;   32 in 10  33 in 6  34 in 5  35 in 7  36 in 9  37 in 8
+ *     ;;   41 in 1   43 in 3  46 in 3  48 in 2  50 in 3  53 in 2
+ *     ;;   56 in 3   58 in 3  59 in 3  60 in 0  62 in 2
+ *     Spilling for insn 30.  / Using reg 3 for reload 0
+ *     Spilling for insn 77.  / Using reg 2 for reload 2
+ *     Spilling for insn 85.  / Using reg 2 for reload 2
+ *
+ * SO PSEUDOS ALREADY EXIST IN r1 (41), r2 (48/53/62), r3 (43/46/50/56/58/59) AND
+ * r0 (60).  The barrier is not that r1/r2/r3 are empty -- it is WHERE the
+ * reloads are:
+ *   - insn 30 is the FUNCTION'S FIRST reload and sits in the prologue, where none
+ *     of those pseudos is live yet, so all four of r0..r3 cost 0 and
+ *     REG_ALLOC_ORDER {3,2,1,0,...} (arm.h:989-995) hands it r3;
+ *   - at insns 77 and 85 r3 IS costly (one of its six pseudos is live) but r2 is
+ *     still free, so r2 wins and the scan never reaches r1 or r0.
+ * THE NARROWED QUESTION, which is the one to take forward: find a reload site at
+ * which an r2 pseudo (48, 53 or 62) is live AT THE SAME INSN as an r3 pseudo and
+ * an r1 pseudo (41), with pseudo 60 dead.  Two of the three already co-occur.
+ *
+ * ===== AND THE PARK'S STATED NEXT ACTION IS ALMOST CERTAINLY CLOSED =====
+ *
+ * Batch 336 ended with: "find an insn in this function whose RELOAD OPERAND is
+ * hard register r0, which buys the -1 discount at reload1.c:1641-1646 and needs
+ * no pressure at all."  The arithmetic is right -- the two discounts are
+ *     if (rl->in  && GET_CODE (rl->in)  == REG && REGNO (rl->in)  == regno) this_cost--;
+ *     if (rl->out && GET_CODE (rl->out) == REG && REGNO (rl->out) == regno) this_cost--;
+ * so a reload whose in or out IS r0 scores -1 and beats r3's 0 outright.
+ * BUT THE PRECONDITION LOOKS UNREACHABLE ON THUMB, and that is the thing to
+ * check before spending a round on it: `rl->in` is a bare `(reg:SI 0)` only when
+ * an operand is already hard r0 and the chosen alternative REFUSES it.  r0 is a
+ * LO_REGS member, every `l` constraint accepts it, and the one Thumb constraint
+ * that does not (`h`) appears in *thumb_movsi_insn's `*lh / *lh` alternative,
+ * which accepts an `l` source for an `h` destination without any reload.  So no
+ * insn in this function can present r0 as a reload operand.
+ * Checking the PRECONDITION of that comparison rather than its arithmetic is the
+ * standing discipline, and here the precondition is what fails.
+ *
+ * ===== EIGHT MORE VARIANTS, A STRUCTURALLY NEW FAMILY, ZERO HITS =====
+ *
+ * Batch 336 screened sixteen variants that all NAMED a value, and found the pick
+ * set a subset of {2,3} every time with four collapsing it to the empty set.
+ * This batch screened eight that go the other way -- shortening live ranges and
+ * REMOVING names so global-alloc is pushed toward the call-clobbered registers.
+ * The screen prints the whole pick set and the dispositions, not a boolean:
+ *
+ *   base                                               3 of 85   picks {2,3}
+ *   `o` assigned late, just before its first use        3        picks {2,3}
+ *   `item` saved into a local `it` first                3        picks {2,3}
+ *   `o` recomputed a second time before UploadSpriteGFX 79, 67 OF 70 INSNS  {3}
+ *   `o` deleted and *(act+0x50) dereferenced at all five uses
+ *                                                      68, 69 of 70 insns  {3}
+ *   a separate `zz` for the zero, `z` only for galloc   78, 69 of 70 insns  {3}
+ *   a properly typed `unsigned char *buf` for galloc    78, 69 of 70 insns  {3}
+ *   `has` computed late, just before __Func_8078948     82, 65 of 70 insns  {3}
+ *
+ * THE DIRECTION MEASURABLY RUNS THE WRONG WAY A SECOND TIME, from the opposite
+ * end: shortening a range removes the reload rather than concentrating pressure,
+ * exactly as naming a value did.  Five of the eight are also LENGTH defects
+ * (65-69 instructions against 70), so they are not near-misses.
+ *
+ * STILL 3 of 85, pin-free, device-free, flag-free.  DECLINING TO CLOSE, with the
+ * set name corrected, the stated next action shown to have a failing
+ * precondition, and the live question narrowed to one measurable co-liveness
+ * condition.
+ *
+ * CORRECTION TO THE BATCH-348 SELECTION: this park was advertised to brief A as
+ * having "no recorded batch work at all".  Its own header records batches 329,
+ * 336 (brief H) and 338, roughly sixty measured variants.  The criterion did not
+ * hold for ANY of brief A's four targets; see scratch_elev/b348/A/FINDINGS.md.
+ */
+
+/* ===== PARK HEADER CARRIED FORWARD VERBATIM (batch 348) ===== */
 /* ===== BATCH 338 POST-PASS: THE ANCHOR AXIS REACHES 2, NOT 3 =====
  *
  * tools/autosweep.py (with its nested-boundary fix) finds a single

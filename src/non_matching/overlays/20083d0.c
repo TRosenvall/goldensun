@@ -1,3 +1,180 @@
+/* ===== BATCH 348 BRIEF A: 4 -> 2 of 91, ALIGNED 3 -> 1.  THE orr TIE IS SOLVED. =====
+ *
+ * CURRENT FIGURE, in stream terms: **2 differing encodings of 91** (ref 91 /
+ * ours 91), first differing index 18.  16-BIT INSTRUCTIONS 68 / 68, POOL /
+ * 32-BIT ENTRIES 21 / 21, BYTES 224 / 224 -- all three length dimensions agree,
+ * so this is a real distance.  ALIGNED RESIDUE 1, down from 3.  RELOCATIONS
+ * CLEAN.  PIN-FREE, DEVICE-FREE, FLAG-FREE.
+ *
+ * Verify with (INSTALLED path is src/non_matching/overlays/20083d0.c, this file):
+ *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
+ *     goldensun-build python3 tools/objcmp.py src/non_matching/overlays/20083d0.c \
+ *     asm/overlays/rom_7d4af4/ovl_30_c_c_a_c_c_a.s --func OvlFunc_949_20083d0
+ *
+ * SPLIT SHAPE ON A LANDING (NOT landing, so MANIFEST carries "split": null):
+ * asm/overlays/rom_7d4af4/ovl_30_c_c_a_c_c_a.s holds TWO functions,
+ * OvlFunc_949_20082f0 and OvlFunc_949_20083d0, BOTH parked and BOTH now at
+ * 2 of 91 on this same lever.  tools/datacheck.py reports no data residue and
+ * tools/piece.py reports no non-function exports, so when they land together
+ * the TU converts whole -- install path
+ * src/overlays/rom_7d4af4/ovl_30_c_c_a_c_c_a.c, no split_s.py cut needed.
+ * PIN COUNT 0 (tools/shimcount.py).
+ *
+ * ===== WHAT CHANGED: THE STORE IS SPLIT OFF THE OR =====
+ *
+ *     was:  *f |= 2;
+ *     now:  int t;  ...  t = *f | 2;  *f = t;
+ *
+ *     idx  REF              | WAS (4)            | NOW (2)
+ *      14  ldrh r2,[r6]     | ldrh r3,[r6]    XX | ldrh r2,[r6]    ok
+ *      15  ldr  r3,=2       | ldr  r2,=2      XX | ldr  r3,=2      ok
+ *      16  orr  r3,r2       | orr  r3,r2      ok | orr  r3,r2      ok
+ *      17  mov  r2,#0xbf    | mov  r2,#0xbf   ok | mov  r2,#0xbf   ok
+ *      18  lsl  r2,#1       | strh r3,[r6]    XX | strh r3,[r6]    XX
+ *      19  strh r3,[r6]     | lsl  r2,#1      XX | lsl  r2,#1      XX
+ *
+ * ===== THE PARK'S VERDICT IS REFUTED, AND SO IS ITS CONSEQUENCE CLAIM =====
+ *
+ * The park said: "Thumb's orr is the two-operand destructive pattern, so source
+ * operand order cannot reach it", and listed eight inert spellings of the OR.
+ * Both halves are wrong.
+ *
+ * (a) *thumb_iorsi3 (config/arm/arm.md:2088-2095) constrains its three operands
+ *     "=l" / "<pct>0" / "l", where <pct> is the percent sign.  That percent
+ *     marks operands 1 and 2 COMMUTABLE, so the two-address tie direction is
+ *     NOT fixed by the pattern.
+ *
+ * (b) The park also said "the lsl/strh order follows from it".  It does not:
+ *     indices 14/15/16 are now byte-exact and the transposition at 18/19
+ *     survives.  Two independent causes, not one.
+ *
+ * ===== THE MECHANISM, TO THE LINE =====
+ *
+ * (1) LOCAL-ALLOC OWNS THESE PSEUDOS AND CAN ONLY EVER TIE OPERAND 1.
+ *     .18.greg reads `;; 5 regs to allocate: 36 46 34 33 35` -- the load, the
+ *     pooled 2 and the ior result (pseudos 40/41/42 on the park body) are not
+ *     in global-alloc's allocno list at all.  .17.lreg reads
+ *     `;; Register 40 in 3. / 41 in 2. / 42 in 3.` -- 42 coalesced with 40, the
+ *     load, and that coalescing IS the defect.
+ *     local-alloc.c:1107-1179 walks operands i = 1.. and breaks on the first
+ *     combine_regs win.  requires_inout on operand 1's constraint returns 1
+ *     (local-alloc.c:2193-2238: the percent sign hits the ignore list, the `0`
+ *     sets found_zero, and no register letter sets reg_allowed), so with ONE
+ *     alternative must_match_0 = 1 and n_matching_alts = 1 = n_alternatives.
+ *     The guard at local-alloc.c:1146-1155 then `continue`s on operand 2
+ *     because requires_inout("l") == 0 -- its own comment reads "We ignore
+ *     commutatity in this case to keep things simple."
+ *     => THE TIE ALWAYS GOES TO RTL OPERAND 1.  The whole question is the ior's
+ *     RTL operand order, and no register-level lever exists at all.
+ *
+ * (2) WHAT POOLS THE 2 IS optabs.c:640-642, AND ONLY IN HImode.
+ *         if (CONSTANT_P (op1) && preserve_subexpressions_p () && ! shift_op
+ *             && rtx_cost (op1, binoptab->code) > 2)
+ *           op1 = force_reg (mode, op1);
+ *     At mode == HImode this emits `(set (reg:HI N) (const_int 2))`, i.e.
+ *     *thumb_movhi_insn, which pools (arm.md:4269-4271 -- the brief's lever 3).
+ *     THAT is why every `unsigned short two = 2` spelling the park recorded as
+ *     "worse, 216 bytes, the 2 stops being pooled" lost the pool: it makes the
+ *     ior SImode, and an SImode const_int 2 takes `mov r3, #2`.  Measured here:
+ *     `unsigned short two` reaches the ROM's EXACT operand order and registers
+ *     (`orr r3,r3,r2`, const in r3) and STILL reads 63 / POOL 20 / 216 BYTES.
+ *
+ * (3) THE OPERAND ORDER IS DECIDED AT optabs.c:651-669, BY optabs.c:663.
+ *         if (((target == 0 || GET_CODE (target) == REG)
+ *              ? ((GET_CODE (op1) == REG && GET_CODE (op0) != REG)
+ *                 || target == op1)
+ *              : rtx_equal_p (op1, target))
+ *             || GET_CODE (op0) == CONST_INT)
+ *           { swap op0 and op1; }
+ *     In `*f = <anything> | *f` the store target IS the MEM `*f` and so is one
+ *     of the operands, so the ELSE branch (optabs.c:663, rtx_equal_p) fires and
+ *     the swap is FORCED.  THAT is why `*f = 2 | *f`, `*f = *f | 2` and every
+ *     cast variant are BIT-IDENTICAL: they were never inert for want of a
+ *     better spelling, they are inert because optabs.c:663 reads the same on all
+ *     of them.
+ *     Splitting the store off makes the ior's target NULL_RTX, so the FIRST
+ *     branch applies instead: GET_CODE (op1) == REG (the force_reg'd pooled
+ *     const) and GET_CODE (op0) != REG (the MEM) is TRUE, the swap fires,
+ *     operand 1 becomes the const, and local-alloc ties the destination to it.
+ *     That is the ROM.
+ *
+ * (4) A FOURTH SITE THAT ATE ONE PROBE: combine.c:3492-3505 re-canonicalises a
+ *     commutative operand pair whenever combine actually touches the insn, and
+ *     its THIRD clause (op0 a SUBREG of a class-'o' rtx while op1 is not class
+ *     'o') swaps an already-correct order straight back.  `int v; v = *f;
+ *     *f = 2 | v;` reaches CONST-FIRST at .00.rtl and combine undoes it --
+ *     .13.combine shows `(ior:SI (reg/v:SI 37) (subreg:SI (reg:HI 41) 0))` --
+ *     which is why that whole family still reads 4.
+ *
+ * ===== WHAT IS LEFT: 2 ENCODINGS, ONE sched2 TIE, WITH THE RUNG NAMED =====
+ *
+ *     rom   mov r2,#0xbf | lsl r2,#1    | strh r3,[r6]
+ *     ours  mov r2,#0xbf | strh r3,[r6] | lsl r2,#1
+ *
+ * Read out of the .23.sched2 dump at -fsched-verbose=6 (which writes into the
+ * DUMP FILE, not stderr):
+ *     ;;  Ready list (t = 81):    256  41
+ *     ;;    --> scheduling insn <<<41>>> on unit core
+ * insn 41 is the strh; insn 256 is the lsl, the second half of a constant split
+ * of `(set (reg:SI 2) (const_int 382))`.  From the dump's own insn table both
+ * have INSN_PRIORITY 5, both are in bb 0, and both list the same dependent set
+ * {53, 52, 48} -- so rung 1 (haifa-sched.c:4061-4064), the interblock rungs and
+ * the dependent-count rung (haifa-sched.c:4098-4106) ALL TIE.
+ * last_scheduled_insn at that cycle is insn 255, `mov r2,#0xbf`.  insn 256 is
+ * DATA DEPENDENT on it and insn 41 is INDEPENDENT of it, so the class rung at
+ * haifa-sched.c:4069-4096 classifies 41 as 3 and 256 as 1, and the HIGHER class
+ * wins -- the scheduler prefers the insn that is not waiting on what it just
+ * issued.  To reach the ROM, either insn 256 must price insn_cost == 1 at that
+ * link (class 3 as well) AND carry the lower LUID, or the strh must not be
+ * ready at t = 81.
+ * In .19.flow2 the strh PRECEDES the (const_int 382) insn in the RTL chain, so
+ * LUID(41) < LUID(256) and even a class tie would still pick 41.
+ * THE ACTION, stated so it can be executed: get the 0xbf<<1 synthesis EMITTED
+ * BEFORE the halfword store in the pre-sched2 RTL chain, WITHOUT naming the
+ * offset -- naming it costs two instructions, see the measured list below.
+ *
+ * ===== MEASURED THIS BATCH, 46 VARIANTS, ALL AGAINST THIS BODY =====
+ *
+ * REACHES 2 / 68 / 21 / 224 / aligned 1 (seven spellings, one shape):
+ *   int t; t = *f | 2; *f = t;                        <- SHIPPED (simplest)
+ *   int t; t = (unsigned short)(*f | 2); *f = t;
+ *   int t; t = (unsigned short)(2 | *f); *f = t;
+ *   int t; t = (int)(unsigned short)(*f | 2); *f = t;
+ *   unsigned int t; t = (unsigned short)(*f | 2); *f = t;
+ *   int t; ... *f = (unsigned short)t;
+ *   int t; ... *(unsigned short *)(p + 0x64) = t;
+ * TIES 2, so inert ON THIS BODY and NOT a missing prerequisite:
+ *   named address placed AFTER the store; the store moved to just above the
+ *   `if` head; 0x17e written as a literal; ((short *)q)[0xbf];
+ *   *(short *)&q[0xbf << 1].
+ * STILL 4 -- the whole |-spelling family, all bit-identical by optabs.c:663:
+ *   *f = (unsigned short)(*f | 2);  unsigned short t = (unsigned short)(*f|2);
+ *   short t = ...;  int two; two=2; *f = two | *f;  short two; ... ;
+ *   int two; int v; v=*f; *f = two|v;   int v; v=*f; *f = 2|v;  and *f = v|2;
+ *   unsigned short v; v=*f; *f = 2|v;   a second pointer f2 = f; *f2 = 2|*f;
+ * WORSE ON THIS BODY -- and these REFRESH three of the park's stale negatives,
+ * which were measured against the 4-differing body and have expired:
+ *   do { } while (0) after the store, or between the or and the store  7 / al 3
+ *   named address `short *c = (short *)(q + (0xbf<<1))` before it     11 / al 6
+ *   named `char *r = q + (0xbf<<1)`                                  11 / al 6
+ *   named offset `int k = 0xbf << 1`, early or late     74, and 66 OF 68
+ *                                                       INSTRUCTIONS -- a
+ *                                                       LENGTH defect, not a
+ *                                                       figure
+ *   `int k = 0xbf;` with `(k << 1)` at the use          74 / 66 of 68 insns
+ *   named condition `int cc = *(short *)(q + 0x17e)`    78 / POOL 22 / al 28
+ *   the `unsigned short two = 2` family                 63-64 / POOL 20 / 216 B
+ *   int two; short v;                                   18 / 69 OF 68 INSNS
+ *
+ * DECLINING TO CLOSE at 2.  Cause named to the rung, next action stated.
+ *
+ * CORRECTION TO THE BATCH-348 SELECTION: this park was advertised to brief A as
+ * having "no recorded batch work at all".  It has a full rewrite in its header
+ * (41 of 91 -> 4 of 91) plus a preserved prose park.  The criterion did not hold
+ * for ANY of brief A's four targets; see scratch_elev/b348/A/FINDINGS.md.
+ */
+
+/* ===== PARK HEADER CARRIED FORWARD VERBATIM (batch 348) ===== */
 /* OvlFunc_949_20083d0 -- 0x020083d0, NOT MATCHING: 4 of 91 encodings (ref 91, ours 91).
  *
  * THE LENGTHS NOW AGREE: 68 / 68 instructions, 224 / 224 bytes, 21 / 21 pool
@@ -125,13 +302,15 @@ void OvlFunc_949_20083d0(void)
     unsigned short *f;
     int saved;
     int id;
+    int t;
 
     q = iwram_3001ebc;
     p = __MapActor_GetActor(0x11);
     saved = *(short *)(p + 6);
     f = (unsigned short *)(p + 0x64);
     __CutsceneStart();
-    *f |= 2;
+    t = *f | 2;
+    *f = t;
     if (*(short *)(q + (0xbf << 1)) == 0) {
         id = __GetFlag(0x95 << 4);
         if (id)
