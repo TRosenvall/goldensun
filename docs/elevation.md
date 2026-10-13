@@ -35716,10 +35716,39 @@ in the allocator dumps at all — it is which register the ROM feeds to each cal
 Four parks recorded in that same "class" (`800bbc0`, `2008f94`, `8020150`,
 `80b6a60`) have never had this checked.
 
-## `volatile` is the only escape from the halfword narrowing on Thumb
+## ~~`volatile` is the only escape from the halfword narrowing on Thumb~~ — CORRECTED, batch 345 brief C
 
-`combine.c:5921-5938` with `arm.h:2287-2290`. Recorded because
-`StartEarthquake`'s park said "volatile is inert" and it is worth 1.
+Both halves of the original entry were wrong, and it was wrong for one round in
+the shared brief as well.
+
+**It is not the only escape.** On `OvlFunc_912_20081c4` a `volatile` reads **38**
+where simply **naming the operand in a local reads 0**. `volatile` is *an*
+escape; it is usually the worst one available, because it is also a device.
+
+**And the citation pointed at the wrong function.** `combine.c:5921-5938` is
+inside **`make_extraction`** — bitfield extraction. It does test
+`MEM_VOLATILE_P (inner)`, which is presumably how it got attached to this claim,
+but it has nothing to do with narrowing a mask to a halfword mode.
+
+**The real site is `force_to_mode`'s `PLUS`/`MINUS`/`MULT` case,
+`combine.c:6855-6860`:**
+
+```c
+    case MULT:
+      /* For PLUS, MINUS and MULT, we need any bits less significant than the
+         most significant bit in MASK since carries from those bits will
+         affect the bits we are interested in.  */
+      mask = fuller_mask;
+```
+
+So when an SImode `(plus e -8)` feeds a HImode destination, `force_to_mode`
+re-masks the constant to the destination's width and `-8` becomes **65528**,
+which fits no Thumb `addsi3` immediate — costing a pool word plus a three-operand
+add where the ROM has `subs r3, #8`. Writing `s1 = 8;` and then `... - s1` keeps
+the constant out of the narrowing, and that is what landed the function.
+
+What survives of the original: `StartEarthquake`'s park said "volatile is inert"
+and it is worth 1, so the park was wrong about that. That is all it said.
 
 And the counterpart, from `Func_8021d88`: **`shimcount` does not count a
 volatile access, so a park body carrying one reads as DEVICE-FREE to every

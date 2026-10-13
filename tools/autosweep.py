@@ -255,6 +255,36 @@ def body_span(text, fn):
     return None
 
 
+_DECL_MACROS = {}
+
+
+def decl_macros(text):
+    """Names `#define`d in this file whose expansion DECLARES something.
+
+    A pin macro (`#define R0 register int q0 __asm__("r0")`) is a declaration
+    wearing a statement's clothes, so an anchor placed in front of one lands in
+    front of a declaration and C89 rejects it.  Matched by SHAPE, not by the name
+    `PIN\\d` -- the same correction `shimcount.py` needed, where macros called
+    R0..R3 made it report 4 pins where 96 existed.
+
+    Continuation lines are joined first, since these macros are routinely written
+    across several backslashed lines.
+    """
+    key = id(text)
+    if key in _DECL_MACROS:
+        return _DECL_MACROS[key]
+    joined = re.sub(r"\\\n", " ", text)
+    out = set()
+    for m in re.finditer(r"^\s*#\s*define\s+(\w+)(?:\([^)]*\))?\s+(.+)$",
+                         joined, re.M):
+        if re.search(r"\b(?:register|const|static|volatile|unsigned|signed|"
+                     r"struct|union|enum|void|char|short|int|long|float|double)\b",
+                     m.group(2)):
+            out.add(m.group(1))
+    _DECL_MACROS[key] = out
+    return out
+
+
 def boundaries(text, i, j):
     """EVERY statement boundary inside the body, at any nesting depth.
 
@@ -308,6 +338,58 @@ def boundaries(text, i, j):
                         r"struct|union|enum|void|char|short|int|long|float|"
                         r"double|u8|u16|u32|s8|s16|s32|vu8|vu16|vu32|vs32)\b",
                         nxt):
+                continue
+            # A DECLARATION USING A TYPEDEF IS STILL A DECLARATION, and the
+            # keyword list above cannot see one.  This is the THIRD cause of the
+            # dead-variant slice: on Anim_CriticalHit all 12 failures were
+            # `vec3_t vb;`, `DrawFn *fp;`, `CopyFn cp;`, `ClearFn cl;` -- local
+            # typedefs, so the keyword test passed them through and the anchor
+            # landed among declarations, which C89 rejects.
+            #
+            # Test STRUCTURALLY instead of by vocabulary: two space-separated
+            # identifiers before a `;`, `,` or `=` is a declaration, whatever the
+            # first one is called.  `a = 1;` has only one identifier before the
+            # `=` and `foo(x);` has none before the `;`, so neither matches.
+            #
+            # A false positive here only DROPS a boundary, and the tool reports
+            # the boundary count it actually swept -- so the failure mode is a
+            # smaller honest axis, not a silent one.
+            if re.match(r"[A-Za-z_]\w*(?:\s+[A-Za-z_]\w*)*\s+\**[A-Za-z_]\w*"
+                        r"\s*(?:\[[^\];]*\])?\s*[;,=]", nxt):
+                continue
+            # A PIN MACRO EXPANDS TO A DECLARATION, so a boundary in front of one
+            # is a boundary in front of a declaration.  FOURTH and last cause of
+            # the dead-variant slice: a pinned park's body reads
+            #
+            #     { R0; R1; R2; q0 = A; ... }
+            #
+            # and `R0` is `#define R0 register int q0 __asm__("r0")`.  Neither the
+            # keyword list nor the two-identifier test can see that, because at
+            # this point in the text `R0` is just a name followed by `;`.
+            #
+            # So read the macros out of THIS FILE and skip the ones whose own
+            # expansion declares something.  Matching by SHAPE rather than by the
+            # name `PIN\d` is the same correction shimcount.py needed, where
+            # macros called R0..R3 reported 4 pins against 96 real ones.
+            if any(re.match(re.escape(m) + r"\b", nxt) for m in decl_macros(text)):
+                continue
+            # SKIP A `;` THAT IS NOT A STATEMENT TERMINATOR BUT A CLAUSE
+            # SEPARATOR.  Two cases, and both produce a parse error:
+            #
+            #   if (c) x = 1; <HERE> else ...      -> "parse error before `else'"
+            #   do x = 1; while (c);               -> the `while` is the loop's
+            #
+            # This is the SECOND cause of the dead-variant slice.  Fixing the
+            # for-header case cleared only 3 of the 9 affected parks in the
+            # 45-park sweep; this clears the rest.  Measured on
+            # overlays/20082f0.c: 4 failures, all four "parse error before
+            # `else'", from an un-braced and a braced else arm each.
+            #
+            # The general rule, now stated in one place: A `;` IS A BOUNDARY ONLY
+            # WHEN WHAT FOLLOWS IT CAN LEGALLY BE A NEW STATEMENT.  Three things
+            # can follow one and not be that -- a declaration (C89), another
+            # clause of the same construct, and a closing paren of a `for`.
+            if re.match(r"(?:else|while)\b", nxt):
                 continue
             out.append(k + 1)
     return out

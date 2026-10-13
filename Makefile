@@ -1016,6 +1016,25 @@ asm/overlays/rom_7d768c/ovl_30_c_a_a_c_c_c_c_c_a_a.o: src/overlays/rom_7d768c/ov
 	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
 	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
 
+# CSE_CFLAGS for OvlFunc_924_2009c9c, batch 345 brief D.  160 bytes, 64 encodings
+# and its relocations IDENTICAL with THE PARK'S BODY UNTOUCHED -- the flag is the
+# whole of it, and the park had carried NO FLAG ROW AT ALL.
+#
+# Mechanism: cse2 caches the flag id 0x256 in a callee-saved register, which is
+# the extra instruction (the park's own diagnosis, and it was right).  Where the
+# park went wrong was its NEXT: it asked for a control-flow join THE ROM ITSELF
+# DOES NOT HAVE, so the one thing it never tried was the pass that does the
+# caching.
+#
+# -ffixed-r6 is the LOAD-BEARING NEGATIVE here and worth keeping: taking r6 away
+# merely MOVES the cached copy rather than removing it, which is what proves the
+# cache belongs to cse2 and not to the allocator.  Without that row the flag
+# looks like a register-pressure coincidence.
+asm/overlays/rom_7ac2d8/ovl_f84_c_c_a_b.o: src/overlays/rom_7ac2d8/ovl_f84_c_c_a_b.c
+	$(GCC296_CC) $(CSE_CFLAGS) -S -o $(@:.o=.s) $<
+	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
+	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
+
 # -frerun-loop-opt is on at -O2, and pass 2 is what reverses a counting loop.
 # Func_801ff58 needs pass 1 (the giv reduction that produces the ROM's
 # strength-reduced pointers) but NOT pass 2 (which reverses its counter).

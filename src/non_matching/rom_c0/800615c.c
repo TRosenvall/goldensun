@@ -1,4 +1,118 @@
 /* Func_800615c (0x0800615c) -- NON-MATCHING.
+ * 84 encodings of 109 differ; ALIGNED residue 78 of 109 equal, 36 differing in
+ * 24 hunks.  INSTRUCTION COUNTS ref 104 / ours 103 -- STILL ONE SHORT, so the
+ * 84 is partly phase.  Size 220/220.  PINS 0.  Batch 345 brief C: the figure
+ * did not move and the SHAPE did -- the single argument copy now sits exactly
+ * where the ROM's SECOND copy sits, and the cause of the missing FIRST copy is
+ * named below with its citation.
+ *
+ * Verify with (the PARK path, this file):
+ *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
+ *     goldensun-build python3 tools/objcmp.py src/non_matching/rom_c0/800615c.c \
+ *     asm/rom_c0/rom_5cf8_a_a_a_c_c_c_a.s --func Func_800615c
+ * Aligned view (THE NUMBER TO MOVE -- objcmp's 84 saturates on the length gap):
+ *   ... python3 tools/aligncmp.py src/non_matching/rom_c0/800615c.c \
+ *     asm/rom_c0/rom_5cf8_a_a_a_c_c_c_a.s Func_800615c -v
+ *
+ * ===================================================================
+ * BATCH 345: THE PER-REGION SPLIT, AND THE `sub r3, r1, #4` DERIVE IS THE
+ * CAUSE OF THE LENGTH DIFFERENCE AFTER ALL.
+ * ===================================================================
+ *
+ * PER-REGION SPLIT, off an index-aligned dump:
+ *
+ *   prologue + the 4-iteration f40/f50 swap loop (ref idx 0..35)   36 : 36   0
+ *   PREHEADER of the 2-iteration main loop       (ref idx 36..40)   5 :  4  ref +1
+ *   main loop body + tail + epilogue                               63 : 63   0
+ *
+ * The park's located missing instruction is CONFIRMED and is the only one:
+ * ref `adds r4, r0, #0` at idx 7 (the parameter's assign_parms prologue save
+ * into a LOW register) plus `mov ip, r4` at idx 40 (the walker's init in the
+ * loop preheader), against our single `mov ip, r0` at idx 12.
+ *
+ * THE BODY IS UNCHANGED, DELIBERATELY: the shape finding below measures BETTER
+ * and its POSITIONAL FIGURE IS WORSE (95 against 84, same aligned 78, one hunk
+ * fewer), so installing it would mis-rank this park in every figure-ordered
+ * tool.  The body that carries it is kept beside this file as
+ * scratch_elev/b345/C/v2a.c and the change is one statement:
+ *
+ *   declare `unsigned char *d;`, put `d = dst;` IMMEDIATELY BEFORE the main
+ *   loop, and let the loop walk `d` (`DMA3_SET(..., d, ...)`, `d += 0x18`).  The park lists this as inert ("a
+ * separate local for the walking DMA destination 84") and on the FIGURE it is.
+ * It is not inert on the shape: our single copy moves from idx 12 to idx 36 --
+ * the ROM's preheader position -- and the swap loop's registers follow the
+ * ROM's.  Aligned residue unchanged at 78, one hunk fewer.  So the park's
+ * negative is half right and the half it got wrong is the useful half: this
+ * buys the SECOND of the ROM's two copies.  What is still missing is the FIRST,
+ * the prologue save.
+ *
+ * WHY THE PROLOGUE SAVE IS MISSING, and it is not a spelling question.
+ * gcc keeps the argument in r0 from entry to the preheader, so no save is
+ * needed.  The ROM cannot: its zero constant (`ewram_2002244 = 0` and
+ * `ewram_2002240.f3 = 0`) occupies r0 across the parameter's range, which
+ * pushes the parameter out to r4 and PRODUCES the save.  And the reason r0 is
+ * the zero's register in the ROM and r1 in ours is the derive the park
+ * dismissed:
+ *
+ *     ref   ldr r1,=ewram_2002244 ... str r0,[r1] ... subs r3, r1, #4
+ *     ours  ldr r2,=ewram_2002244 ... str r1,[r2] ... ldr r3,=ewram_2002240
+ *
+ * The ROM's `&ewram_2002244` pseudo is STILL LIVE at idx 31, so r2 cannot be
+ * recycled for the `movs r2,#1`; everything below it shifts one slot along
+ * REG_ALLOC_ORDER (arm.h:988-993, order 3,2,1,0,12,14,4,5,6,7,...), the zero
+ * lands in r0 and the parameter is pushed to r4.
+ * THE PARK'S "THE `sub r3, r1, #4` DERIVE IS NOT THE MISSING INSTRUCTION ...
+ * IT IS A SHAPE QUESTION FOR PASS 3, NOT A LENGTH ONE" IS REFUTED.  It costs
+ * nothing in count and it is the cause of the length difference, one
+ * allocation step removed.
+ *
+ * The two pool words really are two symbols -- the reference .s reads
+ * `ldr r3, =ewram_2002240` three times and `ldr r1, =ewram_2002244` once, so
+ * the assembler pools two -- which means the ROM's compiler knew the +4
+ * relation, i.e. ONE declared object.  Folding them is therefore the mechanism
+ * and it is reloc-hostile exactly as the park says.  Measured as an INSTRUMENT:
+ * folding `ewram_2002244` into the struct at offset 4 collapses to 96
+ * instructions (-8) and 107 differing; deriving the struct base as
+ * `(struct Snd *)((char *)&ewram_2002244 - 4)` at the one site costs +2.
+ *
+ * MEASURED THIS BATCH, none closes the gap (figure, then aligned-equal):
+ *   `d = dst` at the TOP of the function              103 insns  84  78  BIT-IDENTICAL to base
+ *   `d = dst` as a declaration initialiser            103        84  78  BIT-IDENTICAL to base
+ *   `dst + i * 0x18`, no walker                       103        97  81
+ *   anchor between `d = dst` and the loop             103        96  78
+ *   `d = dst` right after `REG_IME = 0`               103        86  75
+ *   the zero named in an int local `z`                103        95  78  BIT-IDENTICAL to this body
+ *   `ewram_2002240.f3 = 0` moved before `SET_IO`       96       105  62
+ *   `z` ALSO used for `*(u32*)(v+4) = 0`         **104 (+0)**    44  72
+ *
+ * READ THAT LAST ROW AS A WARNING.  It EQUALISES the instruction count and
+ * takes the figure 84 -> 44, and its ALIGNED residue is WORSE, 78 -> 72.  It
+ * does not add the ROM's missing copy; it adds a DIFFERENT instruction
+ * (`add r3, sp, #4` ahead of the frame store, because the named zero forces
+ * that store through a register).  Anyone reading only the figure records a
+ * 40-encoding improvement; it is a regression.
+ *
+ * BOTH CHEAP AXES CLOSED on this body (tools/autosweep.py, base 95):
+ *   -O1 94, -fno-gcse 95, -fno-schedule-insns2 96, -ffixed-r7 117,
+ *   -fno-strict-aliasing 95, -fno-strength-reduce 110,
+ *   -fno-rerun-cse-after-loop 98, -fno-rerun-loop-opt 94 (phase artifact --
+ *   `first` unmoved at 5); anchor axis 21 of 27 boundaries, best 94, also
+ *   flagged as phase.
+ *
+ * NEXT, with its evidence: make `&ewram_2002244`'s pseudo live to the
+ * `ewram_2002240.f3 = 0` store WITH BOTH POOL WORDS INTACT.  A reloc-faithful
+ * spelling has to reference `ewram_2002244` and derive `&ewram_2002240` from it
+ * at that ONE site; done crudely that is +2 instructions because the cast
+ * re-pools.  A `struct Snd` whose declared address is `ewram_2002244 - 4`
+ * cannot be written in C without one base symbol, which is exactly the
+ * reloc/shape question the piece-mate src/non_matching/rom_c0/8006240.c sits on
+ * the other side of.
+ *
+ * ===================================================================
+ * THE ORIGINAL PARK HEADER, CARRIED FORWARD.  Everything in its "WHAT IS
+ * ESTABLISHED AND SHOULD BE KEPT" list is still in the body and still true.
+ * ===================================================================
+ * Func_800615c (0x0800615c) -- NON-MATCHING.
  * NON-MATCHING: 84 encodings of 109 differ (objcmp).
  * Blocker class: register allocation -- one allocno rotation, no instruction
  * of the ROM's stream is missing or spare.
@@ -119,6 +233,7 @@
  *     goldensun-build python3 tools/objcmp.py src/non_matching/rom_c0/800615c.c \
  *     asm/rom_c0/rom_5cf8_a_a_a_c_c_c_a.s --func Func_800615c
  */
+
 #include "gba/types.h"
 #include "gba/io.h"
 #include "dma.h"
