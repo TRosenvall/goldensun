@@ -1,6 +1,6 @@
 # Parked functions
 
-**616 park files**, 530 carrying a parseable figure, 64 bodyless (prose/triage/class parks), 48 with no live verify recipe.
+**615 park files**, 529 carrying a parseable figure, 64 bodyless (prose/triage/class parks), 48 with no live verify recipe.
 
 A figure is the park's own claim. `tools/parkcheck.py` is what verifies it.
 
@@ -9,11 +9,11 @@ A figure is the park's own claim. `tools/parkcheck.py` is what verifies it.
 | differing encodings | parks |
 |---|---|
 | 0 | 1 |
-| 1–2 | 20 |
-| 3–5 | 28 |
-| 6–10 | 26 |
+| 1–2 | 22 |
+| 3–5 | 25 |
+| 6–10 | 27 |
 | 11–20 | 51 |
-| 21–50 | 79 |
+| 21–50 | 78 |
 | 51–100 | 68 |
 | 101–300 | 146 |
 | 301+ | 111 |
@@ -59,6 +59,8 @@ none. **Rank by (figure, pins).** Pin counts are `shimcount`'s.
 | 2 |  | 74 | `OvlFunc_932_20082cc` | overlays/ovl_30.s | [src/non_matching/ovl_7b9cb4/20082cc.c](../../src/non_matching/ovl_7b9cb4/20082cc.c) |
 | 2 |  | 112 | `OvlFunc_943_20090a0` | overlays/ovl_30.s | [src/non_matching/ovl_7c7b9c/20090a0.c](../../src/non_matching/ovl_7c7b9c/20090a0.c) |
 | 2 |  | 57 | `OvlFunc_947_200a1ac` | overlays/ovl_1528.s | [src/non_matching/ovl_7d0e88/200a1ac.c](../../src/non_matching/ovl_7d0e88/200a1ac.c) |
+| 2 |  | 91 | `OvlFunc_949_20082f0` | overlays/ovl_30.s | [src/non_matching/overlays/20082f0.c](../../src/non_matching/overlays/20082f0.c) |
+| 2 |  | 91 | `OvlFunc_949_20083d0` | overlays/ovl_30.s | [src/non_matching/overlays/20083d0.c](../../src/non_matching/overlays/20083d0.c) |
 | 2 |  | 31 | `OvlFunc_949_20086e8` | overlays/ovl_30.s | [src/non_matching/ovl_7d4af4/20086e8.c](../../src/non_matching/ovl_7d4af4/20086e8.c) |
 | 2 |  | 51 | `OvlFunc_951_2008880` | overlays/ovl_30.s | [src/non_matching/ovl_7d6418/2008880.c](../../src/non_matching/ovl_7d6418/2008880.c) |
 | 2 |  | 72 | `OvlFunc_952_200bd40` | overlays/ovl_30.s | [src/non_matching/overlays/200bd40.c](../../src/non_matching/overlays/200bd40.c) |
@@ -69,11 +71,10 @@ none. **Rank by (figure, pins).** Pin counts are `shimcount`'s.
 | 3 |  | 63 | `Func_80a8088` | rom_a1000/rom_a7380.s | [src/non_matching/rom_a1000/80a8088.c](../../src/non_matching/rom_a1000/80a8088.c) |
 | 3 |  | 48 | `Func_80b2ed8` | rom_b0000/rom_b0070.s | [src/non_matching/rom_b0000/80b2ed8.c](../../src/non_matching/rom_b0000/80b2ed8.c) |
 | 3 |  | 87 | `LoadGS1CreditsBG` | — | [src/non_matching/rom_f0000/LoadGS1CreditsBG.c](../../src/non_matching/rom_f0000/LoadGS1CreditsBG.c) |
-| 3 |  | 85 | `OvlFunc_896_200c260` | — | [src/non_matching/ovl_78ef88/200c260.c](../../src/non_matching/ovl_78ef88/200c260.c) |
+| 3 |  | 85 | `OvlFunc_896_200c260` | overlays/ovl_314.s | [src/non_matching/ovl_78ef88/200c260.c](../../src/non_matching/ovl_78ef88/200c260.c) |
 | 3 |  | 38 | `OvlFunc_927_2009818` | overlays/ovl_30.s | [src/non_matching/overlays/2009818.c](../../src/non_matching/overlays/2009818.c) |
 | 3 |  | 38 | `OvlFunc_927_2009818` | overlays/ovl_30.s | [src/non_matching/ovl_7b4558/2009818.c](../../src/non_matching/ovl_7b4558/2009818.c) |
 | 3 |  | 108 | `OvlFunc_932_200abe0` | overlays/ovl_30.s | [src/non_matching/ovl_7b9cb4/200abe0.c](../../src/non_matching/ovl_7b9cb4/200abe0.c) |
-| 3 |  | 111 | `OvlFunc_943_2009684` | overlays/ovl_30.s | [src/non_matching/ovl_7c7b9c/2009684.c](../../src/non_matching/ovl_7c7b9c/2009684.c) |
 | 3 |  | 64 | `UploadIcon` | rom_15000/rom_1aeec.s | [src/non_matching/rom_15000/801bc34.c](../../src/non_matching/rom_15000/801bc34.c) |
 | 3 | 3 | 55 | `Func_801cc50` | rom_15000/rom_1ca1c.s | [src/non_matching/rom_15000/801cc50.c](../../src/non_matching/rom_15000/801cc50.c) |
 | 4 |  | 19 | `Func_80ab1f4` | — | [src/non_matching/rom_a1000/rom_ab1f4.c](../../src/non_matching/rom_a1000/rom_ab1f4.c) |
@@ -81,8 +82,6 @@ none. **Rank by (figure, pins).** Pin counts are `shimcount`'s.
 | 4 |  | 90 | `OvlFunc_924_200b6ac` | overlays/ovl_35b8.s | [src/non_matching/overlays/200b6ac.c](../../src/non_matching/overlays/200b6ac.c) |
 | 4 |  | 221 | `OvlFunc_931_2008904` | overlays/ovl_30.s | [src/non_matching/ovl_7b8cb0/2008904.c](../../src/non_matching/ovl_7b8cb0/2008904.c) |
 | 4 |  | 125 | `OvlFunc_936_20096bc` | overlays/ovl_30.s | [src/non_matching/ovl_7c097c/20096bc.c](../../src/non_matching/ovl_7c097c/20096bc.c) |
-| 4 |  | 91 | `OvlFunc_949_20082f0` | overlays/ovl_30.s | [src/non_matching/overlays/20082f0.c](../../src/non_matching/overlays/20082f0.c) |
-| 4 |  | 91 | `OvlFunc_949_20083d0` | overlays/ovl_30.s | [src/non_matching/overlays/20083d0.c](../../src/non_matching/overlays/20083d0.c) |
 | 4 |  | 32 | `OvlFunc_965_200a660` | overlays/ovl_30.s | [src/non_matching/ovl_7ef4f4/200a660.c](../../src/non_matching/ovl_7ef4f4/200a660.c) |
 | 4 |  | 71 | `OvlFunc_971_20087b0` | overlays/ovl_30.s | [src/non_matching/ovl_7fb4a8/20087b0.c](../../src/non_matching/ovl_7fb4a8/20087b0.c) |
 | 4 | 45 | 453 | `OvlFunc_887_2008578` | overlays/ovl_30.s | [src/non_matching/ovl_787e04/2008578.c](../../src/non_matching/ovl_787e04/2008578.c) |
@@ -105,6 +104,7 @@ none. **Rank by (figure, pins).** Pin counts are `shimcount`'s.
 | 7 |  | 37 | `Func_80c00d8` | rom_b5000/rom_bffb8.s | [src/non_matching/rom_b5000/rom_c00d8.c](../../src/non_matching/rom_b5000/rom_c00d8.c) |
 | 7 |  | 31 | `OvlFunc_881_200a7dc` | overlays/ovl_30.s | [src/non_matching/ovl_77a7c8/200a7dc.c](../../src/non_matching/ovl_77a7c8/200a7dc.c) |
 | 8 |  | 62 | `Func_80788c4` | rom_77000/rom_78414.s | [src/non_matching/rom_77000/80788c4.c](../../src/non_matching/rom_77000/80788c4.c) |
+| 8 |  | 286 | `Func_807905c` | rom_77000/rom_79008.s | [src/non_matching/rom_77000/807905c.c](../../src/non_matching/rom_77000/807905c.c) |
 | 8 |  | 63 | `Func_8094154` | rom_8a000/rom_93304.s | [src/non_matching/rom_8a000/8094154.c](../../src/non_matching/rom_8a000/8094154.c) |
 | 8 |  | 57 | `Func_80a1a40` | rom_a1000/rom_a1814.s | [src/non_matching/rom_a1000/80a1a40.c](../../src/non_matching/rom_a1000/80a1a40.c) |
 | 8 |  | 32 | `Func_80bd424` | rom_b5000/rom_bbb0c.s | [src/non_matching/rom_b5000/80bd424.c](../../src/non_matching/rom_b5000/80bd424.c) |
@@ -122,7 +122,7 @@ none. **Rank by (figure, pins).** Pin counts are `shimcount`'s.
 | 11 |  | 367 | `OvlFunc_954_2008a3c` | overlays/ovl_30.s | [src/non_matching/ovl_7db0c8/2008a3c.c](../../src/non_matching/ovl_7db0c8/2008a3c.c) |
 | 12 |  | 136 | `OvlFunc_884_200a440` | overlays/ovl_30.s | [src/non_matching/ovl_784360/200a440.c](../../src/non_matching/ovl_784360/200a440.c) |
 | 12 |  | 109 | `OvlFunc_905_2008a68` | overlays/ovl_30.s | [src/non_matching/ovl_799abc/2008a68.c](../../src/non_matching/ovl_799abc/2008a68.c) |
-| 12 |  | 119 | `OvlFunc_964_20090c4` | overlays/ovl_30.s | [src/non_matching/ovl_7ed0a0/20090c4.c](../../src/non_matching/ovl_7ed0a0/20090c4.c) |
+| 12 |  | 119 | `OvlFunc_964_20090c4` | — | [src/non_matching/ovl_7ed0a0/20090c4.c](../../src/non_matching/ovl_7ed0a0/20090c4.c) |
 | 12 | 5 | 371 | `OvlFunc_923_200a030` | overlays/ovl_1a3c.s | [src/non_matching/ovl_7aa430/200a030.c](../../src/non_matching/ovl_7aa430/200a030.c) |
 | 12 | 5 | 371 | `OvlFunc_924_200d5c0` | overlays/ovl_35b8.s | [src/non_matching/ovl_7ac2d8/200d5c0.c](../../src/non_matching/ovl_7ac2d8/200d5c0.c) |
 | 13 |  | 81 | `Func_801bcd4` | rom_15000/rom_1aeec.s | [src/non_matching/rom_15000/801bcd4.c](../../src/non_matching/rom_15000/801bcd4.c) |
@@ -138,6 +138,7 @@ none. **Rank by (figure, pins).** Pin counts are `shimcount`'s.
 | 14 |  | 30 | `Func_80a3d9c` | rom_a1000/rom_a1814.s | [src/non_matching/rom_a1000/80a3d9c.c](../../src/non_matching/rom_a1000/80a3d9c.c) |
 | 14 |  | 47 | `Func_80a40ac` | rom_a1000/rom_a1814.s | [src/non_matching/rom_a1000/80a40ac.c](../../src/non_matching/rom_a1000/80a40ac.c) |
 | 14 |  | 102 | `Func_80a6794` | rom_a1000/rom_a5534.s | [src/non_matching/rom_a1000/80a6794.c](../../src/non_matching/rom_a1000/80a6794.c) |
+| 14 |  | 48 | `OvlFunc_901_2008640` | overlays/ovl_314.s | [src/non_matching/overlays/2008640.c](../../src/non_matching/overlays/2008640.c) |
 | 14 |  | 70 | `OvlFunc_945_200be34` | overlays/ovl_30.s | [src/non_matching/ovl_7cb2c0/200be34.c](../../src/non_matching/ovl_7cb2c0/200be34.c) |
 | 14 |  | 63 | `OvlFunc_945_200beec` | overlays/ovl_30.s | [src/non_matching/ovl_7cb2c0/200beec.c](../../src/non_matching/ovl_7cb2c0/200beec.c) |
 | 14 |  | 83 | `StartEarthquake` | rom_8a000/rom_944ec.s | [src/non_matching/rom_8a000/809509c.c](../../src/non_matching/rom_8a000/809509c.c) |
@@ -146,8 +147,7 @@ none. **Rank by (figure, pins).** Pin counts are `shimcount`'s.
 | 15 |  | 69 | `OvlFunc_943_2008950` | overlays/ovl_30.s | [src/non_matching/overlays/2008950.c](../../src/non_matching/overlays/2008950.c) |
 | 16 |  | 381 | `Anim_Venus` | rom_c9000/rom_e0564.s | [src/non_matching/rom_c9000/Anim_Venus.c](../../src/non_matching/rom_c9000/Anim_Venus.c) |
 | 16 |  | 411 | `Func_80a112c` | rom_a1000/rom_a1050.s | [src/non_matching/rom_a1000/80a112c.c](../../src/non_matching/rom_a1000/80a112c.c) |
-| 16 |  | 48 | `OvlFunc_901_2008640` | overlays/ovl_314.s | [src/non_matching/overlays/2008640.c](../../src/non_matching/overlays/2008640.c) |
-| 16 |  | 140 | `OvlFunc_common1_1354` | overlays/common1.s | [src/non_matching/ovl_common/common1_1354.c](../../src/non_matching/ovl_common/common1_1354.c) |
+| 16 |  | 140 | `OvlFunc_common1_1354` | — | [src/non_matching/ovl_common/common1_1354.c](../../src/non_matching/ovl_common/common1_1354.c) |
 | 17 |  | 163 | `Debug_WarpMenu_UI` | rom_15000/rom_23178.s | [src/non_matching/rom_15000/8029094.c](../../src/non_matching/rom_15000/8029094.c) |
 | 17 |  | 45 | `Func_80f0614` | rom_f0000/rom_f0254.s | [src/non_matching/rom_f0000/80f0614.c](../../src/non_matching/rom_f0000/80f0614.c) |
 | 17 |  | 38 | `OvlFunc_959_200a06c` | overlays/ovl_9dc.s | [src/non_matching/ovl_7e7574/200a06c.c](../../src/non_matching/ovl_7e7574/200a06c.c) |
@@ -212,7 +212,6 @@ none. **Rank by (figure, pins).** Pin counts are `shimcount`'s.
 | 37 |  | 426 | `Anim_Mars` | rom_c9000/rom_e0564.s | [src/non_matching/rom_c9000/Anim_Mars.c](../../src/non_matching/rom_c9000/Anim_Mars.c) |
 | 37 |  | 105 | `Func_80b9470` | rom_b5000/rom_b8228.s | [src/non_matching/rom_b5000/80b9470.c](../../src/non_matching/rom_b5000/80b9470.c) |
 | 38 |  | 185 | `Debug_FaceTest` | rom_15000/rom_23178.s | [src/non_matching/rom_15000/802977c.c](../../src/non_matching/rom_15000/802977c.c) |
-| 38 |  | 288 | `Func_807905c` | rom_77000/rom_79008.s | [src/non_matching/rom_77000/807905c.c](../../src/non_matching/rom_77000/807905c.c) |
 | 38 |  | 43 | `Func_808bc44` | rom_8a000/rom_8ba38.s | [src/non_matching/rom_8a000/808bc44.c](../../src/non_matching/rom_8a000/808bc44.c) |
 | 38 |  | 74 | `Func_80930bc` | rom_8a000/rom_92950.s | [src/non_matching/rom_8a000/80930bc.c](../../src/non_matching/rom_8a000/80930bc.c) |
 | 38 |  | 56 | `Func_80d66cc` | rom_c9000/rom_d6504.s | [src/non_matching/rom_c9000/80d66cc.c](../../src/non_matching/rom_c9000/80d66cc.c) |
@@ -311,8 +310,8 @@ none. **Rank by (figure, pins).** Pin counts are `shimcount`'s.
 | 94 |  | 192 | `Func_800c880` | rom_9000/rom_c880.s | [src/non_matching/rom_9000/800c880.c](../../src/non_matching/rom_9000/800c880.c) |
 | 94 |  | 110 | `Func_801fe2c` | rom_15000/rom_1fe2c.s | [src/non_matching/rom_15000/801fe2c.c](../../src/non_matching/rom_15000/801fe2c.c) |
 | 94 |  | 242 | `Func_80b1260` | rom_b0000/rom_b0070.s | [src/non_matching/rom_b0000/80b1260.c](../../src/non_matching/rom_b0000/80b1260.c) |
+| 94 |  | 119 | `Func_80bb7c0` | rom_b5000/rom_bb588.s | [src/non_matching/rom_b5000/80bb7c0.c](../../src/non_matching/rom_b5000/80bb7c0.c) |
 | 97 |  | 220 | `BaseAnim_FullScreenSlash` | rom_c9000/rom_ece7c.s | [src/non_matching/rom_c9000/80ecef4.c](../../src/non_matching/rom_c9000/80ecef4.c) |
-| 97 |  | 119 | `Func_80bb7c0` | rom_b5000/rom_bb588.s | [src/non_matching/rom_b5000/80bb7c0.c](../../src/non_matching/rom_b5000/80bb7c0.c) |
 | 97 |  | 114 | `OvlFunc_949_200807c` | overlays/ovl_30.s | [src/non_matching/ovl_7d4af4/200807c.c](../../src/non_matching/ovl_7d4af4/200807c.c) |
 | 98 |  | 151 | `OvlFunc_917_2009070` | overlays/ovl_30.s | [src/non_matching/ovl_7a4370/2009070.c](../../src/non_matching/ovl_7a4370/2009070.c) |
 | 98 |  | 106 | `PreloadSpriteGFX` | rom_9000/rom_b074.s | [src/non_matching/rom_9000/800b6b8.c](../../src/non_matching/rom_9000/800b6b8.c) |
