@@ -263,6 +263,19 @@ def boundaries(text, i, j):
     Declarations are included -- placing an anchor among them is exactly how
     Field_Move's 0 was found (after a load, not before).
 
+    A `;` INSIDE PARENTHESES IS NOT A STATEMENT BOUNDARY.  The two semicolons of
+    a `for (init; cond; step)` header sit inside the parens, and inserting there
+    produces `for (;do { } while (0);  i != 11; i++)`, a parse error.  So EVERY
+    `for` LOOP IN THE BODY CONTRIBUTED TWO VARIANTS THAT COULD NOT COMPILE --
+    which is why batch 345 brief B saw exactly 4 "produced NO ROW" on all four of
+    its targets, each having two `for` loops.  Measured over the clean 45-park
+    sweep: 9 parks affected, 20 dead variants.
+
+    The tool was RIGHT to report that slice as untested rather than inert, and
+    that report is what found this.  But those variants were never going to
+    measure, so the honest count of a swept axis was always short by twice the
+    `for`-loop count.
+
     THIS USED TO BE `depth == 1` ONLY, which is a false-clean-negative bug and
     the third in this file.  Statements inside any `if` or loop were never
     anchored, so a park whose residue lives in a nested block got the full
@@ -273,14 +286,18 @@ def boundaries(text, i, j):
     is inside `if (v < 0)` (14 -> 4) and Func_8096ddc's is inside its `for` body
     (11 -> 10).
     """
-    out, depth = [], 0
+    out, depth, paren = [], 0, 0
     for k in range(i, j):
         c = text[k]
         if c == "{":
             depth += 1
         elif c == "}":
             depth -= 1
-        elif c == ";" and depth >= 1:
+        elif c == "(":
+            paren += 1
+        elif c == ")":
+            paren -= 1
+        elif c == ";" and depth >= 1 and paren == 0:
             # SKIP A BOUNDARY INSIDE THE DECLARATION PROLOGUE.  gcc-2.96 is C89,
             # so a statement among declarations does not compile -- which is why
             # 3 of 8 variants on one park produced no row at all.  If the next

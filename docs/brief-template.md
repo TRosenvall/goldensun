@@ -116,6 +116,17 @@ In `scratch_elev/<batch>/<letter>/`:
 - **`MANIFEST.json`** — one entry per target, schema in `tools/install_batch.py`'s
   docstring. This is how the batch gets installed; a target without an entry does
   not get installed.
+
+  **THE `split` FIELD IS FOR LANDINGS ONLY.** `install_batch.py` refuses a `split`
+  on an entry whose figure is not 0, and it is right to: splits run for any entry
+  carrying the field regardless of figure, so a split for a park that is not
+  landing is tree churn plus promoted `.global` labels for no match. If your park
+  *would* need a split when it eventually lands, put the shape in `notes` and in
+  the park header, and set `"split": null`.
+
+  This has now been mis-stated to a brief in a coordinator launch prompt (345
+  brief B), so if a prompt tells you otherwise, **the tool is the authority** —
+  its refusal message says exactly what to do instead.
 - `FINDINGS.md` — per target: the figure **you measured** (never inherited), what
   the park claimed and whether it survived, the mechanism, **the crossed pairs and
   triples you tried**, and the measured inert/worse list with figures.

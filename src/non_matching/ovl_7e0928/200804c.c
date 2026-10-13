@@ -1,165 +1,140 @@
-/* OvlFunc_956_200804c  --  0x0200804c -- NON-MATCHING, 81 of 145 encodings differ.
+/* OvlFunc_956_200804c  --  0x0200804c -- NON-MATCHING.
  *
- * objcmp, verbatim, AT PLAIN -O2 -- NO FLAG ROW IS INVOLVED and none helps
- * (see the flag screen below), so this is the figure parkcheck re-measures:
+ * *** READ THE FLAG LINE BEFORE ANY FIGURE BELOW. ***
+ * THIS BODY IS MEASURED AT ALIAS_CFLAGS (-fno-strict-aliasing).  Both figures:
  *
- *   XX SIZE  ref 316 bytes, ours 324
- *   XX ENCODINGS differ in 81 place(s) (ref 145, ours 147)
- *      first at index 6: ref 22fa  ours 20fa
+ *   -fno-strict-aliasing   ref 132 / ours 132 instructions, 316 / 316 BYTES,
+ *                          145 / 145 stream entries -- ALL THREE LENGTHS EQUAL.
+ *                          positional figure 23 of 145, aligned-equal 128 (88.3%)
+ *   plain -O2              ref 132 / ours 128, 316 / 312 bytes -- gap -4,
+ *                          figure unreadable
  *
- * RELOCATIONS ARE SILENT -- objcmp prints no `RELOCATIONS differ` line, so the
- * symbol sequence, the count and every addend already match.
+ * THE BODY THIS REPLACES, for comparison, both at the same flags:
+ *   -fno-strict-aliasing   145/145 entries, 316/316 bytes, figure 35 of 145,
+ *                          aligned-equal 119 (82.1%)
+ *   plain -O2 (the park's own measurement)  145 vs 147 entries, 316 vs 324
+ *                          bytes, figure 81 of 145, aligned-equal 94 (64.8%)
  *
- * SIZE IS NOT EXACT AND COUNT IS NOT EXACT (316/145 against 324/147), so the
- * objcmp count is SATURATED and does not rank.  aligncmp is the ranking view:
+ * So: the LENGTH GAP IS CLOSED and the ALIGNED residue went 94 -> 128 of 145.
+ * The old header's 81 of 145 was a PHASE count, not a distance.
  *
- *   ref 145 encodings, ours 147
- *   aligned-equal 94  (64.8% of ref)   differing/ins/del 66 in 21 hunks
+ * parkcheck RE-MEASURES AT PRODUCTION FLAGS AND WILL READ THIS PARK AS WORSE.
+ * That is the batch-343 trap and it is expected here: at plain -O2 this body is
+ * four instructions SHORT, because -fstrict-aliasing lets gcc reorder the
+ * `short *dst` store against the `unsigned char *t` table read and the
+ * `act->f8` load.  Do not "fix" the figure by reverting the body.
  *
- * Verify with:
+ * Verify with (NOTE THE FLAG -- objcmp cannot be given one, so use b_dump.py's
+ * recipe or add the ALIAS_CFLAGS rule first):
  *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
  *     goldensun-build python3 tools/objcmp.py \
  *       src/non_matching/ovl_7e0928/200804c.c \
  *       asm/overlays/rom_7e0928/ovl_30_a_c_c_a_a.s --func OvlFunc_956_200804c
  *
  * LANDING SHAPE: NO SPLIT.  asm/overlays/rom_7e0928/ovl_30_a_c_c_a_a.s is the
- * WHOLE file -- ONE function (`grep -c func_start` = 1), no data, so
- * datacheck.py reports nothing and split_s.py --dry-run is not applicable.
- * overlays/rom_7e0928/overlay.ld:20 names the object once,
- * `asm/overlays/rom_7e0928/ovl_30_a_c_c_a_a.o(.text)`, and no .ld .data/.bss
- * list names it.  The landing would be one line, asm/ -> src/.
+ * WHOLE file -- ONE function, no data.  overlays/rom_7e0928/overlay.ld:20 names
+ * the object once.  MIND THE BANK: a file of the same name exists in
+ * rom_7b4558 (overlays/rom_7b4558/overlay.ld:35); this park is the rom_7e0928
+ * one.  PIN-FREE, DEVICE-FREE.
+ * NO LABEL NEEDS `.global`: .L4c20, .L5480 and .L5484 are already exported by
+ * asm/overlays/rom_7e0928/ovl_30_c_c_c_c_c_c.s (lines 8, 26/30, 31).
  *
- * MIND THE BANK.  A file of the SAME NAME, ovl_30_a_c_c_a_a.s, also exists in
- * rom_7b4558 and is named at overlays/rom_7b4558/overlay.ld:35.  This park is
- * the rom_7e0928 one.  (An overlay address is not unique either -- every
- * overlay loads at the same base -- which is the census bug batch 302 fixed.)
+ * ============ THE FOUR LEVERS, IN THE ORDER THEY PAID ============
  *
- * NO LABEL NEEDS `.global` FROM THIS LANDING.  The three statics this function
- * touches are already defined AND already exported by a sibling:
- * asm/overlays/rom_7e0928/ovl_30_c_c_c_c_c_c.s carries `.global .L4c20`
- * (line 8), `.global .L5480` (26, 30) and `.global .L5484` (31).  They are
- * reached from C by the established `__asm__(".Lxxxx")` spelling (see
- * src/rom_c9000/rom_dd2ac_c_c_b.c and friends), which is what the declarations
- * below do.  overlays/rom_7e0928/overlay.map puts them at 0x0200cc20,
- * 0x0200d480 and 0x0200d484.
+ * 0. -fno-strict-aliasing (ALIAS_CFLAGS, an established group -- Makefile:235).
+ *    On the PARKED body, unchanged: figure 81 -> 35 and the instruction count
+ *    goes +2 -> 0 with the byte size EXACT.  Found by tools/autosweep.py's flag
+ *    axis in one command.  The park's own "FLAG SCREEN -- no flag row helps"
+ *    listed only three rows and never tried this one.
  *
- * PIN-FREE: shimcount.py reports no register pins, no .equ shims, no "+r"
- * barriers, no empty asm.  No fakematch.txt row would be needed.
+ * 1. *** THE PARK'S RANGE-TEST CONSTANT HAD AN EXTRA DIGIT. ***  Its lever 3
+ *    derives the bounds correctly in prose -- "LOW = -0x31ffff and
+ *    HIGH = -0x31ffff + 0x13fffe = -0x1e0001" -- and then writes
+ *    `d > -0x3200000`, which is TEN TIMES TOO LARGE.  Our pool held
+ *    `.word 0xfce00000` / `.word 0xffe20000` against the ROM's
+ *    `.word 0x0031ffff` / `.word 0x0013fffe`, and gcc emitted TWO compares and
+ *    TWO branches where the ROM has `add r3,r14 / cmp r3,r7 / bhi`.
  *
- * ================ THE LEVERS THAT PAID, IN THE ORDER THEY PAID ================
+ *    AND THE CORRECTED CONSTANT IS NOT ENOUGH -- THE TEST MUST BE INCLUSIVE.
+ *    Measured on four spellings (scratch_elev/b345/B/work/probe_range.c):
+ *        d > -0x320000  && d < -0x1e0000   TWO compares, both bounds pooled
+ *        d >= -0x31ffff && d <= -0x1e0001  add 0x31ffff / cmp 0x13fffe / bhi
+ *        (unsigned)(d + 0x31ffff) <= 0x13fffe   identical to the line above
+ *        d > -100 && d < 100               folds (so it is not strictness alone)
+ *    `fold_range_test` (fold-const.c:3757-3820) reaches TRUTH_ANDIF_EXPR by
+ *    fallthrough from the TRUTH_AND_EXPR case (fold-const.c:5961-5968 ->
+ *    `truth_andor:` -> :6031), and `build_range_check` (:3573-3613) produces
+ *    exactly the ROM's form once `low`/`high` are the inclusive bounds.  Write
+ *    the bounds the way the ROM states them and it folds.
  *
- * 1. THE gState OFFSET AS A LOCAL int.  137 of 145 -> 81 of 145; in tryc lines,
- *    137 differ -> 81.  THE SINGLE BIGGEST MOVE IN THIS FUNCTION.  Written
- *    `*(int *)(gState + 0x1f4)` gcc folds base+offset into one pool word
- *    (`ldr r3, =gState+500`); the ROM pools the bare symbol and materialises
- *    the offset (`mov r2, #0xfa / lsl r2, #1 / add r3, r2`).  `k = 0x1f4` as an
- *    int local reproduces it.  This is the same lever that landed the sibling
- *    OvlFunc_969_200871c BYTE-EXACT and that carried OvlFunc_959_200938c from
- *    141 to 39; it is now three-for-three on gState reads at a large offset and
- *    is the first thing to try on any of them.
+ * 2. THE TABLE BYTE MUST GO THROUGH A `signed char` LOCAL.  The ROM reads it as
+ *        ldrb r3,[r1] / lsl r3,#24 / asr r5,r3,#24      (3 instructions)
+ *    and `signed char *t; v = *t++;` gives
+ *        mov r5,#0 / ldrsb r5,[r1,r5]                   (2 instructions)
+ *    -- which is the other half of the -1.  THE ROM'S FORM IS THE EXPANDER'S
+ *    NATURAL OUTPUT: `extendqisi2` (arm.md:3449-3488) copies a MEM operand into
+ *    a QImode register and then emits ashift 24 / ashiftrt 24 for TARGET_THUMB.
+ *    combine then re-merges those three into `(sign_extend:SI (mem:QI))`,
+ *    matching `*thumb_extendqisi2_insn` (arm.md:3543), whose Thumb `ldrsb`
+ *    needs an INDEX REGISTER -- hence the `mov r5,#0`.  Seven spellings
+ *    measured (probe_qi.c a1-a7); the merge is blocked by anything that makes
+ *    the byte land in its own named QImode pseudo first:
+ *        signed char *t; v = *t++;                 ldrsb   (the park)
+ *        v = (signed char)*t++;  (t unsigned)      ldrsb
+ *        v = *t++; v = (v<<24)>>24;                ldrb/lsl/asr, 3 regs
+ *        signed char b; b = *t++; v = b;           ldrb/lsl/asr   <-- THIS ONE
+ *        t[i] indexing with signed char *t         ldrb/lsl/asr, but -13 aligned
+ *    The `signed char b` form is the ROM's register shape too: the byte temp and
+ *    `v` are two distinct pseudos (the ROM's r3 and r5), where the in-place
+ *    forms coalesce them.  Alone: aligned 120 -> 126 of 145.
  *
- * 2. A DECLARED LOCAL FOR THE REPEATED STACK ARGUMENT -- and it fixed a
- *    HIGH-REGISTER SWAP, which is worth recording because the swap looked like
- *    a coin flip in allocno_compare and was not.  The ROM keeps three
- *    loop-invariants in high registers: r9 = &.L4c20, r10 = 0xb, r8 = &.L5480.
- *    With `0xb` written as a literal at both __Func_8010704 call sites, gcc
- *    hoisted it as a cse-created pseudo and assigned r8, putting &.L5480 in
- *    r10 -- 0xb and &.L5480 SWAPPED against the ROM.  Giving the constant a
- *    declared local (`c = 0xb;` before the loop, passed as the 6th argument)
- *    makes it a user pseudo instead, and the assignment then matches the ROM
- *    on all three: r9, r10 and r8 as above.  81 differ -> 79 (tryc lines).
- *    The count barely moved; the RESIDUE CLASS changed completely, which is the
- *    reason to keep the spelling.  Declaration position was screened three ways
- *    (`c` first among the ints, last, and assigned before vs after `j`) and all
- *    three give 79 -- so it is the EXISTENCE of the declared local that moves
- *    allocno_compare here, not its order.
+ * 3. TWO DEFINITION-ORDER MOVES, EACH WORTH 1 AND THEY COMPOSE.  126 -> 128.
+ *      * `i = 0x12;` written BEFORE `j = 0x21;`, with the `for` left bare.  The
+ *        ROM's preheader is `mov r2,#0xb / mov r6,#0x12 / mov r9,r3 /
+ *        mov r10,r2 / mov r7,#0x21` -- the loop counter is defined BETWEEN the
+ *        0xb and the 0x21, which LUID order (and so sched2's final tie-break)
+ *        preserves from expand.  This is the batch-344 definition-order rule;
+ *        the park had screened DECLARATION position three ways and correctly
+ *        found all three inert, which is a different axis.
+ *      * `t = ...` written before `dst = ...` in the else arm, so the .L5480
+ *        read is the first thing in the block, as in the ROM.
  *
- * 3. THE RANGE TEST WAS READ OFF THE ROM, NOT GUESSED.  The loop body's guard
- *    is `ldr r3,[r0,#8] / lsl r2,r6,#21 / sub r3,r2 / add r3,r14 / cmp r3,r7 /
- *    bhi` with r14 = 0x31ffff and r7 = 0x13fffe -- gcc's canonical
- *    `(unsigned)(x - LOW) <= (HIGH - LOW)`.  Subtracting LOW is an ADD of
- *    0x31ffff, so LOW = -0x31ffff and HIGH = -0x31ffff + 0x13fffe = -0x1e0001,
- *    over x = act->f8 - (i << 21).  Written `d > -0x3200000 && d < -0x1e0000`
- *    that folds back to exactly those two pool words.  (This is one of the
- *    `cmp K / bhi` range tests batch 302 established ARE reachable -- the old
- *    "unreachable comparison" advice is struck.)
+ * ============ WHAT IS LEFT: 23 of 145, IN FOUR PLACES ============
  *
- * 4. INERT, MEASURED, NOT ASSUMED.  The index expression's operand order:
- *      L4c20[L5480 * 6 + (i - 0x12)]     79 differ   <-- this file
- *      L4c20[(i - 0x12) + L5480 * 6]     79 differ
- *      L4c20[i + L5480 * 6 - 0x12]       79 differ
- *    All three identical, which is `fold` canonicalising the PLUS -- the
- *    documented behaviour.  So the ROM's `add r3, r6, r3` (i as the first
- *    operand) CANNOT be reached by reordering the source addition, and this
- *    avenue is closed rather than untried.
+ *   (a) ref[26:32], the then-arm preheader: a 3-way permutation plus an r2/r3
+ *       role swap.  ROM `mov r9,r3` BEFORE `mov sl,r2`; ours the other way.
+ *   (b) ref[38] `adds r3, r6, r3` against ours `adds r3, r3, r6` -- ONE
+ *       encoding, Thumb ADD(3) operand order.  The park's lever 4 closed this
+ *       by measuring three source orderings all identical (fold canonicalises
+ *       the PLUS); I did not re-open it and I did not refute it.
+ *   (c) ref[84:95], the `0xc1 << 1 + base -> ip` block: the ROM emits all four
+ *       contiguously using r3 (the register that just died holding &.L5480);
+ *       ours splits them around the table-pointer add and uses r2.
+ *   (d) ref[111:112] / ref[117:118]: the two `mov rX, ip / strh r5,[rX]` pairs
+ *       use r3-then-r2 in the ROM and r2-then-r3 in ours -- a pure swap worth
+ *       4 encodings, almost certainly downstream of (c).
  *
- *    FLAG SCREEN -- no flag row helps, all measured on this candidate:
- *      plain -O2                        79 differ   <-- best
- *      -fno-schedule-insns2            100 differ
- *      -fno-rerun-cse-after-loop       142 differ
+ * THE PARK'S PASS ATTRIBUTION, carried forward and still correct as corrected:
+ * the body of the header blamed sched1, and the batch-305 correction notes
+ * sched1 DOES NOT RUN in this build (no .11/.12 sched dump at -O2; the sequence
+ * is 17.lreg 18.greg 19.flow2 20.ce2 23.sched2 25.jump2 26.mach).  Everything
+ * in (a), (c) and (d) is sched2 (`rank_for_schedule`) or the allocation that
+ * fixed its input, and `-fno-schedule-insns` rules nothing out.
  *
- * ================ THE BLOCKER, BY PASS ================
+ * AUTOSWEPT (batch 345, --max 60).  ANCHOR AXIS CLOSED: 27 of 27 boundaries
+ * inert at 81 (4 produced no row -- untested, not inert).  FLAG AXIS: the only
+ * real row is lever 0.  `-fno-strength-reduce` reads 74 and is a FALSE lead --
+ * it moves the instruction gap to -3.  `-fno-gcse` is exactly inert at 81.
  *
- * sched1 -- THE FIRST SCHEDULING PASS (haifa, `schedule_insns`), NOT REGISTER
- * ALLOCATION.  Every remaining hunk is the SAME instructions in a DIFFERENT
- * ORDER, in two places:
- *
- *   (a) the loop-invariant setup, a straight 4-permutation:
- *         ROM   mov r6,#0x12 / mov r9,r3 / mov r10,r2 / mov r7,#0x21
- *         ours  mov r10,r2  / mov r7,#0x21 / mov r6,#0x12 / mov r9,r3
- *   (b) the copy of &.L5480 into its high register, which the ROM issues
- *       IMMEDIATELY after the load that uses the address and ours defers to the
- *       end of the index computation:
- *         ROM   ldr r3,=.L5480 / ldr r2,[r3] / mov r8,r3 / lsl r3,r2,#1 / ...
- *         ours  ldr r5,=.L5480 / ldr r2,[r5] / lsl r3,r2,#1 / ... / mov r8,r5
- *       The low-register temp choice (ROM r3 and r2, ours r5 and r0) follows
- *       from (b): the ROM frees its temp one instruction after the load, so the
- *       same register is available again for the index arithmetic.
- *
- * WHAT RULES OUT THE ALTERNATIVES:
- *   - NOT register allocation / allocno_compare.  After lever 2 the high-register
- *     ASSIGNMENT matches the ROM exactly -- r9 = &.L4c20, r10 = 0xb,
- *     r8 = &.L5480 -- and the prologue/epilogue register lists are identical
- *     (`push {r5,r6,r7,lr} / mov r7,r10 / mov r6,r9 / mov r5,r8 / push {r5,r6,r7}`
- *     on both sides).  There is no rotation and no extra allocno left to find;
- *     the count of high registers, and which value is in which, both agree.
- *   - NOT CSE or gcse.  -fno-rerun-cse-after-loop takes it from 79 to 142 and
- *     -fno-schedule-insns2 to 100; both directions are worse, so the ROM's order
- *     is a SCHEDULED order that differs from ours, not an UNSCHEDULED one.
- *     Turning the second scheduler off cannot produce it.
- *   - NOT the source's addition order, closed by lever 4's three-way screen.
- *   - NOT the relocation FORM: objcmp prints no relocation line at all here, so
- *     there is nothing of that class to discount.
- *
- * THE ONE ITEM I CANNOT ATTRIBUTE TO sched1, stated as an open question rather
- * than folded into the above: `add r3, r6, r3` (ROM, Thumb ADD(2), flag-setting)
- * against `add r3, r6` (ours, Thumb ADD(4)).  That is instruction SELECTION,
- * decided by which pseudo the arm backend ties to the destination, and lever 4
- * shows the source addition order does not reach it.  It is 1 encoding of the
- * 66, and it may well be downstream of (b) -- the ROM's r3 is dead-and-reborn
- * where ours is still live -- but that was not demonstrated and should not be
- * assumed.
- *
- * WHAT THE FUNCTION IS.  138 instructions, a per-frame two-phase animation
+ * WHAT THE FUNCTION IS.  132 instructions, a per-frame two-phase animation
  * driver over map slots 0x12..0x16, keyed on a frame counter (.L5484, unsigned,
- * wrapping at 0x11 -- the tail's `bls` is what makes it unsigned) and a 2-bit
- * rotating index (.L5480).  On the counter's zero frame it advances the index
- * and re-animates the whole slot run from the 6-byte-stride table .L4c20; on
- * every other frame it walks the same table row and stamps a value at
- * base+0x182 when the actor is within a narrow depth band and the level nibble
- * and the table entry agree.  The two `if`s in that arm are deliberately NOT an
- * `else if`: the ROM tests 0xb/4 and then 0xc/5 unconditionally in sequence.
-  *
- * *** BATCH-305 CORRECTION: THIS FILE ATTRIBUTES A RESIDUE TO sched1, AND sched1 DOES NOT
- * *** RUN IN THIS BUILD.  Verified with -da at production flags: the dump sequence is
- * *** 17.lreg 18.greg 19.flow2 20.ce2 23.sched2 25.jump2 26.mach -- there is NO sched1 dump,
- * *** because flag_schedule_insns is off at -O2 here, so only the post-reload scheduler runs.
- * *** Re-attribute to sched2 (rank_for_schedule), to combine, or to the ALLOCATION that fixed
- * *** the order.  Relatedly, any "-fno-schedule-insns is inert" note below rules nothing out:
- * *** that flag controls a pass that never runs.  The sched2 tie-break is priority ->
- * *** dependent count (more wins) -> INSN_LUID (lower wins), and LUID preserves EXPAND order.
- * *** See "sched1 DOES NOT RUN IN THIS BUILD" in docs/elevation.md.
-*/
+ * wrapping at 0x11) and a 2-bit rotating index (.L5480).  On the counter's zero
+ * frame it advances the index and re-animates the whole slot run from the
+ * 6-byte-stride table .L4c20; on every other frame it walks the same table row
+ * and stamps a value at base+0x182 when the actor is within a narrow depth band
+ * and the level nibble and the table entry agree.  The two `if`s in that arm
+ * are deliberately NOT an `else if`.
+ */
 struct Actor {
     unsigned char pad00[8];
     int f8;
@@ -181,7 +156,8 @@ void OvlFunc_956_200804c(void)
 {
     struct Actor *act;
     unsigned char *base;
-    signed char *t;
+    unsigned char *t;
+    signed char b;
     short *dst;
     int lvl;
     int i;
@@ -198,8 +174,9 @@ void OvlFunc_956_200804c(void)
     if (L5484 == 0) {
         L5480 = (L5480 + 1) & 3;
         c = 0xb;
+        i = 0x12;
         j = 0x21;
-        for (i = 0x12; i <= 0x16; i++) {
+        for (; i <= 0x16; i++) {
             v = L4c20[L5480 * 6 + (i - 0x12)];
             __MapActor_SetAnim(i, v);
             __MapActor_SetAnim(i + 5, v + 8);
@@ -210,12 +187,13 @@ void OvlFunc_956_200804c(void)
         }
         __MapActor_SetAnim(0x1c, L4c20[L5480 * 6 + 5]);
     } else {
+        t = (unsigned char *)&L4c20[L5480 * 6];
         dst = (short *)(base + 0x182);
-        t = &L4c20[L5480 * 6];
         for (i = 0x12; i <= 0x16; i++) {
-            v = *t++;
+            b = *t++;
+            v = b;
             d = act->f8 - (i << 21);
-            if (d > -0x3200000 && d < -0x1e0000) {
+            if (d >= -0x31ffff && d <= -0x1e0001) {
                 if (lvl == 0xb && v == 4)
                     *dst = v;
                 if (lvl == 0xc && v == 5)
