@@ -167,6 +167,34 @@ def resolve(park):
     return ref, fn
 
 
+def aligned_residue(path, ref, fn, extra=""):
+    """aligncmp's position-tolerant residue -- the ONLY number comparable across a
+    length change.
+
+    objcmp's ndiff compares encodings index by index with no alignment, so one
+    missing or extra instruction poisons every later index and the count
+    saturates.  aligncmp runs an LCS over the two encoding streams, so an
+    inserted or deleted instruction no longer does that.
+
+    This exists because batch 345 brief A found that autosweep's phase guard,
+    while it correctly FIRES on a length-changing row, still prints that row's
+    lower ndiff where a reader takes it for progress.  Measured on `GiveItemTo`:
+    -fno-rerun-cse-after-loop reads 49 against a base of 58 and takes the ALIGNED
+    residue 42 -> 44, i.e. it is strictly worse.  A verdict needs the aligned
+    number, not a caveat next to a misleading one.
+
+    aligncmp honours OBJCMP_EXTRA because it calls objcmp.cflags_for, which
+    applies it -- so a flag variant is measurable on this scale.
+    """
+    cmd = DOCKER_PRE[:]
+    if extra:
+        cmd += ["-e", f"OBJCMP_EXTRA={extra}"]
+    cmd += [IMAGE, "python3", "tools/aligncmp.py", path, ref, fn]
+    out = subprocess.run(cmd, capture_output=True, text=True).stdout
+    m = re.search(r"differing/ins/del (\d+) in (\d+) hunks", out)
+    return (int(m.group(1)), int(m.group(2))) if m else None
+
+
 def measure(path, ref, fn, extra=""):
     """One objcmp run.  -> (ndiff, total, dinsn, first) or None if it got no verdict.
 
@@ -344,21 +372,37 @@ def main():
             # is unchanged AND the first differing index moved.
             mark = ""
             if r and r[0] < base[0]:
-                if r[2] != base[2]:
-                    mark = (f"  <-- lower count but INSTRUCTION COUNT MOVED to "
-                            f"{r[2]:+}; this ndiff is PHASE, not progress")
+                # ANY lower row gets the ALIGNED verdict attached, because the raw
+                # count is not comparable across a length change and a caveat
+                # beside a misleading number still reads as progress (345 brief A).
+                ab = globals().setdefault("_ALIGN_BASE", aligned_residue(park, ref, fn))
+                av = aligned_residue(park, ref, fn, extra=flag)
+                if ab and av and av[0] > ab[0]:
+                    mark = (f"  <-- lower count but ALIGNED RESIDUE IS WORSE "
+                            f"({ab[0]} -> {av[0]}); this row is NOT progress")
+                elif ab and av and av[0] == ab[0]:
+                    mark = (f"  <-- lower count, ALIGNED RESIDUE UNCHANGED at "
+                            f"{ab[0]}; the drop is phase, not distance")
+                elif r[2] != base[2]:
+                    mark = (f"  <-- lower count, instruction count moved to "
+                            f"{r[2]:+}"
+                            + (f", ALIGNED {ab[0]} -> {av[0]}" if ab and av else
+                               "; aligncmp did not measure -- CHECK BY HAND"))
                 elif r[3] == base[3]:
                     mark = (f"  <-- lower count but `first` UNMOVED at {r[3]}; "
                             f"CHECK with aligncmp before believing it")
                 else:
-                    mark = "  <-- BETTER"
+                    mark = ("  <-- BETTER"
+                            + (f" (ALIGNED {ab[0]} -> {av[0]})" if ab and av else ""))
             if r and r[0] == 0:
                 mark = "  <-- *** ZERO ***"
             print(f"  {flag:28} {group:20} {v}{mark}")
             if r:
                 # Only a row that passes the guard may enter BEST. A phase row
                 # ranking above the base is how a false lead gets propagated.
-                if r[0] == 0 or (r[2] == base[2] and r[3] != base[3]):
+                if r[0] == 0 or (r[2] == base[2] and r[3] != base[3]
+                                 and "NOT progress" not in mark
+                                 and "phase, not distance" not in mark):
                     best.append((r[0], f"flag {flag}", group))
         print()
 

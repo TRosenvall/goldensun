@@ -35799,3 +35799,73 @@ negative is a measurement of ONE BODY, and it expires silently every time the
 body changes.** It is still worth recording — it saves the next agent real
 tokens — but it must be read as "inert against the body of batch N", never as
 "inert".
+
+## Batch 345 — the phase guard was not enough; a lower row needs the ALIGNED verdict
+
+Batch 344 gave `autosweep`'s flag axis a guard that fires when a variant's
+instruction count moves. Brief A found that **firing is not sufficient**: the row
+still prints its lower ndiff, and a caveat beside a misleading number still reads
+as progress.
+
+`autosweep` now attaches the **aligned residue** (`aligncmp`, an LCS over the two
+encoding streams) to *any* flag row reading lower than the base, and a row whose
+aligned residue did not improve **cannot enter `BEST`**. Measured on
+`GiveItemTo`, base 58 of 68 at a −1 gap:
+
+```
+-fno-strength-reduce      57 of 68  <-- lower count but ALIGNED RESIDUE IS WORSE (42 -> 54)
+-fno-rerun-cse-after-loop 49 of 68  <-- lower count but ALIGNED RESIDUE IS WORSE (42 -> 44)
+```
+
+**Two false leads on one park**, and the brief had only found one of them. A
+reader given "49 against 58" takes it for a 9-encoding gain; it is a
+12-instruction regression.
+
+`aligncmp` honours `OBJCMP_EXTRA` because it calls `objcmp.cflags_for`, which
+applies it — so a flag variant *is* measurable on the aligned scale. The cost is
+bounded: only rows that already read lower are re-measured, so a typical park
+pays two extra container runs, not sixteen.
+
+**The rule, stated once:** across a length change the raw count is not a
+comparison at all. `objcmp` is the authority on byte-exactness and on any true
+distance (size *and* instruction count equal); `aligncmp` is the only thing that
+can rank two bodies of different length.
+
+## THE ANCHOR AXIS IS NOT SEPARABLE
+
+Also brief A, on `Func_80c0eec`: **all 31 subsets of five in-loop boundaries**
+never beat aligned 8, and **two anchors cost two instructions in combination
+while costing none alone.** A per-placement sweep enumerates single placements
+and therefore cannot see either fact. So `autosweep`'s anchor axis closing is a
+statement about *single* anchors only — it is not a statement about anchor sets,
+and "the anchor axis is closed" must be read that narrowly. Compare the standing
+rule that compositionality is per-park and the cliff is a set, not a count.
+
+## `while (1)` IS NOT `for (;;)` TO gcc-2.96
+
+Worth **15 aligned instructions** of basic-block placement on `Func_80c0eec`, and
+it is the reason that park sat at 66 for several rounds: it had measured three
+loop shapes and all three were `for`/`while(cond)` forms, so the one spelling
+that mattered was never tried. Add it to the loop-shape inventory.
+
+## A SHARED PSEUDO CAN COST ZERO INSTRUCTIONS AND STILL BE THE BLOCKER
+
+The most transferable thing in batch 345 brief A. On `Func_80c0eec`, `.15.regmove`
+shows four `gKeyRepeat` reads commoned into **one** pseudo, live out of all three
+guard blocks, and **reload rematerialises the load at each use** — so the
+instruction *count* already matched the ROM. Every count-based reading of that
+park therefore came back clean, which is why nothing had found it.
+
+What the shared pseudo actually costs is the **two-address tie** on
+`*thumb_andsi3_insn`: `regmove` ties the output to an operand only if it **dies
+there**, so the mask wins the tie instead of the load.
+
+**The lesson for reading a park:** a blocker that costs no instruction is
+invisible to every instrument in this tree that counts instructions, including
+`gapscan`'s gap and the length-gap criterion itself. When counts agree and the
+figure is still large, suspect a tie or a preference, not a missing statement.
+
+The cure there was `extern volatile int gKeyRepeat;`, and it is **evidence, not a
+device**: the tree carries 47 volatile declarations of that symbol against 10
+non-volatile, **18 of the volatile ones in landed byte-identical files**, and a
+hardware key register is genuinely volatile memory. Checked, not asserted.
