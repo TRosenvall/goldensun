@@ -6100,8 +6100,23 @@ The signed-lower-bound residue has been recorded as "no spelling reaches it".
 The mechanism is now read out of the compiler, and it makes the class decidable
 **before writing any C**.
 
-`combine.c`'s `simplify_comparison` (gcc-2.96, lines ~10150–10180) rewrites,
-unconditionally for `MODE_INT`:
+`combine.c`'s `simplify_comparison` rewrites, unconditionally for `MODE_INT`
+— **exact lines `combine.c:10138-10158`**, narrowed from the original
+"~10150–10180" while re-deriving this on `Field_Halt`:
+
+    case LT:
+      /* < C is equivalent to <= (C - 1) */
+      if (const_op > 0)
+        { const_op -= 1; op1 = GEN_INT (const_op); code = LE; /* fall through */ }
+      else
+        break;
+    case LE:
+      /* <= C is equivalent to < (C + 1); we do this for C < 0 */
+      if (const_op < 0)
+        { const_op += 1; op1 = GEN_INT (const_op); code = LT; }
+
+so the `LE -> LT` direction fires **only for a negative constant**, which is why
+the `LT -> LE` rewrite above is one-way for positive C:
 
     LT  C  (C>0)  ->  LE (C-1)          GE  C  (C>0)  ->  GT (C-1)
     LE  C  (C>0)  ->  unchanged         GT  C  (C>0)  ->  unchanged

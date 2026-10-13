@@ -3,7 +3,22 @@
  * instructions are 159/159`, index 98, ref dbc9 (blt) against ours d1c9 (bne).
  * Still the closest park in the tree.  PIN-FREE, DEVICE-FREE.
  *
- * ***THE LITERAL-COMPARISON CLASS IS CLOSED BY THE COMPILER SOURCE.***
+ * ***THE LITERAL-COMPARISON CLASS IS CLOSED -- AND IT WAS ALREADY DOCUMENTED.***
+ * CORRECTION, same pass: I wrote this up as a new finding and it is not one.
+ * docs/elevation.md:6103-6126 already carries the rule, measured, with the
+ * stronger phrasing "for K > 0, gcc-2.96 ... can NEVER emit `cmp #K / blt` or
+ * `cmp #K / bge`", the `const_op > 0` guard, the note that
+ * arm_canonicalize_comparison is not involved, and the class size: 33 of 2274
+ * functions carry this shape across 44 sites.  CLAUDE.md says to grep that file
+ * before writing anything up as new; I did not.  What is genuinely added below is
+ * the tighter line numbers and the bit-identical measurement.
+ *
+ * *** AND THE DOC NAMES THE ROUTE THIS PARK HAS NEVER TRIED. *** It says the
+ * shape is "a tell that the source uses a SWITCH CASE RUN or a named bound,
+ * which is a LEVER, not a blocker."  This park has tried the NAMED BOUND
+ * exhaustively -- every form keeps the pseudo live across seven calls and costs
+ * five instructions.  A SWITCH CASE RUN over the 0..10 range appears never to
+ * have been tried here, and that is the first thing the next attempt should do.
  * Coordinator, negative-list re-test pass after batch 348.  The one differing
  * encoding is index 98, ref `dbc9` (blt) against ours `d1c9` (bne), so the
  * question is only how to make a SIGNED LESS-THAN survive to the branch while
