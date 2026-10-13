@@ -175,6 +175,37 @@ def resolve_s(arg):
     return None
 
 
+def exported_data(s_rel, body, members):
+    """`.global` symbols in this piece that are NOT its functions.
+
+    WHY: "converts whole" is about the FUNCTIONS in a piece, and this tool
+    counted only those -- so it said CONVERTS WHOLE for a piece that also
+    exports DATA, which cannot survive the conversion.  Batch 345 turned a gate
+    RED on exactly that: OvlFunc_912_20081c4 was byte-identical, and installing
+    it deleted asm/overlays/rom_7a0010/ovl_30_c_c_c.s, whose trailing block
+    defined gOvl_02008318, MapEntrance_ARRAY_912__02008318, gOvl_02008498,
+    gOvl_02008658 and .L4d8 -- all referenced by FOUR SIBLING OBJECTS in the same
+    overlay.  Nothing in the park, the manifest or this tool's output said so.
+
+    The fix is not to refuse the conversion: `split_s.py` already cuts code from
+    data and says so ("holds X plus 4 blob(s) and 1 label(s), ALL of it after the
+    code").  The fix is to SAY IT HERE, before an agent spends a round and a
+    coordinator spends two gates finding out.
+    """
+    globals_ = set(re.findall(r"^\s*\.global\s+(\S+)", body, re.M))
+    data = sorted(globals_ - set(members))
+    if not data:
+        return
+    print(f"    !! EXPORTS {len(data)} NON-FUNCTION SYMBOL(S): "
+          + ", ".join(data[:6]) + ("..." if len(data) > 6 else ""))
+    print(f"       Converting this piece whole DELETES these.  Check who "
+          f"references them:")
+    print(f"         grep -rl '{data[0]}' asm/ src/")
+    print(f"       If anything else does, SPLIT CODE FROM DATA -- split_s.py "
+          f"handles it and")
+    print(f"       reports the shape.  A gate went RED on this in batch 345.")
+
+
 def report(s_rel, parks):
     body = open(os.path.join(ROOT, s_rel), errors="replace").read()
     members = START.findall(body)
@@ -192,6 +223,7 @@ def report(s_rel, parks):
             print(f"    LANDED  {m:<28} {'':<14} {landed_c}")
         else:
             print(f"    ??      {m:<28} {'':<14} no park found and no sibling .c")
+    exported_data(s_rel, body, members)
     if nparked == len(members) and members:
         figs = []
         for m in members:
