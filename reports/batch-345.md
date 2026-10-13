@@ -76,12 +76,13 @@ Thumb `addsi3` immediate, so it costs a pool word plus a three-operand add where
 the ROM has `subs r3, #8`. Writing `s1 = 8;` keeps it out of the narrowing, and
 that is what landed the function. Verified by reading the compiler source.
 
-## FOUR CAUSES OF ONE DEAD SLICE IN `autosweep`
+## SIX CAUSES OF ONE DEAD SLICE IN `autosweep`
 
 Brief B reported 4 anchor variants "produced NO ROW" on all four of its targets
 and guessed the defect was systematic. It is real, it was **not** one defect, and
-chasing it took four fixes. Measured, not assumed — 9 of 45 parks in the clean
-sweep were affected, 20 dead variants.
+chasing it to the end took **six** fixes. What found the last two was compiling
+every anchor variant across 549 parks and 12,304 boundaries — the guard could not
+be trusted to audit itself.
 
 `boundaries()` took every `;` at brace depth ≥ 1. The four things that follow a
 `;` and cannot legally begin a new statement:
@@ -101,8 +102,32 @@ sweep were affected, 20 dead variants.
    correction `shimcount.py` needed when macros named R0..R3 made it report 4
    pins against 96.
 
+5. **The variant directory does not hold the park's sibling headers.** Variants
+   are written to `scratch_elev/autosweep_*/`, so a park doing
+   `#include "decls.h"` for a header in its **own** directory cannot find it and
+   *every* variant fails. **Seven parks had no anchor axis at all** — the
+   rom_c9000 Anim family, all including `src/non_matching/rom_c9000/decls.h`.
+   `ParticleCloud` alone has 153 boundaries, every one dead.
+6. **The lookahead skipped whitespace but not COMMENTS.** These bodies annotate
+   declarations with the stack slot — `vec3_t posA;   /* sp+0xac */` — so the text
+   after the `;` is a comment and every test saw `/* sp+0xac */` instead of the
+   declaration behind it. That is how `parse error before 'int'` survived a guard
+   whose whole job is to match `int`. 29 dead variants across four parks.
+
 **The general rule, now in the tool:** a `;` is a boundary only when what follows
-it can legally *be* a new statement.
+it can legally *be* a new statement — and the lookahead has to actually *see*
+what follows.
+
+Verified afterwards: **0 dead variants** across all eight parks that had them,
+including `e47b8_SpecialAttack` (516 boundaries) and `Anim_CriticalHit` (173).
+
+**And a correction to my own measurement.** My first tree-wide run reported "15
+parks, 214 dead variants". Partly my *diagnostic harness's* own bug: it wrote
+variants to `/tmp`, so the same relative-include failure hit it too, and 150 of
+the 214 were the six Anim parks failing for that reason rather than for anything
+in `boundaries()`. Re-measured with sibling headers present: cause 5 is 7 parks,
+cause 6 is 29 variants across 4. **The harness auditing the tool needed the same
+audit as the tool.**
 
 Worth stating plainly: **the tool was right to report that slice as UNTESTED
 rather than inert, and that report is the only reason any of this was found.**
