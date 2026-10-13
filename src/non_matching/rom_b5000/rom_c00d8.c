@@ -1,5 +1,96 @@
 /* Func_80c00d8 @ 0x080c00d8
  *
+ * NON-MATCHING, 7 of 37 stream encodings  (RE-MEASURED, batch 345 brief A,
+ *   on a NEW BODY -- the park's 33 is retired).
+ *   ref 37 encoding rows / 88 bytes; ours 37 / 88.  dsize 0.
+ *   ALIGNED residue 33 equal / 4 differing, against the parked body's
+ *   17 equal / 20 differing.  THE LENGTH GAP IS CLOSED: the prologue is now
+ *   `push {r5, r6, lr}` against the parked body's `push {r5, r6, r7, lr}`,
+ *   and the ROM's second build of 0x100 is emitted.
+ *   Of the 4 remaining aligned rows ONE IS THE REFERENCE-SIDE ewram_2010200
+ *   ARTEFACT the batch-333 note already documents (replacing the literal with
+ *   `(u32)&ewram_2010200` reads 6 of 37 with rel=ok and aligned 34/3, which is
+ *   the measurement that CONFIRMS that row is the hand-written .s symbolising
+ *   a numeric literal).  The real code residue is THREE aligned instructions
+ *   in two argument fills.
+ *
+ * Verify with:
+ *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
+ *     goldensun-build python3 tools/objcmp.py \
+ *     src/non_matching/rom_b5000/rom_c00d8.c \
+ *     asm/rom_b5000/rom_bffb8_a_a_a_c_a.s --func Func_80c00d8
+ *
+ * ===== BATCH 345 BRIEF A: THE cse1 BOUND IS REFUTED, DEVICE-FREE, AND THE
+ * ===== LEVER IS TO MAKE THE ADVANCE NOT BE 256 UNTIL AFTER cse1 RUNS.
+ *
+ * Batches 334 and 335 closed nineteen cells in five dimensions and concluded
+ * "disagree with cse.c:509-514 or with arm.c:2077-2080, or find a construct
+ * that reaches cse1 with the two values in different MODES.  Do NOT re-spell
+ * the constant or re-type the pointer."  BOTH HALVES OF THAT ARITHMETIC ARE
+ * CORRECT AND THE CONCLUSION IS WRONG, because there is a third option neither
+ * round considered: do not let EITHER VALUE BE 256 WHEN cse1 RUNS.
+ *
+ *     p += 64;                 33 of 37, aligned 17/20   (the parked body)
+ *     p += 32; p += 32;         7 of 37, aligned 33/4    <-- this body
+ *     p = (u32 *)((char *)p + 0x80); twice
+ *                               7 of 37, aligned 33/4    (identical figure)
+ *
+ * Two increments of 128 bytes are each a DIFFERENT constant from the size
+ * argument's 256, so cse1's equivalence class never contains both; the fold
+ * back to one `adds r6, r6, r3` happens later, after cse1, and the 256 for the
+ * advance is built fresh exactly as the ROM builds it.  The park's own
+ * "defect 1" and "defect 2" BOTH go: the prologue loses the extra push, the
+ * `movs r3, #128 / lsls r3, #1 / adds r6, r6, r3` appears, and the
+ * `_call_via_r5` relocations line up.
+ *
+ * CONTROL, and it is the measurement that names the pass: a cse-flushing
+ * instrument -- `__asm__ ("" :: "i"(0));` per cse.c:5742-5745 -- placed between
+ * the call and the advance gives the SAME 7 of 37 and the same aligned 33/4.
+ * So the device-free spelling reaches exactly as far as the device does, and
+ * the whole of the old 20-row residue was the cse1 unification and nothing
+ * else.  The same barrier placed BEFORE the call instead reads 21 of 37.
+ *
+ * WHAT REMAINS, three aligned instructions, both of them ARGUMENT-FILL ORDER:
+ *     call 2   rom   adds r0, r6, #0 / movs r1, #128 / ldr r2, =0x3ff03ff
+ *              ours  ldr r2, =0x3ff03ff / adds r0, r6, #0 / movs r1, #128
+ *     call 4   rom   movs r1, #160 / ldr r3, =fp / adds r0, r6, #0
+ *                    / lsls r1, #2 / ldr r2, =0x3ff03ff
+ *              ours  movs r1, #160 / ldr r3, =fp / lsls r1, #2
+ *                    / ldr r2, =0x3ff03ff / adds r0, r6, #0
+ * In both the ROM fills r0 EARLIER than we do and puts the pool load LAST.
+ * Same shape twice, so it is one question, not two.
+ *
+ * MEASURED INERT OR WORSE on this body, all at ni 37 / dsize 0:
+ *   - the anchor axis, all 7 single boundaries and all 21 pairs: best 6 of 37
+ *     but aligned 32/5, i.e. WORSE than the base's 33/4.  None reaches 3.
+ *   - all eight per-file flag groups: -fno-gcse, -ffixed-r7,
+ *     -fno-strict-aliasing, -fno-strength-reduce, -fno-rerun-cse-after-loop and
+ *     -fno-rerun-loop-opt are EXACTLY INERT at 7 of 37; -O1 and
+ *     -fno-schedule-insns2 both read 18 of 37 with aligned 27/10, i.e. much
+ *     worse.  (NOTE: the parked body's autosweep row "-O1 18 of 37, instruction
+ *     count moved to +0" is this same 18 -- it closes the gap and raises the
+ *     aligned residue, so it was never progress.)
+ *   - `fp((void *)p, ...)` and the first argument in a block-scope temp: both
+ *     EXACTLY INERT at 7 of 37, aligned 33/4.
+ *   - `fp(p, 0x100, -1)` instead of `fp(p, 0x80 << 1, -1)`: 33 of 37.  Still
+ *     the parked figure, confirming batch 335's spelling dimension.
+ *   - a bare `__asm__ volatile ("")` before call 2: 6 of 37, aligned 33/4 --
+ *     the aligned residue does NOT move, so the ndiff fall is phase only.
+ *
+ * NEXT: the argument fill order at a call whose last argument is a pool load.
+ * This is now the ONLY thing between this function and a match, it is the same
+ * shape at both sites, and it is a sched2 question -- the pre-sched order is
+ * what differs, so read .19.flow2 against .23.sched2 and compare INSN_LUIDs
+ * rather than sweeping spellings.
+ *
+ * NOTE ON `p += 32; p += 32;` AS SOURCE.  It is device-free, pin-free and
+ * semantically identical to `p += 64`, and shimcount counts nothing -- but it
+ * is a matching ARTEFACT in the pass-3/4 sense and belongs in
+ * reports/pass3-depin.md's taxonomy if this ever lands with it.  Keep it only
+ * while it is load-bearing.
+ *
+ * --------------------- the park's header, carried forward ---------------------
+ *
  * NON-MATCHING, 33 of 37 stream encodings  (RE-MEASURED, batch 333).
  *   The STREAM lengths are both 37 because a pad absorbs the difference; the
  *   16-bit INSTRUCTION counts differ, ref 30 against ours 29, so this
@@ -239,7 +330,8 @@ void Func_80c00d8(u32 *p)
 
     fp = Func_80008d8;
     fp(p, 0x80 << 1, -1);
-    p += 64;
+    p += 32;
+    p += 32;
     fp(p, 0x80, 0x3ff03ff);
     p += 32;
     v = 0x2010200;

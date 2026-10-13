@@ -1,5 +1,83 @@
 /* Func_808d828 -- 0x0808d828  (asm/rom_8a000/rom_8d5dc_c.s)
  *
+ * NON-MATCHING, 60 of 87 encodings AT PRODUCTION FLAGS, 4 of 87 WITH
+ *   ALIAS_CFLAGS  (BOTH RE-MEASURED, batch 345 brief A; the park's figures
+ *   REPRODUCE EXACTLY).
+ *   At production flags: ref 87 encoding rows / 200 bytes, ours 85 / 196,
+ *   dsize -4.  ALIGNED residue 78 equal / 9 differing.  THIS IS THE ONE
+ *   TARGET OF BRIEF A'S FOUR THAT IS GENUINELY SHORT IN THE STREAM.
+ *   With -fno-strict-aliasing: 87/87 rows, 200/200 bytes, dsize 0, aligned
+ *   84 equal / 3 differing, relocations clean.
+ *
+ * Verify with:
+ *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
+ *     goldensun-build python3 tools/objcmp.py \
+ *     src/non_matching/rom_8a000/808d828.c \
+ *     asm/rom_8a000/rom_8d5dc_c_a.s --func Func_808d828
+ *   ... and for the 4-of-87 figure add `-e OBJCMP_EXTRA=-fno-strict-aliasing`
+ *   to the docker invocation (objcmp.py's documented hook; it records the flag
+ *   in its `adjust` set so the figure cannot be mistaken for a production one).
+ *
+ * PER-REGION SPLIT of the 9 aligned differences at production flags:
+ *   entry block + FindMapActorEvent(2, arg)                       0
+ *   the (f & m) halfword-store block                              1  <- THE GAP
+ *   the message / call-through branch                             0
+ *   the else branch's switch                                      0
+ *   the final halfword store before the epilogue                  4
+ *   epilogue + tail (the ref's `.short 0x0000` pad we do not emit) 4
+ * The whole -1 is the missing `ldr r1, [r5, #8]` reload of e[2] after
+ * `strh r3, [r2, #0]`, exactly as the park says, and the trailing pad is a
+ * CONSEQUENCE of that instruction's parity rather than a separate defect.
+ *
+ * ===== BATCH 345 BRIEF A: ONE OF THIS PARK'S TWO BOUNDS IS REFUTED.  THE
+ * ===== ADDRESSING HALF OF THE 4 IS REACHABLE; WHAT IS LEFT IS A TWO-REGISTER
+ * ===== EXCHANGE PLUS ONE sched2 SLOT.
+ *
+ * The park (batch 198) records the remaining 4 as the load-interleave shape,
+ * cites ovl_7e3e08/2008de8.c, says "this park should not be swept again
+ * without a new lever", and records "naming the store address in a local, 4 ->
+ * 5" with the verdict "the two halves of this residue want opposite things."
+ * The 5 is right.  WHAT CHANGES AT 5 IS NOT RECORDED AND IT IS THE WHOLE
+ * POINT -- the structural half CLOSES:
+ *
+ *   rom                 movs r3, #0xb8 / ldr r2, [r5, #8] / lsls r3, #1
+ *                       / add r3, r8 / strh r2, [r3, #0]
+ *   parked body (4)     ldr r2, [r5, #8] / movs r3, #0xb8 / lsls r3, #1
+ *                       / mov r1, r8 / strh r2, [r1, r3]      <- reg+reg
+ *   `q = (unsigned short *)(g + k); *q = e[2];`   (5)
+ *                       movs r2, #0xb8 / lsls r2, #1 / ldr r3, [r5, #8]
+ *                       / add r2, r8 / strh r3, [r2, #0]      <- THE ROM'S FORM
+ *
+ * At 5 every instruction FORM is the ROM's, including `add rlow, r8` and the
+ * immediate-offset `strh`.  What remains is (a) the low-register pair r2/r3
+ * exchanged and (b) the `ldr` one slot later.  So "name the address, not the
+ * offset" DOES reach this site -- the park's own FIRST halfword store already
+ * proves gcc will emit that shape, and this makes the second one agree with
+ * it.  The obstacle is a register-pair exchange, not two halves pulling apart.
+ *
+ * TEN ORDERINGS of the stored value against the address, trying to flip the
+ * pair; none reached 4, let alone 0:
+ *   value in a fresh `int` before the address 5; after it 5
+ *   value in a fresh `unsigned short` 19 (the halfword narrowing costs 12)
+ *   value reusing `v` 63; reusing `z` 63; reusing `f` 5
+ *   `*q = (unsigned short)e[2]` 5; `k += (int)g; *(unsigned short *)k = v` 8
+ *   a separate pointer local `qq` rather than reusing `q` 9 -- so the two
+ *     halfword stores WANT to share the pseudo, which is itself a finding
+ *   `g += k; *(unsigned short *)g = e[2];` 72 at ni 89 / dsize +4
+ *   `k = 0xb8 << 1;` moved from the entry block into the else branch: 4 -> 5
+ * DECLARATION POSITION IS EXACTLY INERT: three pairs of variants differing
+ * only in where the new local is declared are BIT-IDENTICAL pairwise.  That
+ * confirms the shared brief's lever 1 ("definition order, not declaration
+ * order") on a fresh body.
+ * -fno-schedule-insns2 CROSSED with ALIAS_CFLAGS: 11 (parked body) / 12 (named
+ * address).  Worse both ways, so the slot is not simply sched2's to give back.
+ *
+ * NEXT: the low-register pair exchange at the final halfword store, with the
+ * named-address body (5) as the base rather than the parked body (4).  Reading
+ * the 4 is reading a worse structure.
+ *
+ * --------------------- the park's header, carried forward ---------------------
+ *
  * NON-MATCHING, 60 of 87 encodings  (MEASURED, batch 319 recipe backfill).
  *   COUNT DIFFERS (ref 87, ours 85) -- so this positional figure measures
  *   MISALIGNMENT, not distance.  Read the count before the figure.
