@@ -320,6 +320,7 @@ int OvlFunc_970_2008da4(void)
     t = (REG_BG2CNT & 0xfffc) | 3;
     REG_BG2CNT = t;
     t = (REG_BG1CNT & 0xfffc) | 3;
+    do { } while (0);
     REG_BG1CNT = t;
     n = 0x2648;
     REG_BLDCNT = n;

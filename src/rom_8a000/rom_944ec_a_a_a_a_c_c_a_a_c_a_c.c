@@ -237,5 +237,6 @@ void StartRain(void)
     c2 = 0x1008;
     REG_BLDALPHA = c2;
     REG_BLDY = 0;
+    do { } while (0);
     StartTask(Task_Rain, 0xc8 << 4);
 }

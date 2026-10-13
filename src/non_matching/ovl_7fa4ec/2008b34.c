@@ -1,11 +1,11 @@
 /* OvlFunc_970_2008b34 -- NON-MATCHING, 155 of 255 encodings differ.
- * Unattempted before batch 298.  Reference asm/overlays/rom_7fa4ec/ovl_30_c_c_c_a_c_c_c_c_a_c.s.
+ * Unattempted before batch 298.  Reference asm/overlays/rom_7fa4ec/ovl_30_c_c_c_a_c_c_c_c_a_c_a.s.
  *
  * Verify with:
  *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
  *       goldensun-build python3 tools/objcmp.py \
  *       src/non_matching/ovl_7fa4ec/2008b34.c \
- *       asm/overlays/rom_7fa4ec/ovl_30_c_c_c_a_c_c_c_c_a_c.s --func OvlFunc_970_2008b34
+ *       asm/overlays/rom_7fa4ec/ovl_30_c_c_c_a_c_c_c_c_a_c_a.s --func OvlFunc_970_2008b34
  *
  * Size 624 both; count 254 against 255, so ONE INSTRUCTION SHORT and the figure is
  * not a distance.  aligncmp reads 218 of 255 (50 differing in 39 hunks).  16 pins in
@@ -16,7 +16,7 @@
  * 0x0059ffff / 0x00003333 -- and that one reversal takes the step's callee-saved
  * register, kills the spill, and shrinks the frame from 8 to 4.  Six spellings flat.
  */
-/* OvlFunc_970_2008b34 -- asm/overlays/rom_7fa4ec/ovl_30_c_c_c_a_c_c_c_c_a_c.s,
+/* OvlFunc_970_2008b34 -- asm/overlays/rom_7fa4ec/ovl_30_c_c_c_a_c_c_c_c_a_c_a.s,
  * 0x02008b34, 231 ROM instructions.  The map's big transition cutscene: fade a
  * palette entry up, flash REG_BLDALPHA three times, run two background tasks,
  * drift the two scroll planes for ~0x1c02 frames, re-key the three BG control
@@ -44,7 +44,7 @@
  *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
  *     goldensun-build python3 tools/objcmp.py \
  *     src/non_matching/ovl_7fa4ec/2008b34.c \
- *     asm/overlays/rom_7fa4ec/ovl_30_c_c_c_a_c_c_c_c_a_c.s --func OvlFunc_970_2008b34
+ *     asm/overlays/rom_7fa4ec/ovl_30_c_c_c_a_c_c_c_c_a_c_a.s --func OvlFunc_970_2008b34
  *
  * ============================================================
  * THE BLOCKER: gcc REVERSES THE DRIFT LOOP AND THE ROM'S COMPILER DID NOT.
