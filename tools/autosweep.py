@@ -626,6 +626,8 @@ def main():
                 # NOT a bare column -- parsing f[1] as an int silently matched
                 # nothing and the axis reported no rows at all, which reads like a
                 # clean sweep.  Parse the key.
+                parsed = 0
+                min_nd = None
                 for line in out.splitlines():
                     f = line.split()
                     m = re.search(r"ndiff=(\d+)", line)
@@ -675,22 +677,36 @@ def main():
                                          + text[max(i, off - 46):off].strip()
                                          .replace("\n", " ")[-46:])
                             print(f"  {line}{tag}{where}")
-                        best.append((nd, f"{label.lower()} @ {f[0]}", ""))
-                shown = [b for b in best if b[1].startswith(label.lower())]
+                        parsed += 1
+                        min_nd = nd if min_nd is None else min(min_nd, nd)
+                        # A ROW THE GUARD JUST REJECTED MUST NOT ENTER `BEST`.
+                        # The flag axis was given this refusal in batch 345; the
+                        # anchor axis was not, so it kept appending every row and
+                        # the closing summary read `Improved 739 -> 700` off a row
+                        # tagged "MISALIGNMENT, not an improvement" two lines
+                        # above it.  Measured on three Anim parks the moment they
+                        # got an anchor axis at all: ParticleCloud 739 -> 700,
+                        # Heal 824 -> 810, StatUp 844 -> 842, EVERY ONE of them
+                        # from a dsize != 0 row.  Printing the caveat and then
+                        # contradicting it in the verdict is worse than not
+                        # printing it, because the verdict is what gets copied
+                        # into a park header.
+                        if nd == 0 or not tag or tag == "  <-- BETTER":
+                            best.append((nd, f"{label.lower()} @ {f[0]}", ""))
                 written = min(len(pts), a.max)
-                if shown and len(shown) < written:
+                if parsed and parsed < written:
                     # A variant that produces no row did not compile or did not
                     # reach the encoding compare.  Say so: silently measuring
                     # fewer variants than were written reads like a clean sweep.
-                    print(f"  !! {written - len(shown)} of {written} variant(s) produced"
+                    print(f"  !! {written - parsed} of {written} variant(s) produced"
                           f" NO ROW -- they did not compile or did not measure;"
                           f" that part of the axis is UNTESTED, not inert")
-                if not shown:
+                if not parsed:
                     print(f"  !! NO ROWS PARSED from sweep_variants -- do NOT read this"
                           f" as a clean sweep; check its output by hand")
-                elif min(x[0] for x in shown) >= base[0]:
-                    print(f"  all {len(shown)} inert or worse (best "
-                          f"{min(x[0] for x in shown)}, base {base[0]})")
+                elif min_nd >= base[0]:
+                    print(f"  all {parsed} inert or worse (best {min_nd}, "
+                          f"base {base[0]})")
             finally:
                 shutil.rmtree(d, ignore_errors=True)
             print()
