@@ -1,3 +1,153 @@
+/* ======================================================================
+ * BATCH 348, BRIEF B.  STILL 16 OF 140 -- NO IMPROVEMENT, BUT THE PARK'S
+ * PLATEAU IS NOT WHAT IT LOOKS LIKE: ***TWENTY-TWO OF ITS RECORDED ROWS ARE
+ * ONE PROGRAM REACHED TWENTY-TWO WAYS.***  THREE MECHANISM ROUTES REFUTED.
+ * ======================================================================
+ *
+ * RE-DERIVED, all four length dimensions: **16 differing STREAM encodings of
+ * 140**, 121/121 16-bit instructions, 17/17 32-bit entries, **316/316 bytes**,
+ * first differing entry at index 29.  Relocations agree (`_divsi3_RAM` /
+ * `__divsi3` is ONE symbol and objcmp says so).  A TRUE DISTANCE, and the
+ * park's figure reproduced exactly before any edit.
+ *
+ * *** THE BATCH-348 SELECTION CRITERION SAID THIS PARK HAD "NO RECORDED BATCH
+ * WORK AT ALL" AND THAT "THE CHEAP ANSWERS MAY STILL BE HERE".  IT CARRIES A
+ * FULL BATCH-341 BRIEF B WRITE-UP.  The criterion's query is not reading park
+ * headers; see scratch_elev/b348/B/FINDINGS.md. ***
+ *
+ * ---- 1.  THE SPELLING PLATEAU IS BIT-IDENTICAL, MEASURED ----
+ *
+ * I crossed the SIX island-A spellings with the SIX island-B spellings (36
+ * variants -- one-at-a-time is the measured top obstacle, so the crossing was
+ * the point).  All 36 read **16 of 140, instructions 121/121, first at index
+ * 29, relocations clean** -- identical in every column.  That is the
+ * signature the brief warns about, so I checked it: compiling
+ * `a0_b0` / `a2_b4` / `b_uns` and diffing the `.s` files gives
+ *
+ *     2c2
+ *     < 	.file	"a0_b0.c"
+ *     > 	.file	"a2_b4.c"
+ *
+ * and nothing else.  **The assembly is byte-identical apart from the `.file`
+ * directive.**  gcc canonicalises both the lerp expression and the four-term
+ * OR chain, so every re-ordering, re-grouping and re-parenthesisation of
+ * either island -- the park's "every order of the four OR terms", batch 341's
+ * five extra re-groupings, `0x80 << 23` spelled out, the constant first, the
+ * two halves parenthesised, `-L38 + L21`, `t *` on the left, `u16` vs `short`
+ * on the store -- **is the same program**.  Twenty-two rows, one measurement.
+ * DO NOT ADD ANOTHER SPELLING TO THAT LIST; it cannot measure anything.
+ *
+ * ---- 2.  THE ANCHOR AXIS IS CLOSED, AND IT IS WIDER THAN THE PARK SAID ----
+ *
+ * The park says "All 18 anchor placements inert or worse (best 17)".  There
+ * are **24** statement boundaries, not 18 (the three nested blocks contribute
+ * 17 of them).  I swept all 24 singles AND all 276 PAIRS -- 300 variants, zero
+ * compile failures.  Singles: best **17**, 14 of them at 17.  **PAIRS: best
+ * 18.**  Nothing ties 16, let alone beats it.  The anchor axis is closed at
+ * depth 2 here, which matters because the shared brief's standing note is that
+ * the axis is NOT separable and two anchors can pay where neither does alone
+ * -- that is true elsewhere and FALSE here, measured.
+ *
+ * ---- 3.  BOTH PRIORITY ROUTES ON THE .L38 ADDRESS ARE REFUTED ----
+ *
+ * Batch 341 left the question as "does the .L38 address die at the
+ * sign-extend", a local-alloc tie, with the way in being "give the address a
+ * reference the source does not currently place there".  local-alloc ranks by
+ * QTY_CMP_PRI (local-alloc.c:1496-1498):
+ *
+ *     ((double) (floor_log2 (qty[q].n_refs) * qty[q].n_refs * qty[q].size)
+ *      / (qty[q].death - qty[q].birth)) * 10000
+ *
+ * -- shorter-lived wins, so lengthening the .L38 address's range lowers its
+ * priority and should stop it taking r2 ahead of the .L21 VALUE.  There are
+ * exactly two ways to lengthen a range and I measured both:
+ *
+ *   EARLIER BIRTH -- `s38 = (short *)L38;` hoisted OUT of the `if (n != 0)`
+ *   block, at four positions in the entry block, crossed with three ways of
+ *   using it inside (addend only / subtrahend only / both), 12 variants:
+ *   **26, 35 and 42**, never better.  Instruction count stays 121 in all 12,
+ *   so this is not a length effect -- hoisting the pool load out of the block
+ *   simply moves the whole entry block.  Same for the .L21 address (36, 51)
+ *   and for both together (**57**).
+ *
+ *   LATER DEATH -- the addend read as its OWN statement after the
+ *   subtraction, which is the one position the park never generated (its
+ *   "addend last" row puts the `ldrh` after the `__divsi3` CALL, which ends
+ *   the basic block).  Eight shapes, `int` and `short`, naming the
+ *   difference / the product / the quotient, with and without a named addend:
+ *   **26, 29, 41, 75, 104, 105, 106, 109**.  Four of them also change the
+ *   instruction count (119, 120, 122, 123), so they are not even comparable.
+ *
+ * >> CONCLUSION, AND IT IS A BOUND WITH EVIDENCE ATTACHED: no range-length
+ * >> edit reaches island A.  The park's circularity is real -- the only RTL
+ * >> reference that would lengthen the address is the addend read itself, and
+ * >> every source position for it is either before the extend (where we
+ * >> already are) or after the call (which the park measured at 19).  Island A
+ * >> is not reachable from the lerp statement.
+ *
+ * ---- 4.  WHAT I ADD TO THE RESIDUE READING ----
+ *
+ * ISLAND A, idx 29 and 32-41, TEN encodings.  The ref/ours register map, which
+ * is the whole of it:
+ *      .L21 address   r3  |  r3      <- THE SAME
+ *      .L21 value     r2  |  r3      <- ours writes IN PLACE
+ *      .L38 address   r1  |  r2
+ *      .L38 value     r3  |  r2      <- ours writes IN PLACE
+ * Both in-place writes are the same tie.  With REG_ALLOC_ORDER giving
+ * r3, r2, r1, r0 (arm.h:989, {3,2,1,0,12,14,4,...}; r12/r14 are not LO_REGS),
+ * the ROM's order of allocation was .L21addr, .L21val, .L38addr -- i.e. the
+ * .L21 VALUE took r2 BEFORE the .L38 address asked for it.  Ours allocates
+ * .L38addr second.  So the deciding comparison is between the .L38 ADDRESS and
+ * the .L21 VALUE, not between the two addresses, and both have n_refs small
+ * enough that floor_log2 is 1 -- the ratio is doing all the work.
+ *
+ * ISLAND B, idx 96-101, SIX encodings.  Side by side (ref | ours):
+ *      movs r4,#0x80  | movs r1,#0
+ *      movs r1,#0     | ldrsh r3,[r3,r1]
+ *      ldrsh r3,[r3,r1]| lsls r3,r3,#28
+ *      lsls r4,r4,#23 | orrs r2,r3
+ *      lsls r3,r3,#28 | movs r3,#0x80
+ *      orrs r2,r4     | lsls r3,r3,#23
+ *      orrs r2,r3     | orrs r2,r3
+ * ONE constant, 0x40000000, synthesised as mov+lsl either way.  The ROM holds
+ * it in **r4** -- the FIFTH low register in REG_ALLOC_ORDER -- so it is live
+ * at the same time as the .L19 value in r3; ours builds it AFTER the .L19
+ * value dies and reuses r3.  All four high registers are already committed
+ * across this block (r8 = .L45/.L29 address, r9 = .L32 address, r10 = tile,
+ * r11 = q) and r5/r6/r7 hold t / the addend / n, so r4 is the only register a
+ * fifth simultaneously-live value could take.  **This is the same shape as
+ * island A** -- ref materialises into a fresh register, ours reuses one about
+ * to die -- which is why no spelling separates them.
+ *
+ * I also measured the .L19 term's own register: `(unsigned)*(short *)L19 << 28`
+ * and `*(short *)L19 * 0x10000000` are INERT AT 16 (bit-identical), while
+ * `(*(short *)L19 & 0xf) << 28` and `*(unsigned short *)L19 << 28` are **64
+ * and ONE INSTRUCTION SHORT (120)** -- they delete the `ldrsh`, and the ROM
+ * has one, so the signed halfword read is confirmed correct.
+ *
+ * >> NEXT AGENT: the only untried route left is the park's own -- make a FIFTH
+ * >> value simultaneously live in each island so r4 is handed out.  That needs
+ * >> a value whose range SPANS the island, and the function has no natural
+ * >> candidate (`w19 = *(short *)L19;` read early is 61; the x/y read order
+ * >> reversed is 58).  Nothing in the lerp statement or the OAM word reaches
+ * >> it, which is measured above; the lever, if it exists, is in the ENTRY
+ * >> BLOCK's four high-register commitments.
+ *
+ * MEASURED THIS ROUND, FULL LIST (all at 121/121 instructions unless noted):
+ *   36 island-A x island-B crossings .................. all 16, BIT-IDENTICAL
+ *   24 anchor singles ................................. best 17
+ *   276 anchor pairs .................................. best 18
+ *   .L38 address hoisted out of the block, 12 shapes .. 26 / 35 / 42
+ *   .L21 address hoisted, 2 shapes .................... 36 / 51
+ *   both hoisted, 2 declaration orders ................ 57
+ *   .L38 + .L45 both hoisted .......................... 36
+ *   addend/difference/product/quotient named, 8 shapes  26 / 29 / 41 / 75 /
+ *                                                       104 / 105 / 106 / 109
+ *   (unsigned) cast and `* 0x10000000` on the .L19 term  16, bit-identical
+ *   `& 0xf` and u16 read on the .L19 term ............. 64, insn 120
+ *   `w19` named and read before the `if` .............. 61
+ *   x/y read order reversed ........................... 58
+ */
 /* OvlFunc_common1_1354 -- asm/overlays/common/common1_a_a_c_a.s (this function
  * alone, no data). Fresh in batch 288, written from scratch.
  *

@@ -36120,3 +36120,55 @@ aligned residue at 100, while the rung that **reopened** the count took aligned
 This is the non-monotonicity rule in its sharpest form so far: closing the gap is
 the step that makes the figure *readable*, not the step that makes the body
 *closer*. Do both, and rank on the aligned residue.
+
+# Batch 348 — THREE NARROW REGEXES IN ONE SESSION, AND THE PATTERN BEHIND THEM
+
+Batch 348 was targeted on "parks with no recorded batch work at all", measured at
+**259** parks, of which 196 were measurable. Brief B reported the criterion false
+for all four of its targets. It was right, and the real numbers are worse:
+
+    259  my count of "never worked"
+    143  after fixing the regex
+     45  parks carrying NO RECORDED MEASUREMENT OF ANY KIND  <- the real pool
+
+**Only 2 of batch 348's 20 targets are genuinely untouched.**
+
+## The two defects, and the third instance of the class
+
+The query was `grep -o 'batch[ -]3[0-9][0-9]'`, which:
+
+1. **is case-sensitive** — park headers write `BATCH 341` in capitals, and those
+   did not match;
+2. **only matches 3xx** — batches 115, 220, 288 and 305 are all cited in park
+   headers and all invisible to it.
+
+That makes **three narrow-regex errors in one session**, each producing a
+confident count that was wrong in the same direction:
+
+| instrument | the narrowness | the cost |
+|---|---|---|
+| `gapscan` separator class | no `*`, so block-comment continuations missed | 550 of 606 parks skipped; pool reported as 99, really 192 |
+| the distance-claim sweep | matched the NEGATION as an assertion | reported 100 false claims, really 53 |
+| the batch-work proxy | case-sensitive and 3xx-only | reported 259 unworked, really 45 |
+
+**The pattern is identical every time: a regex written from the spelling in front
+of me, applied to a corpus with several spellings, producing a clean number that
+nobody could tell was short.** The figure always came out *favourable* — a bigger
+pool, a bigger problem, more unworked parks — which is exactly why none of them
+looked wrong.
+
+## The rule this earns
+
+**Before a count becomes a targeting criterion, test the query against a case it
+must catch AND a case it must reject.** All three defects would have died on one
+such test:
+
+- feed `gapscan`'s regex a park whose command wraps a line;
+- feed the distance sweep a header reading `NOT A TRUE DISTANCE`;
+- feed the batch proxy a header reading `BATCH 341`.
+
+And the deeper error in the third one: **"carries no batch stamp" is not "has
+never been worked."** Two of brief B's parks hold recorded sweeps of 220 and 115
+variants with no batch number anywhere — extensive prior work, invisible to a
+query looking for the word *batch*. Measure the thing, not a proxy for it; the
+honest detector looks for any recorded measurement, which is what gives 45.

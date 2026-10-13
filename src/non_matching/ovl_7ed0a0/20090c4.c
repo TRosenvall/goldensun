@@ -1,3 +1,121 @@
+/* =====================================================================
+ * BATCH 348, BRIEF B.  FIGURE UNCHANGED -- 12 of 119 under ALIAS_CFLAGS,
+ * 14 of 119 at production -O2, BOTH RE-DERIVED.  TWO OF THE PARK'S
+ * RECORDED-INERT ROWS ARE WRONG, AND THE PARK'S OWN G2 "GENERALISATION" IS
+ * REFUTED BY THE REFERENCE'S OWN STREAM.
+ * =====================================================================
+ *
+ * RE-DERIVED, all four length dimensions, under -fno-strict-aliasing:
+ * **12 differing STREAM encodings of 119**, 96/96 16-bit instructions,
+ * 23/23 32-bit entries, **284/284 bytes**, first differing entry at index 36.
+ * At production -O2 the same body is **14 of 119**, same 96/96 and same 284
+ * bytes.  BOTH figures are true distances.  objcmp --whole agrees with --func
+ * at 12.  The only relocation difference is `__umodsi3` / `_umodsi3_RAM`,
+ * aliased at overlays/rom_7ed0a0/overlay.ld:111, and it costs zero encodings.
+ *
+ * *** THE BATCH-348 SELECTION CRITERION CALLED THIS PARK ONE WITH "NO
+ * RECORDED BATCH WORK AT ALL" WHERE "THE CHEAP ANSWERS MAY STILL BE HERE".
+ * The header below records 115 variants from one round on top of the park's
+ * own ~100-spelling sweep.  See scratch_elev/b348/B/FINDINGS.md. ***
+ *
+ * ---- 1.  THE CROSSED AXIS IS NOW CLOSED (211 variants) ----
+ *
+ * The park swept `c = &s;` at 14 boundaries AND a second anchor at 29
+ * placements, but never the two TOGETHER, and crossing is the measured top
+ * obstacle.  I crossed every `c = &s;` position (14) with every anchor
+ * position (15, plus none) = 211 variants, zero compile failures, all under
+ * the flag.  **Floor 12, reached by exactly five of the 211** -- `c = &s;`
+ * immediately before `__WaitFrames(6);` with the in-loop anchor and either no
+ * second anchor or a second anchor at boundary 0 or 1.  Everything else is 14
+ * to 87.  The axis is closed.
+ *
+ * ---- 2.  "c = &s; AT ALL 14 BOUNDARIES ... ALL 12" IS NOT TRUE ----
+ *
+ * That row is the park's first recorded-inert line.  Measured, the 14
+ * positions read **44, 42, 39, 37, 33, 12, 71, 71, 87, 87** and worse -- only
+ * ONE position (before `__WaitFrames(6)`) gives 12.  Two of them are also
+ * **ONE INSTRUCTION SHORT (95 against 96)**, so they are not even comparable
+ * figures.  The row conflated "the position we ship" with "every position".
+ *
+ * ---- 3.  THE G2 GENERALISATION THE PARK ASKED TO KEEP IS FALSE ----
+ *
+ * The park wrote: "`mov rLow, rHigh` immediately before a store whose base is
+ * that high register is ... evidence that a CALL sits between the pointer's
+ * definition and its use".  **The reference's own stream refutes it.**  Read
+ * ref[42..49]:
+ *
+ *      42 add  r3, sp, #0x10        <- &s
+ *      43 mov  r8, r3
+ *      44 ldr  r3, =OvlFunc_964_2009068
+ *      45 mov  r2, sl
+ *      46 mov  r0, r8               <- the "re-read"
+ *      47 movs r5, #0
+ *      48 strb r5, [r2]
+ *      49 str  r3, [r0, #0x24]      <- the store
+ *
+ * There is NO call between 42 and 49.  The `mov r0, r8` is there because `c`
+ * is ALSO the eighth argument of OvlFunc_964_2008ae8 inside the loop, i.e.
+ * because it must survive the LATER `bl __PlaySound` and the loop -- so it is
+ * committed to a callee-saved register, and the store then needs a LO_REG
+ * base.  The correct generalisation is "a LATER use across a call", not "a
+ * call between the definition and this use", and the difference matters: the
+ * park's version sends the next agent looking for a call that is not there.
+ *
+ * ---- 4.  ROUTE 3 ON `c` IS BIT-IDENTICAL, NOT INERT ----
+ *
+ * G2 is 4 of the 12, and the park's own reading is that the ROM defines `&s`
+ * AFTER the `bl __WaitFrames` while we define it before.  Defining it after
+ * (cpos 12/13) costs an instruction -- 71 of 119 at **95** instructions --
+ * because reload REMATERIALISES `add rX, sp, #0x10` from the pseudo's
+ * REG_EQUIV instead of keeping it in r8.  So the route is "stop the
+ * rematerialisation", i.e. the brief's route 3, add a second definition so the
+ * pseudo has more than one set and gets no REG_EQUIV.  I measured four shapes:
+ * `c = &s;` twice around the call, twice before it, a second pointer `c2 = &s;`
+ * before the call with `c = c2;` after, and the store written as `s.f24 = ...`
+ * so `c` has only the call use.  **All four read 12 -- and all four compile
+ * BIT-IDENTICALLY to the base**: diffing the `.s` files gives only
+ *
+ *     2c2
+ *     < 	.file	"base.c"
+ *     > 	.file	"two_defs.c"
+ *
+ * gcc deletes the redundant definition and CSEs `s.f24` into the same pseudo,
+ * so these are not four negatives, they are ONE program.  This is the exact
+ * class the shared brief warns about ("another's recorded POSITIVE was
+ * bit-identical, because gcc deletes the dead store it describes").
+ *
+ * >> SO G2 IS A GENUINE WALL WITH A NAMED PRECONDITION: the ROM's `&s` has a
+ * >> definition after the call AND no REG_EQUIV.  No source spelling reached
+ * >> both at once, and the two reachable states are exactly the park's two.
+ *
+ * ---- THE RESIDUE, 12 UNDER THE FLAG, RE-READ FROM THE STREAM ----
+ *   G1  idx 36-37, 2.  __Actor_TravelTo's two coordinate loads transposed,
+ *       SAME REGISTERS: ref `ldr r1,[r6,#8] / ldr r2,[r6,#0xc]`, ours swapped.
+ *   G2  idx 40-43, 4.  ours `add r1,sp,#0x10 / movs r0,#6 / mov r8,r1 / bl`;
+ *       ref `movs r0,#6 / bl / add r3,sp,#0x10 / mov r8,r3`.
+ *   G3  idx 54-55, 2.  ref `ldr r2,=0xfffe0000 / adds r3,r3,r2`, ours r1.
+ *   G4  idx 82-86, 4.  ref `ldr r3,=0xffff8003 / ... / adds r4,r4,r3` against
+ *       our r2, and ref `movs r3,#0` BEFORE `ldr r0,[r6,#8]` where ours has
+ *       them the other way.
+ * G3 and G4 remain the same single-register shift and the park's
+ * local-alloc.c:1405-1425 (INSN_SCHEDULING lifetime extension, birth-2 /
+ * death+2) claim is untouched by anything I measured.
+ *
+ * MEASURED THIS ROUND, FULL LIST (all under -fno-strict-aliasing):
+ *   211 (`c = &s;` position x anchor position) ... floor 12, five rows reach it
+ *   `c = &s;` alone at 14 positions ............... 12 / 33 / 37 / 39 / 42 /
+ *                                                   44 / 71 / 71 / 87 / 87
+ *       (the two 71s are at 95 instructions, the two 87s at 97)
+ *   `c = &s;` twice around the call ............... 12, BIT-IDENTICAL
+ *   `c = &s;` twice before the call ............... 12, BIT-IDENTICAL
+ *   `c2 = &s;` before, `c = c2;` after ............ 12, BIT-IDENTICAL
+ *   `c = &s;` before, `c2 = c;` after ............. 12, BIT-IDENTICAL
+ *   `s.f24 = ...` instead of `c->f24 = ...` ....... 12, BIT-IDENTICAL
+ *   `c = &s;` after the call (two positions) ...... 71 at 95 instructions
+ * The pool/32-bit entry count is 23 in EVERY row above, and the instruction
+ * count 96 in every row except the four noted -- so none of this is a length
+ * effect.
+ */
 /* OvlFunc_964_20090c4  --  0x020090c4
  *
  * NON-MATCHING, 12 differing STREAM encodings of 119.  96/96 16-bit

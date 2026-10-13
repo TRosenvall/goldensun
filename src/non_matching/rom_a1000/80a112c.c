@@ -88,6 +88,132 @@
  *   -fno-gcse 206, -fno-schedule-insns2 219, -ffixed-r7 386.
  */
 
+/* =====================================================================
+ * BATCH 348, BRIEF B.  STILL 16 OF 411.  ***THE PARK'S CLUSTER-B DIAGNOSIS
+ * IS STILL WRONG AFTER TWO CORRECTIONS: IT IS NOT A PRIORITY QUESTION AT ALL.
+ * `.18.greg` SAYS `item` CARRIES AN EXPLICIT HARD-REGISTER PREFERENCE FOR r0
+ * AND CONFLICTS WITH NO HARD REGISTER.***  AND CLUSTERS A AND B ARE ONE
+ * MECHANISM, NOT TWO.
+ * =====================================================================
+ *
+ * RE-DERIVED, all four length dimensions: **16 differing STREAM encodings of
+ * 411**, 339/339 16-bit instructions, 71/71 32-bit entries, **964/964 bytes**,
+ * relocations IDENTICAL, first differing entry at index 182.  A TRUE DISTANCE,
+ * and the park's figure reproduced exactly.
+ *
+ * *** THE BATCH-348 SELECTION CRITERION LISTED THIS PARK AS HAVING "NO
+ * RECORDED BATCH WORK AT ALL".  It carries batch 341 brief C on top of batch
+ * 305e.  See scratch_elev/b348/B/FINDINGS.md. ***
+ *
+ * ---- 1.  CLUSTER B IS A PREFERENCE, NOT A PRIORITY.  READ FROM .18.greg ----
+ *
+ * Batch 341 corrected the park's allocno_compare formula and left the next
+ * agent a ratio to chase: "`found` wins as soon as L_item / L_found > 1.25 ...
+ * read `live_length` for the two allocnos out of `.18.greg` and work on the
+ * 1.25".  I read the dump.  **The ratio is not what decides it.**
+ *
+ *     ;; 23 regs to allocate: 46 44 110 119 161 51 53 45 41 54 42 66 43 52 ...
+ *     ;; 52 conflicts: 41 42 50 51 52 53 137 138 142 169 170 175 2 3 13
+ *     ;; 53 conflicts: 41 42 50 51 52 53
+ *     ;; 53 preferences: 0
+ *     ;; Register dispositions: ... 52 in 4   53 in 0 ...
+ *
+ * `item` is pseudo **53** and `found` is **52** (53 is the one that lands in
+ * r0, which is where our build puts `item`).  Three facts settle the cluster:
+ *   (a) **53 carries `hard_reg_preferences` = {r0}.**  find_reg tries the copy
+ *       preferences (global.c:1067-1074) and then the plain preferences
+ *       (global.c:1103-1110) BEFORE any generic scan, so 53 gets r0 on the
+ *       preference pass whatever its rank.
+ *   (b) **53 conflicts with NO hard register** -- its conflict list is pseudos
+ *       only -- so nothing prunes that preference.  Compare 52, which conflicts
+ *       with hard regs 2, 3 and 13.
+ *   (c) 52 has no preference line at all.
+ * So even if the priority order flipped, `found` would not take r0 and `item`
+ * would still ask for it.  **The priority order is secondary; the preference
+ * is the mechanism.**  (The order is: 53 is seventh of 23, 52 fourteenth -- so
+ * the park's reading of WHICH comes first was right, and its conclusion about
+ * why that matters was not.)
+ *
+ * WHERE THE PREFERENCE COMES FROM, and this is the checkable part:
+ * set_preference (global.c:1585-1650, called at global.c:1440) does
+ *
+ *     if (GET_RTX_FORMAT (GET_CODE (src))[0] == 'e')
+ *       src = XEXP (src, 0), copy = 0;
+ *
+ * -- so for an insn setting a HARD register from a `(plus X Y)`, the
+ * preference is given to **XEXP (src, 0)**, the FIRST operand of the plus,
+ * with `copy = 0`.  Our RTL has r0 set from `(plus (reg item) (const_int 819))`
+ * and `item` is operand 0, so `item` inherits r0's preference.  The reference's
+ * `adds r0, r4, r0` has the POOLED CONSTANT in r0 and `item` in r4, i.e. in the
+ * reference it is the constant that owns the r0 preference.
+ *
+ * >> THEREFORE THE QUESTION FOR THE NEXT AGENT IS NOT THE 1.25 RATIO AND NOT A
+ * >> FOURTH REFERENCE FOR `found`.  IT IS: what makes the 0x333 addend, rather
+ * >> than `item`, be operand 0 of the plus that feeds r0 -- or what makes
+ * >> `item` conflict with r0 so global.c:907-909 prunes its preference.
+ * >> I measured the second half and it is not reachable from the source: the
+ * >> arm has no later use of `item`, and giving `item` a range that crosses a
+ * >> call would exclude r4 too (this TU is built -fcall-used-r4), so the
+ * >> reference's `item` demonstrably does NOT cross one.
+ *
+ * ---- 2.  CLUSTERS A AND B ARE THE SAME MECHANISM ----
+ *
+ * Side by side, cluster A (idx 182-185 and 212-215, 5 encodings) is
+ *      ref   ldrb r2,[r3] / ldr r3,=0x741 / adds r6,r2,r3
+ *      ours  ldrb r6,[r3] / ldr r3,=0x741 / adds r6,r6,r3   (case 0)
+ *      ours  ldrb r6,[r3] / ldr r5,=0x741 / adds r6,r6,r5   (case 6)
+ * and cluster B's core is
+ *      ref   ldrh r4,[r2,#0x28] ... ldr r0,=0x333 / adds r0,r4,r0
+ *      ours  ldrh r0,[r2,#0x28] ... ldr r2,=0x333 / adds r0,r0,r2
+ * **Both are "ours coalesces the loaded value into the sum's register, the
+ * reference keeps it in a register of its own and lets the pooled constant
+ * take the sum's register."**  The park treated A as a wall with its own
+ * mechanism and B as an allocno race; they are one thing, and that is why
+ * four spellings of A and six probes at B all tie.  Whatever reaches one
+ * should reach both -- which also makes this a 16-encoding target, not two
+ * separate 5- and 11-encoding ones.
+ *
+ * ---- 3.  ROUTE 1 ON THE REUSED `v` IS FIRMLY REFUTED (AND INFORMATIVE) ----
+ *
+ * `v` is written NINE times across five switch arms and every cluster-A
+ * spelling the park tried kept that single shared local, so the brief's route
+ * 1 ("delete/split a reused local -- block-local, local-alloc takes it
+ * first") had never been tried.  Measured:
+ *     case 0's `v` split off ................ 245
+ *     case 6's `v` split off ................ 221
+ *     both split off ........................ 244
+ *     ALL NINE writes given their own local .. 243, and **334 instructions,
+ *                                              12 BYTES SHORTER**
+ * So the shared `v` is LOAD-BEARING: splitting it lets gcc drop five
+ * instructions the reference has.  That is a bound worth keeping -- do not
+ * retry route 1 here, and read a shortened variant as a wrong shape rather
+ * than as progress.
+ *
+ * MEASURED THIS ROUND, FULL LIST (339/339 instructions and 71/71 pool unless
+ * noted; relocations clean unless noted):
+ *   EXACTLY INERT AT 16: a separate `b` local for the loaded byte with
+ *     `v = b + 0x741` in both arms; the same with `unsigned char b`;
+ *     `unsigned int item`; `0x333 + item`; the sum named `code = item + 0x333`
+ *     in both arms; a per-arm copy `it2 = item`; the `for` rewritten as
+ *     `i = 0; while (i <= 0x1f) { ... i++; }`; `item = ... + 0;`; the 0x333
+ *     addend named in an `int off` before the loop, before `item`, and inside
+ *     each arm.
+ *   WORSE: `v = *(unsigned char *)(u + 0x129) + 0x741;` as one statement 17;
+ *     `if (found == 1)` 17; `short item` **126 and 340 instructions**;
+ *     `unsigned short item` **402, 346 instructions, 16 bytes longer**;
+ *     the 0xb22/0xb23 ids through a local **146, 337 instructions, one pool
+ *     word short**; the four route-1 splits above (221-245, 334-338 instr).
+ *
+ * The compiler dumps for this function are reproducible with
+ *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" \
+ *     -w /work/scratch_elev/<batch>/<letter>/dumps goldensun-build \
+ *     /opt/gcc296/xgcc -B/opt/gcc296/ -O2 -mthumb -mthumb-interwork \
+ *     -mcpu=arm7tdmi -fno-builtin -nostdinc -ffreestanding -fcall-used-r4 \
+ *     -I/work/include -da -S -o p4.s /work/src/non_matching/rom_a1000/80a112c.c
+ * -- note the `-w` INSIDE a scratch directory: `-da` writes its dumps to the
+ * compiler's working directory, not beside the output file.
+ */
+
 /* Func_80a112c -- 0x080a112c, asm/rom_a1000/rom_a1050_c_c_a.s (1 function, no data).
  *
  * NON-MATCHING, 18 of 411 encodings differ.  SIZE MATCHES (964 bytes) and the

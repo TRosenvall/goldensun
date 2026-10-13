@@ -1,111 +1,120 @@
 /* OvlFunc_901_2008640 -- NOT MATCHING
  *
- * NON-MATCHING, 16 differing STREAM encodings of 48.  38/38 16-bit
- * instructions, IN PHASE, so a true DISTANCE.  Was 18 of 48; the anchor below
- * is the whole improvement.
- *
- *   FIFTEEN of the 16 are instructions; the SIXTEENTH IS A PHANTOM.  It is the
- *   pool word: ours is `.word _CONST_2` (00000000 + R_ARM_ABS32) against the
- *   reference's `.word 0x2`.  _CONST_2 = 0x2 is an ABSOLUTE symbol defined at
- *   const.sym:53, and stage1.ld INCLUDEs const.sym (Makefile:65-68 records the
- *   dependency), so the symbol lands in stage1.o and every overlay resolves it
- *   through `-R stage1.o` to the literal 2.  `make compare` CAN pass this.
- *
- *   *** THE PARK'S PREVIOUS BANNER -- "RELOCATIONS DIFFER ... SO THIS FIGURE IS
- *   NOT A DISTANCE: make compare cannot pass a relocation difference" -- IS
- *   WRONG FOR AN ABSOLUTE SYMBOL, and has been removed.  The proof is the
- *   MATCHING, byte-identical sibling this park already cites:
- *   src/overlays/rom_793768/ovl_314_c_c_c_a_a_c_a_b.c spells the same pooled two
- *   as `two = (unsigned short)(int)&_CONST_2;` -- twice -- and const.sym:42
- *   documents _CONST_2 as exactly this: the cutscene-lock bit ORed into an
- *   actor's flag halfword.  tools/autosweep.py repeats the same false warning;
- *   that is a tool bug, not a finding about this function. ***
+ * NON-MATCHING, **14 differing STREAM encodings of 48** (was 16).  38/38
+ * 16-bit instructions, 10/10 32-bit entries, 116/116 BYTES, IN PHASE, so a
+ * true DISTANCE.  THIRTEEN of the 14 are instructions; the FOURTEENTH IS THE
+ * SAME PHANTOM the park already documented -- the pool word, ours
+ * `.word _CONST_2` (00000000 + R_ARM_ABS32) against the reference's
+ * `.word 0x2`.  _CONST_2 = 0x2 is an ABSOLUTE symbol at const.sym:53 and
+ * stage1.ld INCLUDEs const.sym (Makefile:65-68), so every overlay resolves it
+ * through `-R stage1.o` to the literal 2 and `make compare` CAN pass it.
+ * objcmp's RELOCDIFF line here is that symbol and nothing else.
  *
  * Verify with:
  *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
  *     goldensun-build python3 tools/objcmp.py \
  *     src/non_matching/overlays/2008640.c \
  *     asm/overlays/rom_797990/ovl_314_c_c_a_a_c_c_a_a_a_a.s --func OvlFunc_901_2008640
+ *   -> 14 of 48, instructions 38/38, pool 10/10, size 116/116, first at index 9
  *
- * PIN-FREE.  PIECE (tools/piece.py): the reference .s holds TWO functions,
- * OvlFunc_901_200858c (parked, no claim) and this one; both parked, so one
- * candidate could land them together -- but either cuts out alone.
+ * PIN-FREE, device-free (tools/shimcount.py prints no rows).
+ * PIECE (tools/piece.py): asm/overlays/rom_797990/ovl_314_c_c_a_a_c_c_a_a_a_a.s
+ * holds TWO functions, OvlFunc_901_200858c (parked, no claim) and this one;
+ * both parked, so one candidate could land them together -- and either cuts
+ * out alone (tools/split_s.py cuts before/target/after).  NO data export.
  *
- * BOTH CHEAP AXES ARE SWEPT.  tools/autosweep.py: on the flag axis only -O1
- * moved it (18 -> 16, and at -O1 every one of the 28 source variants below is
- * also 16 -- the -O1 floor is flat); -fno-schedule-insns2 is 20, the other six
- * groups are inert.  On the anchor axis, boundary 2 is 16 and boundary 1 is 17.
- * THE ANCHOR BELOW IS THAT BOUNDARY-2 PLACEMENT and is kept in the body.
+ * ======================================================================
+ * BATCH 348, BRIEF B: 16 -> 14, AND THE PARK'S TWO BIGGEST RECORDED-INERT
+ * BLOCKS WERE BOTH MEASURING AN AXIS IT HAD NOT ACTUALLY SWEPT.
+ * ======================================================================
  *
- * WHAT THE ANCHOR BOUGHT, precisely: the two entry-block instructions
- * `mov r6, r5 / add r6, #0x64` now sit where the ROM has them, ahead of the
- * `ldrsh`.  Nothing else moved.
+ * The park recorded 220 inert variants, headed by "ALL 24 PERMUTATIONS of the
+ * four entry statements (p / saved / zero / two) CROSSED WITH an anchor at each
+ * of 8 boundaries".  **THOSE 24 PERMUTATIONS ALL KEPT `*p = two | *p;` LAST.**
+ * The OR statement was never permuted, so the one ordering the ROM's own
+ * stream asks for -- the OR *before* `saved = a->f6;` -- had never been
+ * generated.  Sweeping the 5-statement permutations with the OR in a
+ * non-final position (96 variants, this round) gives 15, and `first` moves
+ * 9 -> 8.  That is the brief's route 2b, "move a definition LATER".
  *
- * THE RESIDUE, three groups, re-read this round:
+ * Then the park's SECOND block -- "a SECOND anchor at every one of 17
+ * boundaries on top of this body: all 16" -- EXPIRED with the body, exactly as
+ * the recorded-negative rule says it must.  On the new 15 body a second anchor
+ * at boundary 2 OR 3 reads **14**.  A third anchor at all 19 boundaries is
+ * flat at 14, so the anchor axis is now closed at depth 3.
  *
- *   A  9 encodings.  ROM:
- *        mov r2,#6 / ldrsh r1,[r5,r2] / ldr r3,=2 / ldrh r2,[r6] / orr r3,r2
- *        strh r3,[r6] / mov r8,r1 / mov r1,#0 / mov r10,r1
- *      ours:
- *        mov r3,#6 / ldrsh r2,[r5,r3] / mov r8,r2 / mov r2,#0 / mov r10,r2
- *        ldr r3,=2 / ldrh r2,[r6] / orr r3,r2 / strh r3,[r6]
- *      The OR block's own registers are already the ROM's.  Two things differ:
- *      the two HIGH-REGISTER COPIES are emitted BEFORE the OR block instead of
- *      after it, and the reload scratches are r3/r2 where the ROM uses r2/r1.
- *   B  2 encodings.  __Func_8093040(0xf, 0, 0xa) fills r1, r2, r0; the ROM
- *      fills r1, r0, r2.
- *   C+D 4 encodings.  `mov r2, r8 / strh r2, [r5,#6]` (ROM) against r3, and
- *      `mov r3, r10 / strh r3, [r6]` (ROM) against r2 -- the two read-backs of
- *      the high registers, with the scratch register swapped each way.
+ * TWO ANCHORS IS A PASS-3 ARTIFACT, NOT A PIN.  Both are device-free
+ * `do { } while (0);`; the park already shipped one.  Record for
+ * reports/pass3-depin.md: this body carries two.
  *
- * THE PASS IS NAMED, AND IT IS NOT THE ALLOCATOR.  x.c.18.greg opens with
+ * ---- THE RESIDUE, 13 INSTRUCTIONS IN FOUR GROUPS, RE-READ THIS ROUND ----
  *
- *      ;; 0 regs to allocate:
+ * idx  9-12 and 15-17, SEVEN encodings.  The entry block.  ref | ours:
+ *        movs r2,#6          | movs r2,#0
+ *        ldrsh r1,[r5,r2]    | mov  sl,r2
+ *        ldr  r3,=2          | ldrh r2,[r6]
+ *        ldrh r2,[r6]        | ldr  r3,=2
+ *        orrs r3,r2          | orrs r3,r2      <- 13/14 NOW ALIGN (new)
+ *        strh r3,[r6]        | strh r3,[r6]
+ *        mov  r8,r1          | movs r2,#6
+ *        movs r1,#0          | ldrsh r3,[r5,r2]
+ *        mov  sl,r1          | mov  r8,r3
+ *      THE ROM SPLITS THE LOAD FROM ITS HIGH-REGISTER COPY: `ldrsh r1` is
+ *      issued BEFORE the OR block and `mov r8,r1` AFTER it, so the loaded
+ *      value lives across the OR in **r1** -- a register the OR block does
+ *      not touch.  Our build never splits that pair, in either statement
+ *      order, because our reload register for the ldrsh destination is r2
+ *      (OR-last body) or r3 (this body) and BOTH are OR-block registers, so
+ *      the motion is blocked by an anti-dependence on the reload register.
+ *      Same shape as common1_1354's island A: the register assignment, not
+ *      the schedule, is what forbids the motion.
+ *      NOTE WHICH REGISTER THE ROM USES TWICE: r1 carries `saved` AND then
+ *      `zero` (`movs r1,#0 / mov sl,r1`).  Ours uses r2 for both.  One step.
+ * idx 29-30, TWO encodings.  `__Func_8093040(0xf, 0, 0xa)`: ref fills
+ *      r1, r0, r2; ours r1, r2, r0.  Pure sched2 ordering of three
+ *      independent `movs` with equal INSN_PRIORITY -- rank_for_schedule's
+ *      last rung is `INSN_LUID (tmp) - INSN_LUID (tmp2)`
+ *      (haifa-sched.c:4113-4115), i.e. original RTL order.
+ * idx 32-33, TWO encodings.  ref `mov r2,r8 / strh r2,[r5,#6]`, ours r3.
+ * idx 40-41, TWO encodings.  ref `mov r3,sl / strh r3,[r6]`, ours r2.
+ *      *** THESE TWO GO OPPOSITE WAYS (ref r2 then r3; ours r3 then r2),
+ *      WHICH IS THE SIGNATURE OF A ROUND-ROBIN ONE STEP OUT OF STEP, not of a
+ *      register preference. ***  reload's search starts at `i = last_spill_reg`
+ *      and advances round-robin over spill_regs (reload1.c:5000-5006), and
+ *      `last_spill_reg = i` is set in set_reload_reg (reload1.c:4939); it is
+ *      reset per function (reload1.c:821).  So the ROM's rotation was one step
+ *      further on when it reached the entry insn, and EVERY LATER SCRATCH
+ *      INHERITS THE OFFSET.  The park's diagnosis of this is CONFIRMED, with
+ *      the extra evidence that the two directions invert.
+ *      >> THE QUESTION IS STILL "WHAT GRABS A RELOAD REGISTER BEFORE THE
+ *      >> ldrsh IN THE ROM'S BUILD", and it is NOT reachable by any source
+ *      >> order (the 96-permutation sweep is now exhaustive over the five
+ *      >> entry statements) nor by any anchor (three depths swept flat).
+ * idx 36 is the _CONST_2 phantom.
  *
- * -- the whole function is ONE basic block, so global_alloc does nothing and
- * every pseudo is LOCAL-allocated.  Its dispositions are already the ROM's
- * where they are visible: 32(a) r5, 33(p) r6, 35(zero) r10, 37(saved) r8,
- * 44(*p) r2, 45(two/ior) r3, 49(0x1cb4) r0.  So groups C and D are not
- * allocation at all: they are RELOAD SCRATCH choices for reading a HI_REG back
- * into a low one, and greg's own trace shows the mechanism --
+ * ---- MEASURED THIS ROUND (all at 38/38 instructions, 10/10 pool) ----
+ *   96 five-statement permutations x anchor position: floor 15, reached by
+ *     p-two-zero-OR-saved, p-zero-two-OR-saved and two-p-zero-OR-saved.
+ *     Every ordering with the OR at index 2 (both `zero` and `saved` after
+ *     it) is 20 -- so "OR earlier" is not monotonic; it wants `zero` BEFORE
+ *     and `saved` AFTER.
+ *   second anchor, 19 boundaries on the 15 body: 14 at boundaries 2 and 3,
+ *     15 elsewhere.  third anchor, 19 boundaries on the 14 body: all 14.
+ *   24 declaration permutations on the 14 body: all 14, exactly.
+ *   EXACTLY INERT AT 14 (the park's recorded WORSE rows, re-crossed on the new
+ *   body, which is where they stop being negatives): `int saved` (was 18),
+ *   `unsigned short saved`, `*p |= two`, `*p = *p | two`, the f6 read and the
+ *   f6 restore through `*(short *)((char *)a + 6)`, `zero = two & 0;`, a
+ *   second local copying `saved` (route 5), naming 0xa as an int, naming the
+ *   0xf slot as an int (was 34 on the old body), `0x0` for the literal 0.
+ *   WORSE: `cur = *p; *p = two | cur;` 17 (was 18); all-int locals 27 and the
+ *   frame grows 4 bytes; `saved = ((short *)p)[-0x2f]` 35 and ONE INSTRUCTION
+ *   LONG; `saved` before the OR again 20; reading `*p` into `cur` 17.
  *
- *      Spilling for insn 21.
- *      Using reg 3 for reload 0
- *      Using reg 2 for reload 1
- *
- * reload picks its register by ROUND ROBIN from `last_spill_reg`
- * (reload1.c:5003, advanced at reload1.c:4937, initialised to -1 at
- * reload1.c:821).  Our first grab in the function is insn 21's offset scratch
- * and it takes spill_regs[0] = r3; the ROM's takes r2 and then r1, i.e. the
- * ROM's rotation was ONE STEP FURTHER ON when it reached this insn.  EVERY
- * LATER SCRATCH IN THE FUNCTION INHERITS THAT OFFSET, which is why groups A, C
- * and D all read as the same single-register shift and why no local source
- * change touches one without the others.  The question to answer next is
- * therefore "what grabs a reload register before insn 21 in the ROM's build",
- * not "which register should this insn use".
- *
- * MEASURED INERT THIS ROUND -- 220 variants, so do not re-screen them:
- *   - ALL 24 PERMUTATIONS of the four entry statements (p / saved / zero / two)
- *     CROSSED WITH an anchor at each of 8 boundaries, 192 variants: the floor is
- *     16 and it is reached by four of the 192; everything else is 18 or worse.
- *     This supersedes the park's old 6-order table.
- *   - a SECOND anchor at every one of 17 boundaries on top of this body: all 16,
- *     two at 20.
- *   - 24 declaration permutations: all 16, exactly.
- *   - `cur = *p; *p = two | cur;` (18), `int saved` and all-int locals (18),
- *     naming 0xa alone or with the 2 (18).
- *   - WORSE, recorded: a separate `short *fp` for the two a->f6 accesses is 41;
- *     naming the 0xf slot as a local is 34; naming 0x1cb4 as a local is 52 and
- *     16 bytes longer; `zero` after the OR is 29.
- *   - -fno-strict-aliasing and -fno-gcse change nothing at any variant (16/18).
- *
- * ONE USEFUL NEGATIVE FOR ITS SIBLING, carried forward from the old header and
- * still true: this function has the same pool-skip shape as the parked
- * OvlFunc_898_2008acc -- `b .L / <pool> / .L:` in the middle of the tail -- and
- * HERE GCC PLACES IT CORRECTLY, between `mov r0, #1` and `bl __WaitFrames`,
- * exactly as the ROM does.  So the pool dump point is not systematically one
- * instruction early in this family; 2008acc is off for a reason specific to
- * 2008acc.
+ * CARRIED FORWARD, STILL TRUE: this function has the same `b .L / <pool> /
+ * .L:` pool-skip shape as the parked OvlFunc_898_2008acc and HERE GCC PLACES
+ * IT CORRECTLY, between `mov r0,#1` and `bl __WaitFrames`.  The pool dump
+ * point is not systematically early in this family.
  */
 struct A {
     unsigned char pad00[6];
@@ -135,10 +144,11 @@ void OvlFunc_901_2008640(void)
     a = __MapActor_GetActor(0xf);
     p = &a->f64;
     do { } while (0);
-    saved = a->f6;
-    zero = 0;
     two = (unsigned short)(int)&_CONST_2;
+    zero = 0;
+    do { } while (0);
     *p = two | *p;
+    saved = a->f6;
     __CutsceneStart();
     __MessageID(0x1cb4);
     __MapActor_SetAnim(0xf, 0);
