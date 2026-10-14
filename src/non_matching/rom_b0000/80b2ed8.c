@@ -1,3 +1,63 @@
+/* ===== THE RESIDUE IS AN ARGUMENT-ORDER TIE, AND IT IS STRUCTURALLY CLOSED
+ * ===== FOR A TWO-ARGUMENT CALL.  Coordinator, second solo pass.  Still 3 of 48.
+ *
+ * READ THE TWO STREAMS FIRST -- I had been reasoning from one encoding and it
+ * misled me.  aligncmp says 47 of 48 aligned-equal, residue 2 in 2 hunks: it is
+ * THE SAME INSTRUCTION TWO SLOTS APART, not a missing or extra one.
+ *
+ *     idx   REFERENCE              OURS
+ *      28   bl Func_80b2884        bl Func_80b2884
+ *      29   movs r1, #5            adds r5, r0, #0
+ *      30   adds r5, r0, #0        mov  r0, r7
+ *      31   mov  r0, r7            movs r1, #5
+ *      32   bl _Func_8019908       bl _Func_8019908
+ *
+ * So all three intervening insns exist in both; the ROM puts the `movs r1,#5`
+ * FIRST of the three and gcc puts it LAST.  `mov r0,r7` is argument 0 (`h`),
+ * `movs r1,#5` is argument 1, and `adds r5,r0,#0` saves the previous call's
+ * result into `s`.
+ *
+ * *** MEASURED IN .23.sched2: IT IS A PRIORITY TIE. ***  insn 133 (`mov r0,r7`)
+ * and insn 135 (`movs r1,#5`) BOTH HAVE PRIORITY 66 and are both ready at t=0;
+ * the ready list prints `135 133` and the scheduler takes 133.  Both feed the
+ * same call (insn 136), so their longest path to the block end is identical --
+ * the tie is STRUCTURAL, not incidental.
+ *
+ * AND THE TIE-BREAK IS FIXED BY THE ABI, NOT BY SOURCE:
+ *   * rank_for_schedule resolves an equal-priority pair on INSN_LUID, lower
+ *     first (haifa-sched.c:4114).
+ *   * LUID follows the RTL stream order, and the stream order of two register
+ *     arguments is set by load_register_parameters (calls.c:1684-1696), which
+ *     iterates FORWARD -- `for (i = 0; i < num_actuals; i++)` -- unless
+ *     LOAD_ARGS_REVERSED is defined.
+ *   * ***LOAD_ARGS_REVERSED IS NOT DEFINED ANYWHERE IN THIS COMPILER TREE.***
+ *     Checked: no definition under config/arm/ and none anywhere in gcc/.
+ *
+ * So argument 0's load ALWAYS precedes argument 1's in the stream, always has
+ * the lower LUID, and always wins the tie.  FOR A TWO-ARGUMENT CALL WHOSE
+ * ARGUMENTS ARE BOTH SIMPLE REGISTER LOADS, gcc-2.96 ON ARM CANNOT EMIT
+ * ARGUMENT 1 BEFORE ARGUMENT 0.  No spelling of this call reaches the ROM's
+ * order.
+ *
+ * THE REMATERIALISATION ROUTE IS CLOSED TOO.  The one escape would be the
+ * Field_Halt mechanism -- a pseudo denied a hard register, whose
+ * reg_equiv_constant reload substitutes at a different point in the stream.
+ * Four spellings routing the 5 through a local are ALL BIT-IDENTICAL to the base
+ * (`int five = 5` at the call, at function scope assigned early, `const int`,
+ * and both arguments through locals): cprop folds the constant back before
+ * reload ever sees a candidate.
+ *
+ * *** WHAT THIS MEANS FOR THE PARK.  The ROM's `movs r1,#5` is therefore NOT a
+ * load_register_parameters emission for this call, so the original source must
+ * differ in the call's SHAPE rather than in any spelling of it -- a different
+ * argument count, a value arriving from an earlier statement that survives to
+ * the call, or this not being one call.  Stop looking for a spelling. ***
+ *
+ * TWELVE VARIANTS THIS PASS, none better: the eight in the section below plus
+ * the four locals above.  The single unexplained row remains the asymmetric
+ * inline -- inlining ONE arm of the if/else reads 5 and moves the first
+ * difference from 29 to 24, while inlining BOTH reads 26.
+ */
 /* ===== COORDINATOR, SOLO PASS AFTER BATCH 350 -- NO LANDING, ONE BOUND ADDED
  * ===== AND THE CONSTANT-SELECTION AXIS CLOSED.  BODY UNCHANGED AT 3 OF 48.
  *

@@ -50,7 +50,35 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 CLAIM = re.compile(
     r"(\d+)\s+(?:differing\s+)?(?:[A-Za-z]+\s+){0,3}encodings?\s+of\s+(\d+)", re.I)
 CLAIM2 = re.compile(r"(\d+)\s+of\s+(\d+)\s+(?:[A-Za-z]+\s+){0,3}encodings?", re.I)
-PAIR = re.compile(r"\b(\d+)\s+of\s+(\d+)\b")
+# MATCH ONLY WHAT IS DEMONSTRABLY AN objcmp FIGURE.
+#
+# The first two versions of this tool tried to EXCLUDE the other metrics a park
+# header carries, and that is the wrong design: a header legitimately holds
+# "N of M" from aligncmp's ALIGNED-EQUAL count (where HIGHER IS BETTER, the exact
+# reverse), from hunk counts, from percentages, from instruction counts, and from
+# figures about other functions.  Excluding them one pattern at a time leaked
+# every time -- the second version's `ALIGN\b` did not even match "ALIGNED", so
+# parks whose best row is an "ALIGNED RESIDUE 57 of 252" line were still reported
+# as hiding a 57.
+#
+# So require POSITIVE EVIDENCE instead: the pair must sit directly against
+# objcmp's own vocabulary -- "encodings", "differ", or "of M encodings" -- in the
+# same clause.  A number that cannot be shown to be a differing-encoding count is
+# not reported at all.  That trades recall for trustworthiness, which is the
+# right trade for a tool whose output is a read-first list.
+PAIR = re.compile(
+    r"\b(\d+)\s+(?:differing\s+)?(?:[A-Za-z]+\s+){0,2}of\s+(\d+)\s+"
+    r"(?:[A-Za-z]+\s+){0,2}encodings?\b"
+    r"|\b(\d+)\s+of\s+(\d+)\s+differ", re.I)
+
+
+def pair_of(m):
+    """The (n, total) from whichever alternative matched."""
+    if m.group(1) is not None:
+        return int(m.group(1)), int(m.group(2))
+    return int(m.group(3)), int(m.group(4))
+
+
 # A line mentioning any of these is usually explaining why a smaller figure was
 # NOT installed, so it is reported but flagged as probably-accounted.
 EXCUSED = re.compile(r"pin|device|fakematch|NOT install|not shipped|flag|CFLAGS|"
@@ -80,9 +108,17 @@ def main():
         claim, total = int(cm.group(1)), int(cm.group(2))
         best, where = claim, None
         for m in PAIR.finditer(flat):
-            n, tot = int(m.group(1)), int(m.group(2))
+            n, tot = pair_of(m)
             if tot != total or n >= best:
                 continue
+            # EXCLUDE aligncmp's FIGURE, WHICH MEANS THE OPPOSITE.
+            # `aligned-equal 661 of 1416` counts encodings that MATCH, so HIGHER
+            # IS BETTER -- the reverse of objcmp's differing count.  Both are
+            # spelled "N of M", so the first version of this tool reported every
+            # park carrying an aligncmp line as having an unrealised gain, and at
+            # the top of the list those false rows dominated: a park claiming 1263
+            # of 1416 was reported as hiding a "661", which is simply its
+            # aligned-equal count.  Two metrics with one textual shape.
             line = flat[max(0, m.start() - 120):m.end() + 120]
             line = re.sub(r"\s+", " ", line).strip()
             best, where = n, line

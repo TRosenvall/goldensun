@@ -36643,3 +36643,52 @@ Measured on `Func_80b2ed8`, where this closed the park's one named remaining
 route: four constant-selection spellings are **one program** at 27 against a base
 of 3, so the single-call/ternary form also costs 24 encodings and the park's
 two-call structure is correct.
+
+## TWO REGISTER ARGUMENTS TO ONE CALL CANNOT BE EMITTED IN REVERSE ORDER
+
+A structural bound, measured and then read out of the compiler, from the solo
+pass on `Func_80b2ed8`. It closes a residue shape that looks like a scheduling
+question and is not one.
+
+**The shape.** Both bodies emit the same three insns between two calls; only the
+order differs.
+
+    idx   REFERENCE              OURS
+     29   movs r1, #5            adds r5, r0, #0
+     30   adds r5, r0, #0        mov  r0, r7
+     31   mov  r0, r7            movs r1, #5
+
+`mov r0,r7` is argument 0, `movs r1,#5` is argument 1, and the ROM puts argument
+1 first.
+
+**It is a priority TIE, not a priority difference.** `.23.sched2` prints both at
+**priority 66**, both ready at t=0 — they feed the same call, so their longest
+path to the block end is identical. The tie is structural.
+
+**And the tie-break is fixed by the ABI:**
+
+* `rank_for_schedule` resolves an equal-priority pair on `INSN_LUID`, lower first
+  (`haifa-sched.c:4114`);
+* LUID follows the RTL stream, and the stream order of two register arguments is
+  set by `load_register_parameters` (`calls.c:1684-1696`), which iterates
+  **forward** — `for (i = 0; i < num_actuals; i++)` — unless
+  `LOAD_ARGS_REVERSED` is defined;
+* **`LOAD_ARGS_REVERSED` is not defined anywhere in this compiler tree** — not
+  under `config/arm/`, not in `gcc/` at all.
+
+So argument 0 always precedes argument 1 in the stream, always has the lower
+LUID, and always wins. **For a call whose register arguments are both simple
+loads, gcc-2.96 on ARM cannot emit a later argument before an earlier one.**
+
+**The rematerialisation escape is also closed.** The one route would be a pseudo
+denied a hard register whose `reg_equiv_constant` reload substitutes elsewhere in
+the stream — the `Field_Halt` mechanism. Four spellings routing the constant
+through a local are **all bit-identical** to the base: cprop folds it back before
+reload has a candidate.
+
+**What to conclude when you see this.** If a reference emits a later argument
+first, its source does not differ from yours in *spelling* — it differs in the
+call's **shape**: a different argument count, a value arriving from an earlier
+statement and surviving to the call, or it is not one call. Stop looking for a
+spelling, and note the companion rule above — an argument move outranks any
+preceding *store* by exactly one, but two argument moves to the same call tie.
