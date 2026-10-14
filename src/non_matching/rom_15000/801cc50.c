@@ -10,6 +10,25 @@
  *     goldensun-build python3 tools/objcmp.py src/non_matching/rom_15000/801cc50.c \
  *     asm/rom_15000/rom_1ca1c_a_a_c_c_a_a.s --func Func_801cc50
  *
+ * ***THE "BYTE-IDENTICAL CANDIDATE" CLAIM BELOW IS WRONG -- THE PATH NAMES A
+ * DIFFERENT FUNCTION.***  Checked by the coordinator after batch 350 when the
+ * owner approved installing the two parks sitting at a verified 0:
+ * scratch_elev/b338/E/p3_candidate.c is `Func_80b8824` (its line 1 says so, and
+ * its reference is asm/rom_b5000/rom_b8228_c_a_c_a_c_a.s).  Measured against THIS
+ * park's reference it reads SIZE ref 112 / ours 100 and INSTRUCTION COUNT ref 54
+ * / ours 35 -- a different function, not a candidate for this one.
+ *
+ * So no byte-identical body for Func_801cc50 exists at that path, and the ladder
+ * below describing "with the barrier 0 of 55" is UNVERIFIED: nothing on disk
+ * reproduces it.  Treat the 3 of 55 as this park's only measured figure until
+ * something re-derives the 0.
+ *
+ * This is exactly the failure mode tools/unrealised.py is documented to guard
+ * against -- it ranks a park's smaller self-reported figures as candidates FOR
+ * READING, not as results, and this row is why that wording matters.  A stale
+ * POSITIVE can also be a stale POINTER.
+ *
+ * The superseded claim, kept for the record:
  * A BYTE-IDENTICAL CANDIDATE EXISTS AND IS NOT INSTALLED.  scratch_elev/b338/E/
  * p3_candidate.c reads 0 of 55.  The difference between it and this body is ONE
  * BARE `__asm__ volatile ("")` -- a fakematch-class device -- so the ladder is:
