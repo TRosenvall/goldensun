@@ -1,6 +1,6 @@
 # Pass 4 — humanizing
 
-**4,352 landed functions are still named `Func_<addr>`** against 774 with a real name, across **4,533 split-named files** of 4,595 landed.
+**4,352 landed functions are still named `Func_<addr>`** against 776 with a real name, across **4,535 split-named files** of 4,597 landed.
 
 See `docs/humanization.md` for the method and the artifact taxonomy. Two
 structural facts bound this work:
