@@ -1,3 +1,57 @@
+/* ===== COORDINATOR, SOLO PASS AFTER BATCH 350 -- NO LANDING, ONE BOUND ADDED
+ * ===== AND THE CONSTANT-SELECTION AXIS CLOSED.  BODY UNCHANGED AT 3 OF 48.
+ *
+ * I took this park because batch 350 brief B had just closed route (a) and said
+ * the one remaining route is the ifcvt bail.  My hypothesis was that the arms'
+ * constants (0xd2c / 0xd2d) could be respelled to defeat if-conversion.  IT IS
+ * WRONG, and the reason is now exact rather than inferred.
+ *
+ * *** THE DECISION TABLE FOR noce_try_store_flag_constants, ifcvt.c:596-624 ***
+ * For `if (t) x = A; else x = B;` with both constants, reading the real values
+ * of the two macros on this target --
+ *     STORE_FLAG_VALUE 1                    arm.h:2516
+ *     BRANCH_COST (TARGET_ARM ? 4 : (optimize > 1 ? 1 : 0))   arm.h:2413-2414
+ *                 => 1 for Thumb at -O2
+ * -- the transform FIRES on exactly three arms and BAILS otherwise:
+ *     diff == +/-1                                            (arm 1, :604)
+ *     ifalse == 0 && exact_log2 (itrue)  >= 0                  (arm 2, :606)
+ *     itrue  == 0 && exact_log2 (ifalse) >= 0 && can_reverse   (arm 3, :610)
+ * Arms 4, 5 and 6 (:614, :617, :620) each require STORE_FLAG_VALUE == -1 or
+ * BRANCH_COST >= 2, so ALL THREE ARE DEAD on Thumb; the `else` at :623 returns
+ * FALSE.
+ *
+ * 0xd2c and 0xd2d differ by ONE, so arm 1 fires unconditionally here.
+ *
+ * AND IT CANNOT BE DEFEATED FROM SOURCE.  `0xd2c + 1` for `0xd2d` is folded
+ * before ifcvt sees it: that variant is BIT-IDENTICAL to the ternary.  So the
+ * ifcvt gate named as this park's last route is not reachable by respelling the
+ * constants, and the two untested gates at ifcvt.c:646-648 and :651-654 are
+ * unreachable for the same reason -- control never gets past :604.
+ *
+ * MEASURED, eight variants, all worse, and the first four are ONE PROGRAM:
+ *     ternary, one call                                   27  (dsize -4, RELOCDIFF)
+ *     `0xd2d - (cond != 0)`                               27  bit-identical
+ *     `cond ? 0xd2c : 0xd2c + 1`                          27  bit-identical
+ *     if/else selecting the constant, one call below      27  bit-identical
+ *     _Func_8019908(h, 5) hoisted above the if            34  (dsize +8)
+ *     _DrawSmallText before _Func_8019908                 26  (dsize -4)
+ *     one arm inlined as Func_80b2884(0xd2c)               5  (idx 29 -> 24)
+ *     both arms inlined                                   26  (dsize -4)
+ *
+ * THE PARK'S TWO-CALL STRUCTURE IS CORRECT and the single-call form costs 24
+ * encodings.  The one row worth remembering is the asymmetric inline: inlining
+ * ONE arm reads 5 and moves the first difference from 29 to 24, while inlining
+ * BOTH reads 26.  That asymmetry is unexplained and is the only lead this pass
+ * produced.
+ *
+ * WHAT THE RESIDUE ACTUALLY IS, re-read: index 29 is ref `2105` (`mov r1,#5`,
+ * the second argument to _Func_8019908) against ours `1c05` (`adds r5,r0,#0`,
+ * the call result moving into `s`).  Both bodies must emit both; the difference
+ * is ORDER.  Combined with the park's closed precompute finding -- a literal 5
+ * can never be precomputed because arm_rtx_costs returns 0 for a CONST_INT under
+ * 256 with outer == SET (calls.c:850 gate) -- the question is why the ROM's
+ * argument setup precedes its result copy.  THAT is the live question, not ifcvt.
+ */
 /* ===== BATCH 350 BRIEF B -- 3 of 48 RE-DERIVED AND HELD.  THE PARK'S ONE
  * ===== NAMED OPEN QUESTION (jump.c) IS ANSWERED, AND IT CLOSES ROUTE (a).
  *

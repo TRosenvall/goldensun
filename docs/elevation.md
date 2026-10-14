@@ -36605,3 +36605,41 @@ This is the fourth distinct way a lower figure has turned out not to be progress
 a phase artifact across a length change; a wrong program that compiles clean; a
 lower count on the wrong codegen shape; and now an accidental alignment from a
 reversed store order. **Read the change as source, and read the order.**
+
+## WHEN `if (t) x = A; else x = B;` IS IF-CONVERTED — the exact table
+
+`noce_try_store_flag_constants`, `ifcvt.c:596-624`, for two constant arms. Read
+with the real macro values on this target:
+
+    STORE_FLAG_VALUE 1                                        arm.h:2516
+    BRANCH_COST (TARGET_ARM ? 4 : (optimize > 1 ? 1 : 0))     arm.h:2413-2414
+                => 1 for Thumb at -O2
+
+The transform **fires on exactly three arms and bails otherwise**:
+
+| arm | condition | line |
+|---|---|---|
+| 1 | `diff == ±1` | `:604` |
+| 2 | `ifalse == 0 && exact_log2 (itrue) >= 0` | `:606` |
+| 3 | `itrue == 0 && exact_log2 (ifalse) >= 0 && can_reverse` | `:610` |
+
+Arms 4, 5 and 6 (`:614`, `:617`, `:620`) each require `STORE_FLAG_VALUE == -1`
+**or** `BRANCH_COST >= 2`, so **all three are dead on Thumb**, and the `else` at
+`:623` returns FALSE.
+
+So: **two constants one apart, or one of them zero with the other a power of two,
+get if-converted. Every other pair keeps its branch.** That is decidable from the
+source before compiling anything, and it is the companion to the already-recorded
+`count_bb_insns > BRANCH_COST` gate (`ifcvt.c:1681-1683`), which is the *other*
+place `BRANCH_COST == 1` decides a Thumb if-conversion.
+
+**AND THE ARM-1 CASE CANNOT BE DEFEATED FROM SOURCE.** Writing `0xd2c + 1` for
+`0xd2d` to break the `diff == ±1` test is **bit-identical** — `fold` resolves it
+long before ifcvt looks. So on a park whose arms differ by one, if-conversion is
+not a lever at all, and the downstream gates at `ifcvt.c:646-648` and `:651-654`
+are unreachable because control never passes `:604`.
+
+Measured on `Func_80b2ed8`, where this closed the park's one named remaining
+route: four constant-selection spellings are **one program** at 27 against a base
+of 3, so the single-call/ternary form also costs 24 encodings and the park's
+two-call structure is correct.
