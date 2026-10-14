@@ -1,3 +1,97 @@
+/* ===================== BATCH 350 (brief C) -- NEGATIVE-LIST RE-TEST =====================
+ * OvlFunc_888_200a6f0 -- STILL PARKED AT 2 OF 46, PIN-FREE.  BODY UNCHANGED.
+ * Re-derived: 2 of 46 (ref 46 ours 46, instructions 43/43, SIZE 96/96, first
+ * difference index 19: ref 60ab `str r3,[r5,#8]` against ours 1c30 `mov r0,r6`).
+ * The whole function is byte-identical except ONE ADJACENT SWAP:
+ *     ref   add r3,r2 / str r3,[r5,#8] / mov r0,r6 / bl __sin
+ *     ours  add r3,r3,r2 / mov r0,r6 / str r3,[r5,#8] / bl __sin
+ *
+ * ***** THE PARK'S CROSSED TABLE IS SOUND -- 13 ROWS, 10 DISTINCT PROGRAMS. *****
+ * Unlike this batch's other targets, THIS park's list is mostly real, which is
+ * what a list built by crossing looks like.  Reproduced exactly:
+ *     cos value-first, sin load-first                      6  @14
+ *     cos load-first, sin value-first                      7  @19
+ *     both value-first                                    11  @14
+ *     the `t` read in place of the named temp             12  @19
+ *     a+0x38 stored before the v stores                    4  @19
+ *     `short ang` (signed)                                38  @7  RELOCDIFF
+ *     the b+8 load given its own named local              10  @10
+ *     a second `unsigned short` copy for the __sin call   41  @7  +4 bytes
+ *     the a+8 value read back BEFORE the __sin call       45  @2  +4 bytes
+ *   BIT-IDENTICAL, i.e. measured nothing:
+ *     the cos sum through a named local then stored        BIT-IDENTICAL
+ *     `t` read after the v stores                          bit-identical to the
+ *                                                          `in place` row
+ *     *** `int ang` INSTEAD OF `unsigned short ang`        BIT-IDENTICAL ***
+ *
+ * ***** SO THE PARK'S HEADLINE LEVER HAS EXPIRED.  SAY SO. *****
+ * The park's central claim is "THE LEVER FOR THE PAIR: DECLARE THE ANGLE
+ * `unsigned short`, NOT `int`", with a mechanism about HImode making the high
+ * registers dear through thumb_movhi_insn.  Against THIS body that is no longer
+ * true: `int ang` is BIT-IDENTICAL.  The value arrives zero-extended from the
+ * `ldrh`, so the local's mode no longer reaches the allocator, and what holds
+ * the length at 43 is the rest of the crossed set, not the mode.  The body is
+ * left as it is (zero churn in pass 2); `int ang` is the cleaner spelling and is
+ * free, so it belongs to pass 4 -- see docs/humanization.md.
+ *
+ * ***** THE MECHANISM, CORRECTED.  IT IS RUNG ONE, NOT THE CLASS TEST. *****
+ * The park says "THE DECIDING RUNG IS THE CLASS TEST, NOT LUID" and that insn 45
+ * is class 1 while insn 50 is class 3.  BOTH HALVES ARE WRONG, and the
+ * scheduler's own log says so.  From `x.c.23.sched2` under -fsched-verbose=6
+ * (which writes to the dump FILE, not stderr):
+ *     ;;  insn  code  bb  dep  prio  cost  blockage units
+ *     ;;    45   173   0    4    74     2   1 - 32  core : 123 81 58 51
+ *     ;;    50   173   0    4    75     1   1 - 32  core : 124 123 51
+ *     ;;  Ready list (t = 49):    45  50
+ *     ;;      --> scheduling insn <<<50>>> on unit core
+ * The ready list IS `45 50`, as the park says.  But PRIORITY IS 74 AGAINST 75 --
+ * NOT A TIE -- so rank_for_schedule returns at its FIRST rung
+ * (haifa-sched.c:4040-4043) and the class test at :4069-4095 is never reached.
+ * And had it been reached it would have TIED: the log prints
+ * "dependences resolved: insn 45 into queue with cost=1", and the class test's
+ * own escape is `if (link == 0 || insn_cost (last_scheduled_insn, link, tmp) == 1)
+ * tmp_class = 3;` (:4077-4079), so a cost of 1 makes insn 45 class 3 too.
+ * Rung 5 would then have favoured insn 45 (4 forward dependents against 3,
+ * :4097-4108) and rung 6 as well (LUID 74 against 75, :4111).
+ * SO THE ENTIRE RESIDUE IS ONE UNIT OF INSN_PRIORITY, and the park's "narrow"
+ * next step -- separate the add from the store -- is aimed at a rung that does
+ * not decide this.
+ *
+ * ***** AND THAT ONE UNIT IS NOT SOURCE-REACHABLE.  PROOF, TWO FILES. *****
+ * Both insns take their priority from the __sin call (insn 51, prio 74):
+ *   * insn 50 is the call's ARGUMENT, a true dependence, and arm_adjust_cost
+ *     returns 1 for `REG_NOTE_KIND (link) == 0 && GET_CODE (insn) == CALL_INSN`
+ *     (arm.c:2429-2431).  prio(50) = 74 + 1 = 75.
+ *   * insn 45 is a STORE before the call, and sched_analyze_insn's call arm calls
+ *     flush_pending_lists (haifa-sched.c:3954), which adds **REG_DEP_ANTI** for
+ *     EVERY pending write insn, unconditionally (haifa-sched.c:3230-3231).
+ *     arm_adjust_cost zeroes anti and output dependences (arm.c:2425-2427).
+ *     prio(45) = 74 + 0 = 74.
+ * A store before a non-const call can therefore NEVER be a true dependence of
+ * that call in gcc-2.96, so an argument move's priority is STRUCTURALLY exactly
+ * one greater than any store that precedes it.  No spelling of this statement can
+ * change that, which closes the priority axis for every park of this shape.
+ *
+ * ***** THE TWO REMAINING DOORS, BOTH MEASURED AND BOTH COSTING INSTRUCTIONS ***
+ *   (a) give insn 45 a forward dependent with prio >= 74 and nonzero cost -- i.e.
+ *       read `a+8` back BEFORE the call.  The store->load link is a true
+ *       dependence and would lift prio(45) to 75.  MEASURED 45 @2, +4 bytes:
+ *       the value must then cross the call and r7 is unusable in Thumb
+ *       (arm.h:898-899), so it buys a push.
+ *       Storing `a+0x38` before the call instead (so nothing crosses it) is ONE
+ *       program in three spellings and measures 32 @5, -8 BYTES -- it loses two
+ *       instructions, a different program, not a residue.
+ *   (b) make insn 50 unavailable at t=49.  That is batch 335's readiness barrier,
+ *       already measured by batch 336 at 41 instructions against 43 in both
+ *       placements.  A two-sided ASM_INPUT also pins `mov r0,r6` inside the cos
+ *       block.
+ * VERDICT: park at 2, pin-free, and treat the figure as TERMINAL AT THE SOURCE
+ * LEVEL until someone finds a free fifth call-crossing register.  Do not re-run
+ * the accumulate, mode, placement or flag axes: the first two are closed by
+ * bit-identity above and the last two by the batch-347 harvest.
+ * -- scratch_elev/b350/C
+ * =======================================================================================
+ */
 /* OvlFunc_888_200a6f0 (0x0200a6f0) -- NON-MATCHING.
  *
  * NON-MATCHING, 2 of 46 encodings  (MEASURED, batch 334, per-function and

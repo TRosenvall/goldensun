@@ -244,6 +244,102 @@
  *   Read as "inert against THIS body".  A recorded negative expires silently
  *   when the body changes -- six batches running, the decisive lever has turned
  *   up inside a park's own negative list.
+ 
+ * ===== BATCH 350 BRIEF A: 2 of 74 HELD.  36 ROWS, SEVEN PROGRAMS, AND BOTH
+ * ===== REMAINING ROUTES CLOSED -- ONE OF THEM AS SELF-DEFEATING.
+ *
+ * RE-DERIVED FIRST: **2 differing encodings of 74**, ref 74 / ours 74,
+ * instructions 53 / 53, first at index 29 (ref 039b `lsl r3,#14`, ours 02d2
+ * `lsl r2,#11`), no SIZE / INSTRUCTION COUNT / RELOCATIONS line.  The figure IS
+ * a distance.  BODY UNCHANGED.  Pin-free, device-free, flag-free.
+ *
+ * ---- THE CENSUS: 36 ROWS SWEPT, 29 OF THEM BIT-IDENTICAL.  SEVEN PROGRAMS.
+ *
+ * Round 1 -- the park's own eighteen recorded rows rebuilt: **FOUR distinct
+ * programs**, fifteen rows bit-identical.
+ *   BIT-IDENTICAL TO BASE (measured NOTHING): bare `__asm__ volatile ("")`
+ *     after / before / both sides of the store;  `do { } while (0)` after and
+ *     before;  `e` and `k` both named with no asm;  `k8 = 0x80;` as a statement;
+ *     the addends reversed;  reversed + asm after;  reversed + asm before;
+ *     reversed with `e` named;  `goto L1; L1: ;`;  reversed + the goto;
+ *     `v3 = d >> 14` with the shift at the use.
+ *   DISTINCT: asm BETWEEN the halves 2 (first moves to 28) -- and `e`+`k` named
+ *     with an asm before the add is THE SAME PROGRAM as it;  `int k8 = 0x80;`
+ *     at the declaration 10 (first 22);  `|` for `+` 3.
+ *   So the park's "18 variants, every one exactly 2, crossed not screened" is
+ *   honest about its figures and is **four programs**.  In particular
+ *   `do { } while (0)` after the store, which batch 329 wrote a whole dependence
+ *   reading against, is BIT-IDENTICAL TO THE BASE OBJECT.
+ *
+ * ---- NEW CLOSE 1: THE ADDEND ORDER IS UNREACHABLE EVEN AS A NON-CONSTANT TREE
+ *
+ * Batch 336 closed the symmetric escape on `fold`'s PLUS canonicalisation
+ * (constant on the right).  That invites an obvious crossing of two rows from
+ * this park's own list -- put the constant on the LEFT but make it a
+ * NON-CONSTANT TREE, which `fold` has no constant to canonicalise.  Eight such
+ * rows, **all eight BIT-IDENTICAL TO BASE**:
+ *     `k8 = 0x80;    ... = (k8 << 11) + ((d >> 14) << 14);`
+ *     `k = 0x80 << 11; e = (d>>14)<<14;  ... = k + e;`
+ *     `k = 0x80 << 11;                   ... = k + ((d>>14)<<14);`
+ *     `k8` left with `e` named;  `k8` left with `v3 = d >> 14` named;
+ *     the same with the two definitions in the other order;
+ *     `k8` on the RIGHT again (control, rejoins base);
+ *     `e = -((d>>14)<<14);  ... = (0x80 << 11) - e;`  (the subtraction form)
+ * So it is not only `fold`: cse/combine re-canonicalise the all-register form
+ * too, and **no source order of the two addends survives to the back end**.
+ *
+ * ---- NEW CLOSE 2: THE SYMMETRIC ESCAPE WAS SELF-DEFEATING ANYWAY
+ *
+ * Worth the row because two batches chased it.  The escape is "make the add
+ * re-set r2 instead of r3, so insn 217 is the capped one and insn 73 collects
+ * the later r3 writers".  But the add IS `adds r3, r3, r2` and **that encoding
+ * currently MATCHES** -- it is not in the residue.  An add that wrote r2 would
+ * be `adds r2, r3, r2`, a different encoding at a position that is currently
+ * exact.  So even if source could reach it, the best case trades two differing
+ * encodings for at least one new one.  The dependent-count rung cannot be
+ * inverted for free on this shape; the only free form of it is to shorten 217's
+ * list, which needs the region end.
+ *
+ * ---- NEW CLOSE 3: THERE IS NO ZERO-INSTRUCTION WAY TO ADD A DEPENDENCE *EDGE*
+ *
+ * The rung needs insn 73 (`lsl r3,#14`) to collect two more dependents while
+ * nothing else changes.  An insn that READS r3 between 73 and the add would be
+ * exactly that, and the only zero-byte constructs that can read a value are
+ * `asm` statements.  Neither kind works, and the reason is in the compiler:
+ *   * **haifa-sched.c:3567-3597.**  The `ASM_OPERANDS / ASM_INPUT /
+ *     UNSPEC_VOLATILE` case takes the barrier branch when
+ *     `code != ASM_OPERANDS || MEM_VOLATILE_P (x)` -- and an asm with NO OUTPUT
+ *     OPERANDS is implicitly volatile, so `__asm__ volatile ("" :: "r" (e))`
+ *     takes it too.  The branch adds a dependence on EVERY `reg_last_uses`,
+ *     `reg_last_sets` and `reg_last_clobbers` entry and sets
+ *     `reg_pending_sets_all`, i.e. it is a TOTAL-ORDER ANCHOR, not an edge.
+ *     MEASURED: one, two and three `"r" (e)` inputs, and two inputs in one asm,
+ *     are **ONE program**, figure 2 with `first` moved 29 -> 28 -- the anchor
+ *     kills the interleave outright instead of tuning it.  (`"r" (k)` 4,
+ *     `"r" (d)` 7 -- both worse, both distinct programs, both the same anchor
+ *     effect at a different position.)
+ *   * a NON-volatile `ASM_OPERANDS` is the only form that escapes :3580's
+ *     condition, and it does not survive to the back end.  MEASURED, **all four
+ *     BIT-IDENTICAL TO BASE**: `__asm__ ("" : "+r" (e));` once and twice,
+ *     `__asm__ ("" : "=r" (d) : "r" (e));` (writing a variable that is dead),
+ *     and `__asm__ ("" : "=r" (t) : "r" (e));` with `t` unused.  A non-volatile
+ *     asm whose outputs are dead is deleted before scheduling, so it adds
+ *     nothing -- including nothing to the dependence graph.
+ *   >> SO THE DEPENDENT-COUNT RUNG HAS NO SOURCE-LEVEL INSTRUMENT IN EITHER
+ *      DIRECTION.  `volatile` asm is an anchor (too strong); non-volatile asm is
+ *      deleted (too weak); and there is nothing in between in gcc-2.96. <<
+ *
+ * ---- WHERE THAT LEAVES THE PARK
+ *
+ * Every rung is now closed with a citation: priority (`arm.md:254`, unit
+ * latency), class (`haifa-sched.c:4068-4095` with `arm_adjust_cost` at
+ * `arm.c:2414-2452`), dependent count (region end unavailable -- no CODE_LABEL
+ * survives pass 02; addend order unreachable AND self-defeating; no asm can add
+ * an edge), LUID (already favourable, never reached).  36 rows, 7 programs,
+ * nothing below 2.  **2 of 74 is the honest figure and this park is bounded
+ * rather than untried.**  If it is scheduled again, the only live possibility
+ * left is the park's own last sentence: that the ROM object was not built from
+ * this spelling.
  */
 extern unsigned char *__MapActor_GetActor(int slot);
 extern void __Func_808e118(void);

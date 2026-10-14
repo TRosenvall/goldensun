@@ -1,3 +1,86 @@
+/* ===================== BATCH 350 (brief C) -- NEGATIVE-LIST RE-TEST =====================
+ * STILL PARKED AT 5 OF 179, PIN-FREE.  BODY UNCHANGED.
+ * Re-derived: 5 of 179 (159/159 instructions, 20 pool entries each, size exact,
+ * relocations identical, first index 54 ref 4640 ours 189b).  THE TWIN READS
+ * THE SAME FIGURE AT THE SAME INDEX, so one body still closes both.
+ *
+ * ***** THE DEVICE-FREE NEGATIVE LIST IS 14 ROWS AND 4 DISTINCT PROGRAMS. *****
+ * Rebuilt and swept with object fingerprinting.  BIT-IDENTICAL TO BASE, i.e.
+ * these rows measured NOTHING:
+ *     idx named + base named, no barrier                      BIT-IDENTICAL
+ *     idx named alone                                         BIT-IDENTICAL
+ *     cell = &gBuffer[(A*0x80 + B) << 2]                      BIT-IDENTICAL
+ *     cell = &gBuffer[(A*0x80 + B) * 4]                       BIT-IDENTICAL
+ *     cell = &gBuffer[A*0x200 + B*4]                          BIT-IDENTICAL
+ *     both `extern void` callees -> `extern int`              BIT-IDENTICAL
+ *     the two `c` tests through a named `int *` local         BIT-IDENTICAL
+ *     the two `c` tests as ((int*)c)[0] / ((int*)c)[5]        BIT-IDENTICAL
+ *     `cell` declared `int *` with the cast moved             BIT-IDENTICAL
+ *     `k = 0xfa << 1` folded instead of `k = 0xfa; k <<= 1;`  BIT-IDENTICAL
+ *     gState base and offset combined in one statement        BIT-IDENTICAL
+ *   Distinct: base 5 @54; the two division results given named locals 13 @44;
+ *     base named BEFORE idx 33 @26 RELOCDIFF; idx kept live past the add with a
+ *     compare 138 @13 +12 bytes.
+ * CORRECTION TO THE LEDGER: the batch-337 row "the two `c` tests through a named
+ * local pointer -- 7 @52" was measured WITH THE BARRIER PRESENT.  Device-free it
+ * is BIT-IDENTICAL to this body.  It is not a negative about the `c` tests at
+ * all, and it was the only row that looked like one.
+ *
+ * ***** THE RESIDUE, READ OFF THE ASM RATHER THAN THE PARK'S PROSE *****
+ *   ref   add r3,r2,r3 / ldr r2,=gBuffer / lsl r3,#2 / mov r0,r8 / add r2,r3 /
+ *         ldr r3,[r0] / mov r10,r2 / cmp / beq / ... / ldr r3,[r0,#0x14]
+ *   ours  add r3,r2,r3 / ldr r2,=gBuffer / lsl r3,#2 / add r3,r3,r2 /
+ *         mov r2,r8 / mov sl,r3 / ldr r3,[r2] / cmp / beq / ... ldr r3,[r2,#0x14]
+ * TWO coupled facts, not five: (i) the add's destination follows the PLUS's first
+ * operand -- r2 (gBuffer) in the ROM, r3 (the index) here; (ii) the `c` base
+ * copy out of r8 takes r0 in the ROM and r2 here, and its POSITION follows from
+ * that by anti-dependence (r2 still holds gBuffer until `mov sl,r3`).
+ *
+ * ***** find_dummy_reload RE-READ: ONLY ONE OF ITS CLAUSES IS BREAKABLE. *****
+ * reload.c:1771-1890.  The OUT clause (:1808-1846) fails because sl is not in
+ * PREFERRED_RELOAD_CLASS's LO_REGS (:1805).  The IN clause (:1854-1878) then
+ * takes XEXP(plus,0), and of its seven conditions six are structurally true
+ * here: `GET_CODE (in) == REG`, `REGNO (in) < FIRST_PSEUDO_REGISTER`,
+ * `value == 0`, `!fixed_regs`, `HARD_REGNO_MODE_OK`,
+ * `! refers_to_regno_for_reload_p (..., out, ...)` and
+ * `! hard_reg_set_here_p (..., PATTERN (this_insn))` -- OUT is reg 10 and the
+ * pattern sets only reg 10, so neither can be made to fail.  THE ONLY BREAKABLE
+ * CLAUSE IS `find_reg_note (this_insn, REG_DEAD, real_in)` (:1858), which is the
+ * park's route (b).  Measured: the only free consumer of the index after the add
+ * is `cell` itself, so every way of keeping the index live adds an instruction
+ * (idx-live-with-a-compare measured 138 @13, +12 bytes).  Route (b) therefore
+ * needs an instruction the count does not have.
+ *
+ * ***** THE RELOAD-PHASE THEORY, TESTED AND NOT CONFIRMED. *****
+ * `.18.greg` reproduces the park's signature exactly:
+ *     Spilling for insn 107. / Using reg 0 for reload 0
+ *     Spilling for insn 118.          <- no "Using reg" line: a dummy reload
+ *     Spilling for insn 121. / Using reg 2 for reload 0
+ * and allocate_reload_reg's round robin is confirmed line by line at
+ * reload1.c:4996-5013 (`i = last_spill_reg; i++; if (i >= n_spills) i -= n_spills`).
+ * NEW AND WORTH HAVING: that loop runs TWICE (reload1.c:4995, `for (pass = 0;
+ * pass < 2; pass++)`), and pass 0 accepts only a regnum already in
+ * `reload_reg_used_at_all` and not in `reload_reg_used_for_inherit`
+ * (:5028-5034).  So the choice is a REUSE preference first and the round robin
+ * second -- the park cites only the round robin.
+ * I TRIED TO SHIFT THE PHASE FROM EARLIER CODE and it does not move: four
+ * instruments adding one to four reload-needing far stores inside the
+ * early-return block left `mov r2, r8` at r2 in every case (the fourth pushed
+ * `c` out of r8 entirely and `cell` out of sl, so it stopped being the same
+ * question).  Record this as a limit: work in a DIFFERENT basic block does not
+ * reach this reload's register.
+ *
+ * ***** WHAT IS STILL OPEN, STATED WITHOUT A BOUND *****
+ * The operand order remains closed device-free (cse.c:3541-3543 suppresses
+ * const_arg0 only when the qty's const_rtx is a REG or a PLUS -- a SYMBOL_REF is
+ * neither, and `&gBuffer[K]` would be a CONST, also neither -- so the swap at
+ * cse.c:3653-3658 fires for every direct symbol reference).  The live question is
+ * the `c` base copy's register, and nothing yet reaches it.  The next probe worth
+ * a round is the pass-0 reuse test above: find a source change that puts r0 into
+ * `reload_reg_used_at_all` at insn 121 without changing the emitted stream.
+ * -- scratch_elev/b350/C
+ * =======================================================================================
+ */
 /* OvlFunc_924_200cfcc -- NON-MATCHING, PARKED AT **5 DIFFERING ENCODINGS OF
  * 179** (stream terms: 179 encodings = 159 16-bit instructions + 20 32-bit
  * entries).  RE-DERIVED AT THE HEAD OF BATCH 337 AND IT HOLDS, for the fourth

@@ -389,6 +389,66 @@
  *   Read as "inert against THIS body".  A recorded negative expires silently
  *   when the body changes -- six batches running, the decisive lever has turned
  *   up inside a park's own negative list.
+ 
+ * ===== BATCH 350 BRIEF A: 2 of 44 HELD.  THE 26-ROW PAD TABLE IS FIVE
+ * ===== PROGRAMS, AND THE MODULE-IDIOM ROWS MEASURED NOTHING.
+ *
+ * RE-DERIVED FIRST: **2 differing encodings of 44**, ref 44 / ours 44,
+ * instructions 40 / 40, first at index 13 (ref b084 `sub sp,#0x10`, ours b082
+ * `sub sp,#8`), no SIZE / INSTRUCTION COUNT / RELOCATIONS line.  The figure IS
+ * a distance.  CONFIRMED for the fifth batch running.  BODY UNCHANGED.
+ *
+ * ---- THE DISTINCT-PROGRAM CENSUS (object fingerprint, tools/sweep_variants.py)
+ *
+ * 26 rows of this park's own tables rebuilt and swept.  They are **FIVE
+ * DISTINCT PROGRAMS**, and **22 of the 26 are bit-identical to the base or to
+ * each other**:
+ *
+ *   ONE PROGRAM, figure 0, `sub sp,#16`  -- NINE SPELLINGS OF THE SAME DEVICE:
+ *     `char pad[8]`, `short pad[4]`, `char pad[5]`, `char pad[2][4]`,
+ *     `struct { char a[8]; }`, `union { char a[8]; }`,
+ *     `char pad[4]; char pad2[4];`, `char pad[6]; short pad2;`,
+ *     `char pad[8] __attribute__((aligned(4)))`
+ *     -- all ONE object.  The park listed them as nine measurements; they are
+ *     one, which is the cleanest possible statement of its own BLKmode rule.
+ *   `short pad[2]` and `char pad[4]`     2, `sub sp,#12`   (one program)
+ *   `char pad[9]`  and `int pad[3]`      2, `sub sp,#20`   (one program)
+ *   `char pad[16]`                       2, `sub sp,#24`
+ *   BIT-IDENTICAL TO BASE -- THESE ROWS MEASURED NOTHING:
+ *     `int pad[2]`, `int *pad[2]`, `struct { int a, b; }`,
+ *     `struct { short a,b,c,d; }`, `struct { char a..h; }`, `double`,
+ *     `long long`, `char pad[1]`, and the FOUR batch-328 module-idiom rows
+ *     h1 (`int e[2]; int *ep; ep = e;`), h3 (`u = (int)e;`), h4 (unreferenced
+ *     `int e[2]`) and h6 (`u = sizeof e`).
+ *
+ * That last group matters: the batch-328 section calls h1/h3/h4/h6 "2 INERT"
+ * and reasons from them.  They are not inert, they are **the base program** --
+ * a non-BLKmode local with no surviving reference leaves no trace in the object
+ * at all, so those four rows were never evidence about the frame.  The
+ * CONCLUSION they were used for is unaffected (h2, the row where the address
+ * genuinely escapes, is a real distinct program at 37 RELOCDIFF and that is the
+ * row that carries the argument), but the four supporting rows should be read
+ * as "no object difference", not as "measured and inert".
+ *
+ * ---- THE LADDER, FOR THE OWNER DECISION THAT IS THE ONLY THING LEFT
+ *
+ * device-free, pin-free, barrier-free ....................... 2 of 44  <- SHIPS
+ * never-read 5..8-byte BLKmode local (any of the nine above) . 0 of 44
+ * bare barrier, all ten statement boundaries ................ 13,15,12,12,10,
+ *                                                             9,9,7,5,6 (worse)
+ * `ASM_OPERANDS` .............................................. not applicable:
+ *     the residue is `get_frame_size()`, and an asm is not a DECL, so
+ *     `assign_stack_local` is never called for it (batch 329's reading, which
+ *     this batch did not re-measure because it is structural, not empirical).
+ *
+ * NOTHING NEW IS OPEN.  Batch 336 scanned all 5,228 `.s` files and found a
+ * never-read array local to be the ONLY construct in the tree that puts
+ * untouched bytes in a frame, and this batch's census shows the park's nine
+ * device spellings are one program -- so there is not even a second spelling to
+ * prefer.  **This park should stop being scheduled for a spelling search.**  It
+ * is one owner ruling wide: if a never-read local is admissible, `char pad[8];`
+ * is byte-identical today; if it is not, 2 of 44 is final and the function
+ * belongs in a "bounded, not closable" list rather than on the frontier.
  */
 extern int iwram_3001e8c;
 extern int BufferString(int s, int n);

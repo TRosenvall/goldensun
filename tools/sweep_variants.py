@@ -51,11 +51,17 @@ flags, _ = O.cflags_for(ref)
 # candidate's `.s` TEXT first and it cannot work -- gcc writes `.file "<name>.c"`,
 # so two variants in differently-named files always differ textually while being
 # the same program.  That defect passes everything, which is the worst direction.
-def fingerprint(enc, rel):
+def fingerprint(enc, rel, sz):
+    # SIZE IS PART OF THE OBJECT.  The first version hashed encodings and
+    # relocations only, so batch 350 brief D hit a row flagged BIT-IDENTICAL that
+    # reported `dsize=4` -- a `static const` variant whose code stream matched
+    # while the object grew.  That is two different objects called one program,
+    # which is the exact error this check exists to prevent, in the check itself.
     import hashlib
     h = hashlib.sha1()
     h.update(repr(enc).encode())
     h.update(repr(rel).encode())
+    h.update(repr(sz).encode())
     return h.hexdigest()[:12]
 
 
@@ -72,7 +78,7 @@ def measure(src):
     first = next((i for i, (x, y) in enumerate(zip(A_enc, B_enc)) if x != y), -1)
     rb, _ = O.reloc_diff(A_rel, B_rel)
     return (k, first, B_sz - A_sz, "RELOCDIFF" if rb else "ok",
-            fingerprint(B_enc, B_rel))
+            fingerprint(B_enc, B_rel, B_sz))
 
 r = measure(base)
 BASE_FP = r[4]

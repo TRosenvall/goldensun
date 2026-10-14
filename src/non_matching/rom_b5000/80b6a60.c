@@ -429,7 +429,90 @@
  *   Those 4 are inert; the other 13 measured nothing.  Nothing capped, nothing failed to compile.
  *   DO NOT RE-SCREEN.  The residue is a register choice, a tie or a pass-level
  *   effect, not a placement or flag question.  Read as "inert against THIS body".
-  */
+  
+ * ===== BATCH 350 BRIEF A: 2 of 59 HELD.  THE NEGATIVE LIST IS 16 ROWS OF 23
+ * ===== THAT MEASURED NOTHING, AND THE STATEMENT-FORM AXIS IS NOW CLOSED TOO.
+ *
+ * RE-DERIVED FIRST, on the installed body: **2 differing encodings of 59**,
+ * ref 59 / ours 59, instructions 53 / 53, first at index 25 (ref 4698, ours
+ * 1c3e), no SIZE / INSTRUCTION COUNT / RELOCATIONS line.  The figure IS a
+ * distance.  BODY UNCHANGED.  Pin-free, device-free, flag-free.
+ *
+ * ---- THE DISTINCT-PROGRAM CENSUS (tools/sweep_variants.py object fingerprint)
+ *
+ * 23 of this park's recorded rows were rebuilt and swept.  **16 of the 23 are
+ * BIT-IDENTICAL TO THE BASE OBJECT, so they measured nothing at all.**  The
+ * 23 rows are **7 distinct programs**:
+ *
+ *   BIT-IDENTICAL TO BASE (measured NOTHING -- do not re-file as negatives):
+ *     `k` initialised after `i = n`;  `while (i)`;  `while (--i != 0)`;
+ *     `while (--i)`;  `while (i-- != 1)`;  `--i;` as the step;  the decrement
+ *     at the tail;  `*out++ = id;`;  barrier before `k = 0xfc << 1;`;
+ *     barrier before `i = n;`
+ *   DISTINCT PROGRAMS, every figure reproducing the park exactly:
+ *     barrier after `i = n;`                        7
+ *     the named constant                            7
+ *     `u[0x95 << 1] = 2;` (the pre-329 store)       5
+ *     `while (i > 0)`                               3
+ *     `i = n` hoisted above the `if (n > 0)` guard  9
+ *
+ * So every figure this park has ever written down is correct; what it did not
+ * know is that TEN of its eleven "exactly inert" rows are one program, which is
+ * a BIT-IDENTICAL-SET close on the loop's spelling rather than ten negatives.
+ *
+ * ---- THE AXIS THIS PARK HAD NEVER VARIED: STATEMENT FORM.  ALSO FLAT.
+ *
+ * Batch 349 landed `Field_Halt` by noticing that ~30 recorded rows all varied
+ * the comparison and none varied the STATEMENT FORM.  That axis was taken here,
+ * seven rows, and **six of the seven are bit-identical to the base**:
+ *     `for (i = n; i != 0; i--)`                    bit-identical
+ *     `for (i = n; i; i--)`                         bit-identical
+ *     `i = n; while (i != 0) { ...; i--; }`         bit-identical
+ *     block-scoped INITIALISED declarations for both the counter and the
+ *       index (`int ii = n; int kk = 0xfc << 1;`)   bit-identical
+ *     the same for the counter alone                bit-identical
+ *     `k = 0x1f8;` for `k = 0xfc << 1;`             bit-identical
+ *     `while (i >= 1)`                              3  (one program with `i > 0`)
+ * A DECLARATION WITH AN INITIALISER is not a different insn from an assignment
+ * here, and neither `for` nor a `while` head changes the preheader.  The form
+ * axis is closed by a bit-identical set.
+ *
+ * ---- THE loop.c EMISSION SITES ARE VERIFIED VERBATIM, ALL EIGHT
+ *
+ * The park's bound rests on them, and this batch's instruction was to report
+ * disagreement with those lines rather than with another spelling.  There is no
+ * disagreement.  Read on disk, every one is a `*_before (..., loop_start)`:
+ *   loop.c:1825 `emit_insn_before (newpat, loop_start)`
+ *       :1890 `emit_insns_before (temp, loop_start)`
+ *       :1982 `emit_call_insn_before (body, loop_start)`
+ *       :1991 `emit_insn_before (body, loop_start)`
+ *       :2024 `emit_insn_before (sequence, loop_start)`
+ *       :2028 `emit_call_insn_before (PATTERN (p), loop_start)`
+ *       :2047 `emit_insns_before (temp, loop_start)`
+ *       :2055 `emit_insn_before (PATTERN (p), loop_start)`
+ * so LUID(`i = n`) < LUID(hoist) unconditionally, and residue A's tie at
+ * `Ready list (t = 6): 174 53` falls to `INSN_LUID` with the counter init
+ * winning.  CONFIRMED, not re-derived.
+ *
+ * ---- WHAT A FUTURE ROUND SHOULD ASK INSTEAD OF SPELLING THE LOOP AGAIN
+ *
+ * Residue A is a four-way tie decided by LUID.  Three rungs sit above LUID and
+ * each has an exact, falsifiable requirement, which is the useful form of the
+ * bound:
+ *   PRIORITY (haifa-sched.c, the first test): insn 174 (`r8 = r3`) needs an
+ *     in-block dependent, i.e. an insn IN THE PREHEADER that reads or writes
+ *     r8.  The only reader of the hoisted 2 is in the loop body.
+ *   CLASS (haifa-sched.c:4069-4096): insn 53 (`r6 = r7`) would have to fall to
+ *     class 2, which needs an anti- or output-dependence on the last-scheduled
+ *     insn 194 (`r3 = 0x2`) -- i.e. the counter init would have to READ OR
+ *     WRITE r3.  It reads r7 and writes r6.
+ *   DEPENDENT COUNT (:4097-4108): 174 needs one more in-block dependent than
+ *     53 has, which is the same requirement as the priority rung.
+ * All three reduce to "put a second preheader insn on the hoisted constant",
+ * and the hoisted constant has exactly one consumer by construction.  Do not
+ * re-sweep the loop; the next move, if there is one, is a construct that gives
+ * the invariant a SECOND use before `loop_start`.
+ */
 extern unsigned char *iwram_3001e74;
 extern unsigned char gState[];
 extern int _GetPartySize(void);

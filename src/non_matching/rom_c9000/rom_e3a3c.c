@@ -1,3 +1,99 @@
+/* ===================== BATCH 350 (brief C) -- NEGATIVE-LIST RE-TEST =====================
+ * Anim_Attack -- STILL PARKED, 5 OF 39, PIN-FREE.  BODY UNCHANGED.
+ *
+ * FIGURE RE-DERIVED MYSELF, all three lengths in phase:
+ *   XX ENCODINGS differ in 5 place(s) (ref 39, ours 39)  [instructions 27/27]
+ *      first at index 12: ref 682b (ldr r3,[r5])  ours 682a (ldr r2,[r5])
+ * Verify with:
+ *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
+ *     goldensun-build python3 tools/objcmp.py \
+ *     src/non_matching/rom_c9000/rom_e3a3c.c \
+ *     asm/rom_c9000/rom_e3958_c_c_c_c_a.s --func Anim_Attack
+ * Split shape (for when it lands, NOT carried in the manifest): the reference
+ * holds three functions; split_s.py --dry-run targeting Anim_Attack cuts it out
+ * ALONE into _a_b.s (46 lines) leaving _a_c.s (2 funcs).  datacheck.py: no data
+ * section, export list EMPTY.  pins 0 (shimcount.py prints the filename only).
+ *
+ * ***** THE PARK CLAIMS 12 SPELLINGS.  THEY ARE 3 DISTINCT PROGRAMS. *****
+ * Rebuilt every recorded row and swept with object fingerprinting
+ * (tools/sweep_variants.py).  TEN OF TWELVE ARE BIT-IDENTICAL TO THE BASE --
+ * they measured NOTHING, and must not be read as negatives:
+ *     compiler temp `(unsigned)(v - 0x64) <= 0x23` (no named t)   BIT-IDENTICAL
+ *     `unsigned v` with `(int)v > 0xc7`                          BIT-IDENTICAL
+ *     `t` declared before `v`                                    BIT-IDENTICAL
+ *     `v >= 0xc8`                                                BIT-IDENTICAL
+ *     `t = v = *p; t -= 0x64;`                                   BIT-IDENTICAL
+ *     `t` scoped to an inner block                               BIT-IDENTICAL
+ *     `void *p` with a cast                                      BIT-IDENTICAL
+ *     `int t` with `(unsigned)t <= 0x23`                          BIT-IDENTICAL
+ *     the field read twice instead of held in a local             BIT-IDENTICAL
+ *     the subtraction given its own named local                  BIT-IDENTICAL
+ *   Only two are real: arms swapped `if (t > 0x23){...}else{...}` 10, RELOCDIFF
+ *                      `unsigned char t`                         29, +4 bytes
+ * So the park's "no respelling helps" verdict is CORRECT but for a stronger
+ * reason than it gave: no spelling of this statement reaches the back end.
+ *
+ * ***** AND THE AXIS NOBODY HAD VARIED: THE KIND OF CONSTRUCT. *****
+ * Every recorded row writes the subtraction EXPLICITLY.  I varied the construct:
+ *     `v >= 0x64 && v <= 0x87`                           BIT-IDENTICAL TO BASE
+ *     `v > 0x63 && v < 0x88`                             BIT-IDENTICAL
+ *     `0x64 <= v && v <= 0x87`                           BIT-IDENTICAL
+ *     unsigned v + range                                 BIT-IDENTICAL
+ *     range + `v >= 0xc8`                                BIT-IDENTICAL
+ *   -- fold-const's build_range_check lowers every literal range test to exactly
+ *      this body, so the folded range test and the hand-written subtraction are
+ *      ONE PROGRAM.  That closes the whole family in one row.
+ *     `switch (v) { case 0x64 ... 0x87: ...; default: if (v>0xc7)... }`
+ *                                           *** 4 of 39, first index 13 ***
+ *     `switch` with both arms as case ranges              9 of 39, RELOCDIFF
+ *
+ * READ THE SWITCH ROW CAREFULLY BEFORE BANKING IT.  It is the FIRST construct in
+ * eight passes to move index 12: `v` lands in r3, the ROM's register, because
+ * stmt.c's case-range lowering creates NO second local quantity and so
+ * local-alloc has nothing to take r3 with.  But it emits a different idiom --
+ * `cmp #0x87 / bgt / cmp #0x64 / blt` instead of the ROM's
+ * `mov r1,r3 / sub r1,#0x64 / cmp r1,#0x23 / bhi` -- so its 4 is a lower figure
+ * on the WRONG SHAPE, and it discards the one property the installed body shares
+ * with the ROM.  Device-free and pin-free; equal length (27/27, dsize 0).
+ * RECORDED, NOT SHIPPED.  Candidate kept at scratch_elev/b350/C/v1b/b03_switch_one_range.c
+ *
+ * ***** WHY v CANNOT HAVE r3 IN THE SUBTRACTION SHAPE -- file:line, re-read *****
+ * `t` is block-local to bb0, so local-alloc owns it and runs BEFORE global-alloc.
+ *   find_free_reg (local-alloc.c:1963-2051) builds `used` from fixed_reg_set
+ *   (t crosses no calls, :1966-1967), the union of regs_live_at[] over t's
+ *   lifetime (:1974-1975) and the complement of min_class (:1977), then walks
+ *   REG_ALLOC_ORDER and returns the FIRST free register (:2022-2043).
+ *   REG_ALLOC_ORDER, READ not recalled, is arm.h:984-995:
+ *       { 3, 2, 1, 0, 12, 14, 4, 5, 6, 7, 8, 10, 9, 11, 13, 15, ... }
+ *   so r3 is first and free, and post_mark_life (:2039) then marks it, which is
+ *   why global-alloc hands v r2.
+ * THE SUGGESTION PATH IS CLOSED, AND THIS IS NEW.  find_free_reg's
+ * just_try_suggested phase (:2012-2018) can only reach a register that is in
+ * qty_phys_copy_sugg / qty_phys_sugg, and combine_regs sets those ONLY from a
+ * copy where one side is already a HARD register (local-alloc.c:1674-1708).
+ * `t` is never copied to or from a hard register in this function, so NO source
+ * construct can give t a suggestion of r1.  That removes the last local-alloc
+ * lever, and it is the one the earlier passes never named.
+ *
+ * ***** THE PIN LADDER RE-VERIFIED, AND FINGERPRINTING SHARPENS IT *****
+ *     pin-free                                               5  @12
+ *     register int v __asm__("r3")                            3  @13
+ *     register unsigned int t __asm__("r2") + v on r3         3  BIT-IDENTICAL
+ *                                                               to the row above
+ *     register unsigned int t __asm__("r1")                  *0*  byte-identical
+ *     both pinned                                            *0*  bit-identical
+ *                                                               to the row above
+ * The bit-identity of rows 2 and 3 is a PROOF of the park's step-down claim:
+ * blocking r3 moves t to r2 and nowhere else.  So reaching r1 needs TWO
+ * simultaneous exclusions across t's two-insn life, and the streams agree
+ * instruction for instruction (27/27), so there is no spare instruction to
+ * make even one more live value out of.  VERDICT UNCHANGED: park at 5 pin-free,
+ * 0 with one pin, pass-3 depin item (reports/pass3-depin.md).
+ * DO NOT re-screen spellings, flags or anchors here; all three are now closed
+ * with either a bit-identical set or a file:line proof.
+ * -- scratch_elev/b350/C
+ * =======================================================================================
+ */
 /* ===== CARRIED FORWARD from the retired duplicate park 80e3a3c.c =====
  * That file was a 30-line HEADER-ONLY park for this same function, naming the
  * pre-split asm/rom_c9000/rom_e3958_c_c_c_c.s and a scratch/Nattack_best.c

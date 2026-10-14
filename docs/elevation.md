@@ -36365,3 +36365,174 @@ difference."** The converse exists: a variant that is *not* bit-identical can
 still be inert on the figure while emitting a **different wrong order** at the
 same indices. So a non-identical inert row is still a real measurement of one
 body — it just is not a second data point about the same ordering.
+
+## Batch 350 — A 100% BIT-IDENTICAL RATE IS A CLOSE, NOT AN OPENING
+
+Reached independently by brief A and by the coordinator on the anchor axis, and
+worth stating once because both of us got it the wrong way round first.
+
+When a park's recorded spellings turn out to be **one program**, the instinct is
+to call the search space unexplored. **It is the opposite.** A variant whose
+object is byte-identical to the base is the strongest negative available: the
+compiler emitted the same program, so that spelling provably cannot be the lever.
+A dimension that collapses entirely is a dimension **provably closed**, and it
+should be written into the header as a *bit-identical-set close*, not as a to-do.
+
+So read the rate as a signal about where to look next:
+
+* **near 0%** — the park's rows are real measurements; its negative list is
+  trustworthy and the lever is elsewhere.
+* **moderate** — the gap between recorded rows and distinct programs is the
+  unexplored part. **This is where batch 349's three landings came from.**
+* **near 100%** — that axis is finished. gcc's own canonicalisation dominates
+  this construct, so **no spelling of it will ever reach the back end**. Change
+  axis, not spelling.
+
+Brief A's four parks, 105 rebuilt rows → **20 distinct programs, 83% measured
+nothing**, with one park's "thirty-four spellings are now inert" turning out to
+be **one program** (all 20 rebuilt rows bit-identical) — a complete close.
+
+### AND THE PARKS WERE NOT SLOPPY
+
+Worth recording in their defence, because the censuses read like an indictment
+and are not one: **every figure these parks ever wrote down reproduced exactly**
+on the rows that are genuinely distinct programs. The headers are honest. They
+simply had no instrument that could tell a negative from a non-measurement —
+object fingerprinting did not exist until batch 348. The error was never in the
+measuring; it was in counting placements as attempts.
+
+### Two mechanism closes from the same brief
+
+* **A rematerialised constant is not a pool load.**
+  `THUMB_LEGITIMATE_CONSTANT_P` (`arm.h:1807-1809`) admits **any** `CONST_INT`,
+  and the rematerialised set matches `*thumb_movsi_insn`'s `K` alternative
+  (`arm.md:3838-3841`), whose output is `#` — so it **splits to `mov`+`lsl`**,
+  never a pool load. An escape that had been named for several passes is now
+  validated.
+* **No zero-instruction construct can add a dependence edge.** A volatile asm
+  takes `haifa-sched.c:3567-3597`'s total-order-anchor branch — and note an asm
+  with **no outputs is implicitly volatile** — while a non-volatile
+  `ASM_OPERANDS` is deleted before the back end (four rows bit-identical). So
+  "add a dependence for free" is not available; it costs an instruction or it
+  does not exist.
+* **`r2` can be local-alloc's COPY SUGGESTION rather than pressure**
+  (`local-alloc.c:1683-1692`, `:1341-1347`, `:2005-2016`). On that park the
+  reference function has **zero branches**, so it is one basic block and there is
+  no pressure to find — a park that had been reasoning about register pressure
+  for several passes had no pressure to reason about.
+
+## A LOWER FIGURE ON THE WRONG CODEGEN SHAPE IS NOT PROGRESS
+
+Batch 350 brief C declined to ship a body measuring **4 of 39** over an installed
+one at **5**, and the reasoning should be the standing rule rather than one
+brief's taste.
+
+A GNU case range (`case 0x64 ... 0x87:` with a `default:` test) was the first
+construct in eight passes to put the contested value in r3 — a genuine
+structural win, device-free, pin-free, equal length, one encoding better. It
+emits `cmp / bgt / cmp / blt` where the ROM has `mov / sub / cmp / bhi`.
+
+So it buys one encoding by **trading away the one property the installed body
+already shares with the reference**. The figure improves and the body moves
+further from the ROM's shape.
+
+**The figure is a proxy. The goal is the ROM's instruction sequence.** When a
+variant lowers the count by replacing a matching construct with a non-matching
+one, record it as a measurement and keep the matching body. Two related rules
+already in this document point the same way — rank on the aligned residue rather
+than the raw count, and a sweep's score is not a proof of equivalence — and this
+is the third face of it.
+
+Kept at `scratch_elev/b350/C/v1b/b03_switch_one_range.c` rather than discarded,
+because the r3 placement is real and may compose with something else.
+
+And the corollary the same brief measured: **all five literal range-test
+spellings are bit-identical to that body**, because `fold`'s `build_range_check`
+lowers them to exactly it. So the range-test axis has one program, and this is
+it.
+
+## AN ARGUMENT MOVE OUTRANKS ANY PRECEDING STORE BY EXACTLY ONE, ALWAYS
+
+A structural fact about gcc-2.96, worth having because it closes scheduling
+questions without a dump:
+
+* `arm.c:2429-2431` gives a call's argument move **+1** priority;
+* a store before a non-const call is linked `REG_DEP_ANTI` **unconditionally**
+  (`haifa-sched.c:3230-3231`, from the call arm at `:3954`);
+* `arm_adjust_cost` **zeroes** anti and output dependences (`arm.c:2425-2427`).
+
+So for **every non-const call in this compiler**, an argument move's priority is
+exactly one greater than any store preceding it. `rank_for_schedule` then returns
+at its *first* rung (`haifa-sched.c:4040-4043`) and the class test at `:4069-4095`
+is never reached — and on the park where this was measured it would have **tied**
+anyway, because `insn_cost(...) == 1` sets `tmp_class = 3` (`:4077-4079`).
+
+If a park's residue is "the ROM scheduled a store before an argument move",
+that is unreachable by priority. Stop looking for a priority lever.
+
+## local-alloc CANNOT SUGGEST A REGISTER A COPY NEVER TOUCHED
+
+`find_free_reg`'s suggested phase (`local-alloc.c:2012-2018`) can only reach a
+register present in `qty_phys_copy_sugg` or `qty_phys_sugg`, and `combine_regs`
+populates those **only from a copy with a hard register on one side**
+(`:1674-1708`).
+
+So a pseudo that never appears in a copy against a hard register cannot be
+suggested into one, however the ranking falls. That closes the
+"local-alloc suggestion" axis for any such value by construction.
+
+# A STALE NEGATIVE WASTES A SEARCH. A STALE POSITIVE WASTES THE ANSWER.
+
+Batch 350 brief D improved a park 7 → 6, and the lever was **not** a crossing in
+its negative list. It was a **positive that batch 340 measured, wrote "NOT
+installed" beside, and told the next reader to start from.** Five batches went
+by.
+
+This is a distinct failure from the recorded-negative problem the last three
+batches have been mining, and it is worse per instance — a stale negative costs a
+search, a stale positive costs the result. It is also **findable mechanically**,
+which a stale negative is not: the park's own prose names a smaller number than
+the park's own claim line.
+
+`tools/unrealised.py` does that scan. Measured on first run: **113 parks mention
+a smaller figure than they claim**, and after excluding the lines that explain
+why (pin, device, flag group, a landed twin's figure, an instrument body, a
+"NOT a distance" caveat) **58 remain with no such word nearby** — those are the
+ones to read.
+
+**Read the rows; do not trust them.** A smaller figure in a header is legitimately
+unshipped in at least four common cases, and the tool prints the surrounding line
+so the reason is usually visible without opening the file:
+
+* a **pinned or device-carrying** figure held back under the prefer-pin-free
+  policy — batch 349 parked a byte-identical **0** for exactly this reason, and
+  `801cc50` has had a byte-identical candidate in `scratch_elev/b338/E/` since
+  batch 338 whose only difference is one bare `__asm__ volatile ("")`;
+* a figure measured under a **per-file flag** the park is not built with;
+* a figure for a **different function** the header discusses, which citing a
+  landed twin in the same piece is a documented and useful thing to do;
+* a figure on the **wrong codegen shape** — see the rule above about declining a
+  4 over an installed 5.
+
+## ROUTE 3 IS A LEVER IN LOOPS, AND THE QUALIFICATION MATTERS
+
+Correcting the write-up of the `Func_80b6d30` result from batch 349. That park
+went 4 → 3 on a **dead store** — a second definition of `j` whose value is never
+read, which splits the live range so the value leaves the `allocno_compare` race.
+
+**That requires a back edge.** On `FieldMove_NoTarget`, which has none, nine of
+ten dead-store spellings are **bit-identical to the base**: with no loop the store
+is simply deleted, so there is no second definition for the allocator to see.
+
+So route 3 reads: *add a definition so the range splits* — **in a loop**. In
+straight-line code the compiler removes the thing you added before the allocator
+runs. The original write-up omitted that and would have sent readers at
+straight-line functions.
+
+## AND A FIX TO THE FINGERPRINT ITSELF
+
+`sweep_variants.py` hashed encodings and relocations but **not object size**, so
+a `static const` variant whose code stream matched while the object grew by four
+bytes was reported **BIT-IDENTICAL**. Two different objects called one program —
+the exact error the check exists to prevent, inside the check. Size is now part
+of the hash. Found by brief D reading a `dsize=4` next to a bit-identical flag.

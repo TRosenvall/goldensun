@@ -1,461 +1,117 @@
-/*
- * Func_807a0f4 -- PARK at 7 differing STREAM ENCODINGS of 88; 79 INSTRUCTIONS
- * against 79 (lengths agree, so a DISTANCE).  SIZE equal, no RELOCATIONS line.
- * PIN-FREE.
+/* Func_807a0f4 -- PARK AT 7 of 88 stream encodings.  UNCHANGED FIGURE.
+ * PIN-FREE, DEVICE-FREE.  Body below is the park's body, unedited.
  *
- * Verify with: docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work goldensun-build python3 tools/objcmp.py src/non_matching/rom_77000/807a0f4.c asm/rom_77000/rom_79460_c_c_c_c_a_c_c_c_a_c_a_a.s --func Func_807a0f4
+ * MEASURED BATCH 350, BRIEF D (not inherited): 7 differing encodings of 88
+ * (ref 88 / ours 88), 79 INSTRUCTIONS against 79 -- IN PHASE, so the figure IS
+ * a distance.  dsize 0, no RELOCATIONS line, first differing index 32
+ * (ref 189e / ours 1c06).  `--whole` agrees: `XX Func_807a0f4 7 of 88 differ
+ * (ours 88), first at index 32`.  PINS 0.
  *
- * SPLIT SHAPE: unchanged -- one function, no data section, landing needs no split.
+ * Verify with: docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" \
+ *   -w /work goldensun-build python3 tools/objcmp.py \
+ *   src/non_matching/rom_77000/807a0f4.c \
+ *   asm/rom_77000/rom_79460_c_c_c_c_a_c_c_c_a_c_a_a.s --func Func_807a0f4
  *
- * *** BATCH 337, brief E: READ THE BATCH-337 SECTION AT THE BOTTOM BEFORE ANY OF
- * *** THE ARITHMETIC BELOW.  THE LIVE LENGTHS ARE 46 AND 24, NOT "L+2 AND L WITH
- * *** L ABOUT THIRTY".  THE GAP IS 36 UNITS OUT OF 5850 AND **ONE INSN** CLOSES
- * *** IT, SO BATCH 331's "the chain order is worth nothing on its own" AND
- * *** "(A) alone is not enough" ARE BOTH REFUTED.  Everything those batches wrote
- * *** about the WEIGHTED REFERENCE COUNTS stands.
+ * SPLIT SHAPE: NONE.  One function, no data section; a landing is a whole-file
+ * conversion and needs no split_s.py step.  (Unchanged.)
  *
- * Func_807a0f4 -- 0x0807a0f4, asm/rom_77000/rom_79460_c_c_c_c_a_c_c_c_a_c_a_a.s
- * (1 function, no data section, so landing needs NO split).
+ * ALLOCATOR INPUTS RE-READ out of `.17.lreg`, not inferred from the chain:
+ *     Register 40 used 7 times across 24 insns   <- the check_dbra_loop counter
+ *     Register 79 used 9 times across 46 insns   <- the gState byte cursor
+ *     ;; 12 regs to allocate: 38 37 42 41 39 79 40 32 36 33 35 34
+ * Batch 337's numbers are EXACT.  Counter-first needs 14*L79 > 27*L40, i.e.
+ * 644 against 648 -- short by four.  All of that stands.
  *
- * STILL NON-MATCHING.  PARKED AT 7 differing encodings of 88 -- RE-MEASURED
- * AGAIN in batch 325 and unchanged: 7 differing encodings of 88, ref 88 against
- * ours 88, 92 lines against 92, SIZE EQUAL, RELOCATIONS IDENTICAL (objcmp prints
- * no RELOCATIONS line).  Body below is the park's body, unchanged.  PINS: 0.
+ * ===== BATCH 350: BATCH 337'S CLOSING QUESTION IS REFUTED =====
  *
- * Verify with: docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work goldensun-build python3 tools/objcmp.py src/non_matching/rom_77000/807a0f4.c asm/rom_77000/rom_79460_c_c_c_c_a_c_c_c_a_c_a_a.s --func Func_807a0f4
+ * Batch 337 ended "SO THE WHOLE PARK IS NOW ONE QUESTION: A SOURCE SHAPE WITH A
+ * **SECOND BIV** IN THE OUTER LOOP ON PASS 1.  Two bivs plus giv_count != 0
+ * fails check_dbra_loop on pass 1; pass 2 then carries it on the
+ * no_use_except_counting disjunct."  *** THE STATE IT ASKS FOR IS THE STATE WE
+ * ARE ALREADY IN. ***  Read straight out of the `.08.loop` dump of this body:
+ *     PASS 1   Loop from 54 to 163: 31 real insns
+ *              Insn 157: possible biv, reg 40, const =1     <- ONE biv
+ *              ... many givs with `src reg 40' ...
+ *              (NO "Can reverse loop" LINE AT ALL)          <- pass 1 already fails
+ *     PASS 2   Loop from 54 to 163: 24 real insns
+ *              Insn 270: possible biv, reg 76, const =1     <- TWO bivs
+ *              Insn 157: possible biv, reg 40, const =1
+ *              Can reverse loop / Reversed loop             <- pass 2 already carries it
+ * Both halves of the requirement already hold and the chain order is still wrong.
  *
- * ---------------------------------------------------------------------------
- * WHAT I REPRODUCED, AND WHAT I REFUTED.
+ * AND THE GATE IT REASONED FROM IS MISREAD.  check_dbra_loop's disjunction is
+ * loop.c:7987-7994:
+ *     if ((num_nonfixed_reads <= 1
+ *          && ! loop_info->has_call           <-- THIS LOOP HAS A CALL (GetUnit)
+ *          && ! loop_info->has_volatile
+ *          && reversible_mem_store
+ *          && (bl->giv_count + bl->biv_count + num_mem_sets
+ *             + num_movables + compare_and_branch == insn_count)
+ *          && (bl == loop_iv_list && bl->next == 0))   <-- "only one biv" is HERE
+ *         || no_use_except_counting)
+ * `! loop_info->has_call' kills the ENTIRE FIRST DISJUNCT unconditionally for
+ * this loop, so the "there is only one biv" condition quoted from the comment at
+ * :7886-7890 is a term inside a dead disjunct and is unreachable here.  The
+ * reversal can only ever fire through `no_use_except_counting', which is
+ * computed only when `bl->giv_count == 0 && ! loop->exit_count' (loop.c:7884).
+ * BIV COUNT IS NOT THE DIAL.  Pass 1 fails for a different reason.
  *
- * REPRODUCED, all of it, by reading `.18.greg` and `.17.lreg` directly:
- *   - the whole residue is the r5/r6 contest between pseudo 79 (the
- *     strength-reduced gState byte cursor) and pseudo 40 (the outer
- *     check_dbra_loop down-counter).  Every other register matches.
- *   - it IS global-alloc's decision: `;; 12 regs to allocate: 38 37 42 41 39 79
- *     40 32 36 33 35 34`, so `allocno_compare` (global.c:607) applies, and it
- *     DOES carry floor_log2.  (For the record, so does local-alloc's
- *     QTY_CMP_PRI at local-alloc.c:1496; the real difference between the two
- *     formulae is the DENOMINATOR -- `death - birth` against `live_length`.
- *     Nothing here rests on that, because this is a global-alloc decision, but
- *     a brief circulating the "local-alloc has no floor_log2" claim is wrong
- *     and should not be inherited.)
- *   - the reference counts.  Counted by hand in `.17.lreg`:
- *       pseudo 79: def (insn 286) + two `zero_extend(mem:QI (reg 79))` uses
- *                  + `(set 79 (plus 79 1))` counting twice   = 5
- *       pseudo 40: def (insn 275) + `(set 40 (plus 40 ...))` twice
- *                  + `(ne (reg 40) ...)`                      = 4
- *   - 79 is allocated first and `find_reg` hands it r5 (r0-r3 conflict across
- *     the call, r4 is -fcall-used-r4), so 40 gets r6.  The ROM is the other way.
+ * ===== THE ACTUAL CHAIN-ORDER MECHANISM, END TO END IN THE LOOP DUMP =====
+ *     PASS 1  Insn 64: giv reg 53 src reg 40 benefit 2 lifetime 34 ... add 504
+ *             Sorted combine statistics:
+ *               {64, 23} {147, 12} {70, 12} {145, 0} {141, 0} {68, 0}
+ *             giv at 147 / 141 / 70 combined with giv at 64
+ *             => creates reg 76,  `Biv 76 initialized at insn 273: initial
+ *                value 504'   -- i.e. `i + 504', WITHOUT the gState add
+ *     PASS 2  bivs 76 and 40; givs of 76 at insns 70 and 147, `add (reg:SI 54)'
+ *             Can reverse loop / Reversed loop   <- counter init emitted, insn 275
+ *             biv 76 can be eliminated
+ *             giv at 147 reduced to (reg:SI 79)  <- cursor init emitted, insn 286
+ *             giv at 70  reduced to (reg:SI 79)
+ *             biv 76 was eliminated / Reg 76: biv eliminated
  *
- * REFUTED: the park's stated route out.  It wrote
+ * *** PASS 1 REDUCES TO `i + 504' AND PASS 2 THROWS THAT AWAY, CREATING THE REAL
+ * *** CURSOR (reg 79 = gState + 504 + i) FRESH.  So BOTH inits are PASS-2
+ * *** creations, and within one pass check_dbra_loop (loop.c:4408) always runs
+ * *** before the giv emission (loop.c:4778) -- so the counter init is
+ * *** unconditionally first.  Insn numbers confirm it: counter 275 < cursor 286.
  *
- *   "At 4 against 4 the tie breaks by allocno number, 40 < 79 takes r5, and
- *    that IS the ROM.  So batch 272's declaration-order lever would apply if
- *    the counts were equal."
+ * SO THE REQUIREMENT IS NOT A SECOND BIV.  IT IS: THE CURSOR'S FINAL REGISTER
+ * MUST BE CREATED ON PASS 1 AND SURVIVE PASS 2.  Then its init predates the
+ * pass-2 counter init, which gives L79 = 47 AND L40 = 23 at the same time --
+ * 14*47 = 658 > 27*23 = 621, a flip with margin rather than by four.
  *
- * EQUAL COUNTS DO NOT TIE, because `allocno_compare` divides by live_length and
- * the two live ranges are NOT equal.  `.19.flow2` has the counter's init
- * (insn 275) BEFORE the cursor's init (insn 286) in the insn chain, with insn
- * 315 between them, so len40 = len79 + 2.  Then:
- *     refs 4 and 4:  pri40 = 32/(L+2)  <  pri79 = 32/L      -> 79 still first
- *     refs 5 and 5:  pri40 = 40/(L+2)  <  pri79 = 40/L      -> 79 still first
- * There is no tie to break, at any equal reference count, while the counter's
- * init is the earlier of the two.  The declaration-order lever cannot reach it.
+ * WHY PASS 1 REDUCED TO THE BARE 504: because `base + i' EXISTS AS A STANDALONE
+ * VALUE.  Insn 64's giv (`reg 53 ... lifetime 34', benefit 23) is that value,
+ * used by both array reads, and it outranked the two `dest address' givs that
+ * carry `add (plus (reg 54) (const_int 504))'.  Remove the standalone value and
+ * pass 1 has only the full-pointer givs to reduce.
  *
- * AND THE REFS-ONLY ROUTE IS CLOSED FROM THE OTHER SIDE TOO.  Giving the
- * counter a fifth reference is not available: `check_dbra_loop` (loop.c, the
- * `else` arm at the `initial_value == const0_rtx && comparison_value CONST_INT`
- * test) requires `no_use_except_counting` whenever the comparison value is NOT
- * a constant -- and `size` is `GetPartySize()`.  ANY extra mention of `i`
- * therefore kills the reversal, which is measured: `for (i = 0; i != size; i++)`
- * reads 70 at 92 instructions and `i = 0; if (size > i) { do ... }` reads 75.
+ * MEASURED THIS BATCH -- THAT ROUTE, AND WHY IT FAILS.  Hoisting the whole
+ * pointer removes the standalone value but ALSO takes the `ldr =gState' pool
+ * load and the `0xfc*2' constant build out of the loop preheader, which is where
+ * the ROM has them.  All worse, all RELOCDIFF (figure | dsize):
+ *     base                                                        7 |  0
+ *     `gp = (unsigned char *)&gState + 0xfc*2', both reads gp[i]  62 | -4
+ *     the same with the `base' local kept           62 | -4  bit-identical
+ *     `gp = (unsigned char *)&gState + base'                      60 |  0
+ *     `gp = &((unsigned char *)&gState)[base]'      60 |  0  bit-identical
+ *     gp[i] in the FIRST read only (halves varied independently)  62 | +4
+ *     gp[i] in the SECOND read only                               61 | +4
+ *     gp hoisted above GetPartySize()                             63 | -4
+ * EIGHT SPELLINGS, FIVE DISTINCT PROGRAMS.
  *
- * SO THE FLIP NEEDS TWO THINGS AT ONCE, and that is the sharpened map:
- *   (A) the cursor's init EARLIER than the counter's in the insn chain, so
- *       len79 > len40 -- which is also visible in the output, since the ROM
- *       emits `adds r6,r3,r2` (cursor) at index 32 and `adds r5,r0,#0`
- *       (counter) at index 33, while we emit them the other way round; AND
- *   (B) equal reference counts, which given (A) then favours 40.
- * With refs 5 against 4 and (A) in place the arithmetic is still 32/L against
- * 40/(L+2), which needs L < 8 to flip and L is about 30.  So (A) alone is not
- * enough, and neither is (B) alone.  NOT A BOUND -- the evidence is the two
- * formulae, the two reference counts and the chain order above.
+ * ==> OPEN, AS A REQUIREMENT AND NOT A SWEEP: a source shape in which pass 1's
+ *     giv combination reduces to the FULL pointer `gState + base + i' -- i.e.
+ *     one with NO standalone `base + i' value -- WHILE LEAVING THE `ldr =gState'
+ *     POOL LOAD AND THE `0xfc*2' CONSTANT BUILD INSIDE THE LOOP PREHEADER.  The
+ *     eight rows above remove both at once; they need separating.  Worth the
+ *     whole 7, not two of it, because it moves BOTH live lengths together.
  *
- * MEASURED AND SCREENED ON `.18.greg`'s ALLOCATION ORDER, not on the figure
- * (docs/elevation.md's correction 4).  All leave the order `... 39 79 40 ...`
- * with `79 in 5, 40 in 6`, i.e. exactly 7:
- *   `while` form with the increment at the bottom; `++i` for `i++`; `base` as
- *   `int` rather than `unsigned int`; the inner loop as a bottom-tested
- *   do/while with `k--` in the body; `k = gState[...]` as a named index.
- * CHANGES THE ORDER but breaks the program: `i` unsigned 70 (order becomes
- *   `41 40 79 39`, `40 in 1`); `i != size` 70 (`40 in 4`); the outer loop as a
- *   `goto` loop -- the park's own suggested next move -- 83 at 92 instructions,
- *   because suppressing loop.c suppresses the strength reduction the ROM needs.
- * FLAG INSTRUMENTS: -fno-regmove and -fno-rerun-cse-after-loop exactly inert
- *   at 7; -fno-rerun-loop-opt changes the SIZE (every relocation offset moves),
- *   so the two-pass loop structure is load-bearing but removing it is not the
- *   answer.
- *
- * DECLARATION DIVIDEND, no figure change: GetUnit's real definition is
- * `void *GetUnit(unsigned int id)` (src/rom_77000/rom_77320_a_a_c_c_a_b.c) and
- * GiveDjinni's is `int GiveDjinni(int id, int elem, int bit)`
- * (src/rom_77000/rom_79460_c_c_c_c_a_c_c_c_a_c_a_b.c); Func_807a458 really does
- * take three arguments (asm/rom_77000/rom_79460_c_c_c_c_a_c_c_c_a_c_a_a.s,
- * r0/r1/r2 all copied on entry).  The park's int-returning declarations for
- * GiveDjinni and Func_807a458 are load-bearing for the argument fill order and
- * are kept.
- *
- * ===========================================================================
- * BATCH 325.  THE PARK SURVIVES.  THREE CORRECTIONS TO ITS ARITHMETIC, ONE OF
- * WHICH MAKES ITS BOUND HARDER, AND ONE STRUCTURAL SHARPENING.
- *
- * Everything the park REPRODUCED, I reproduced again: 7 of 88 at equal size and
- * identical relocations; the whole residue is the r5/r6 contest between the
- * strength-reduced gState byte cursor (pseudo 79) and the check_dbra_loop
- * down-counter (pseudo 40); `;; 12 regs to allocate: 38 37 42 41 39 79 40 32 36
- * 33 35 34` and `;; Register dispositions: ... 40 in 6 ... 79 in 5`, so it IS
- * global-alloc's ordering; the ROM wants 40 in r5 and 79 in r6.
- *
- * CORRECTION 1 -- THE REFERENCE COUNTS THE FORMULA DIVIDES ARE NOT RAW COUNTS.
- * `allocno_compare` divides `allocno[v].n_refs`, and global.c:449 accumulates
- * that from `REG_N_REFS`, which flow.c:4948 increments by
- * `(optimize_size ? 1 : pbi->bb->loop_depth + 1)` PER REFERENCE -- so at -O2
- * every reference in the outer loop body counts TWO.  The park's "pseudo 79: 5,
- * pseudo 40: 4" are the raw counts.  The weighted ones are
- *     79: def (depth 0) 1 + two reads (depth 1) 2+2 + increment set&use 2+2 = 9
- *     40: def (depth 0) 1 + `sub` set&use 2+2 + the `ne` compare 2         = 7
- * and `floor_log2(9)*9 = 27` against `floor_log2(7)*7 = 14`, not 10 against 8.
- * SO THE PARK'S BOUND IS HARDER THAN IT WROTE, not softer: with (A) in place
- * (len79 = len40 + 2) the inequality for 40-first becomes 14/len40 > 27/len79,
- * i.e. **len79 > 1.93 * len40**, against the park's 1.25.  Both pseudos live
- * across the same loop, so that ratio is not reachable by moving one init.
- *
- * CORRECTION 2 -- THE DIVISION IS DOUBLE, NOT INTEGER (global.c:605-612): the
- * `(double)` cast is on the numerator and the truncation to int happens only
- * after `* 10000 * size`.  Nothing in the park turns on this, but a reader
- * doing the arithmetic in C ints gets 0 == 0 for both allocnos and would
- * conclude, wrongly, that they always tie.
- *
- * CORRECTION 3 -- THE TIE-BREAK IS ON THE ALLOCNO INDEX, NOT THE PSEUDO NUMBER.
- * `allocno_compare` ends `return v1 - v2` (global.c:617) where v1/v2 are
- * allocno indices; global_alloc numbers allocnos in ascending pseudo order, so
- * allocno(40) < allocno(79) and a tie DOES go to 40.  The park's target (B) --
- * "make the priorities equal and 40 takes r5" -- is therefore the right target.
- * What (B) needs is EQUAL WEIGHTED counts, and by correction 1 that means
- * moving 9 to 7 or 7 to 9, i.e. adding or removing a whole outer-loop
- * reference, which the park already closed from both sides: the cursor is read
- * twice in the ROM (`ldrb r0,[r6]` and `ldrb r3,[r6]`) so neither read can go,
- * and any extra mention of the counter kills check_dbra_loop's reversal.
- *
- * STRUCTURAL SHARPENING -- (A) AND THE REGISTER SWAP ARE ONE PHENOMENON, SO (A)
- * IS NOT SEPARATELY PURCHASABLE.  The park lists the init order and the
- * register assignment as two things that must both be got.  `.23.sched2`'s
- * visualization for the preheader block says they are the same thing:
- *
- *     ;; block 3   0  253  r3=[`*.LC0']
- *     ;;           2  315  r2=0xfc
- *     ;;           3  316  r2=r2<<0x1
- *     ;;           4  275  r6=r0        <- the counter init
- *     ;;           5  286  r5=r3+r2     <- the cursor init
- *
- * Both 275 and 286 are ready at clock 4 and both have priority 1, so
- * rank_for_schedule decides on a rung below priority and 275 wins with the
- * smaller INSN_LUID.  The LUID order is the chain order, which is also what
- * decides the live lengths, which is what `allocno_compare` divides by.  In
- * BOTH streams the init that comes FIRST in the chain takes r6 and the second
- * takes r5 -- ours has the counter first and the ROM has the cursor first.  So
- * a single edit that flips the chain order flips the emitted order AND the two
- * registers together; there is no separate (A) to buy.  Stated as evidence, not
- * as a claim: two streams is a small sample, and correction 1's arithmetic says
- * the length change alone does not reach the priority flip.
- *
- * MEASURED THIS BATCH, all screened on `.18.greg` and not on the figure:
- *   EXACTLY INERT AT 7, allocation order and dispositions BIT-IDENTICAL (so the
- *   edit never reached the allocator, which is not the same as the lever being
- *   inert):
- *     `base = 0xfc * 2;` moved BEFORE the GetPartySize call
- *     `base` as `int` rather than `unsigned int`
- *     `size` declared last in its declaration list (batch 272's lever)
- *   WORSE, and both still `79 in 5 / 40 in 6`:
- *     `size > i` instead of `i < size`                9 of 88, first diff 27
- *     the gState base named in a local `g`           10 of 88, first diff 27
- *   WORSE AND A DIFFERENT PROGRAM -- these SUPPRESS the strength reduction the
- *   ROM needs, and come out SHORTER than the reference, so their figures are
- *   measuring misalignment:
- *     an explicit `unsigned char *p` walked with `p++` in the for-step
- *                                                  63 of 88, 8 bytes SHORT
- *     the same with the init before GetPartySize    64 of 88, 8 bytes SHORT
- *     the same with `p[i]` indexing                 62 of 88, 4 bytes SHORT
- *     the same with `p++` at the bottom of the body 64 of 88, 8 bytes SHORT
- *     the `0xfc * 2` pasted in as a literal, no `base`
- *                                                   62 of 88, 8 bytes SHORT
- *     `unsigned int i` with `i < (unsigned)size`    70 of 88, 8 bytes LONG
- *
- * NEXT MOVE, with its price: the only remaining purchase is (B), equal WEIGHTED
- * reference counts, and by correction 1 that is a whole outer-loop reference,
- * not a spelling.  The one thing not yet swept is the loop-depth weighting
- * itself: a reference moved from the outer loop body to a DEEPER block counts
- * three instead of two, so a shape in which one of the cursor's two reads sits
- * inside the inner k-loop would make 79's weighted count 10 (floor_log2 3, 30)
- * and one in which a counter reference sits there would make 40's 9
- * (floor_log2 3, 27).  Neither is obviously honest C for this function; it is
- * recorded as the only unswept direction, not as a recommendation.
- *
- * CLASSIFIED AGAINST THE BATCH-325 RELOAD-CURSOR TRIAGE RULE, because this park
- * IS a coherent two-register rotation and that is exactly the shape the rule is
- * for.  `.18.greg` for this function prints
- *
- *     Spilling for insn 24.            <- no `Using reg` at all
- *     Spilling for insn 27.   Using reg 3 for reload 0
- *     Spilling for insn 30.   Using reg 3 for reload 0
- *     Spilling for insn 286.  Using reg 2 for reload 0
- *     Spilling for insn 81.   Using reg 2 for reload 0
- *     Spilling for insn 95.   Using reg 3 for reload 0
- *     Spilling for insn 147.  Using reg 3 for reload 0
- *     Spilling for insn 168.  Using reg 3 for reload 0
- *
- * -- ONE `Using reg` per `Spilling for insn` block, and every one of them is
- * r2 or r3, the scratch for a pool load.  `"Using reg %d for reload %d"` occurs
- * once in reload1.c, at :1664 inside `find_reg` (:1588), so those lines are
- * find_reg's decisions and NOT `allocate_reload_reg`'s round-robin cursor; with
- * one reload per insn the cursor has no freedom anyway, because
- * `choose_reload_regs_init` (reload1.c:5129) sets `reload_reg_unavailable` to
- * the complement of `chain->used_spill_regs`.
- *
- * NONE OF THEM IS r5 OR r6.  The r5/r6 contest is on the
- * `;; Register dispositions:` line -- `79 in 5`, `40 in 6` -- so this park is
- * about an ALLOCNO, which is the third case of the triage rule and is what the
- * park already says.  Neither the reload cursor nor `REG_ALLOC_ORDER` is the
- * place to look here; `allocno_compare`'s ordering is, and the corrections
- * above are to that.
-
- * ===========================================================================
- * BATCH 331.  THE PARK SURVIVES AT ITS STATED FIGURE, RE-MEASURED.  ONE OF ITS
- * STRUCTURAL CLAIMS IS REFUTED BY EXPERIMENT, AND THE CHAIN ORDER IT WANTS IS
- * NOW TRACED TO ITS LINE IN loop.c -- WHERE IT TURNS OUT NOT TO BE THE LEVER.
- *
- * RE-MEASURED: unchanged.  "ENCODINGS differ in 7 place(s) (ref 88, ours 88)
- * [STREAM length ...; instructions are 79/79]", first at index 32, SIZE equal,
- * no RELOCATIONS line.  Everything the park reproduced reproduces.  The residue
- * is a clean two-register rotation and nothing else: dumped against the
- * reference instruction-by-instruction, the only differing lines are the two
- * preheader inits (swapped), the two cursor reads, and the three loop-tail
- * insns -- `sub`, `add`, `cmp` -- with r5 and r6 exchanged throughout.
- *
- * REFUTED -- "(A) AND THE REGISTER SWAP ARE ONE PHENOMENON, SO (A) IS NOT
- * SEPARATELY PURCHASABLE."  They are TWO phenomena that merely correlate in the
- * two streams the park had.  Compiled with the post-reload scheduler suppressed
- * as an INSTRUMENT (tryc's own screen switch for it; no flag group is proposed
- * and none is needed), the emitted order changes and THE REGISTERS DO NOT: the
- * counter init moves two slots earlier, landing immediately after the gState
- * pool load and ahead of both constant-building insns, while the counter stays
- * in r6 and the cursor stays in r5.  So the emitted order is the post-reload
- * scheduler's and the registers are global-alloc's, decided passes earlier.
- * The park's own inference from "in BOTH streams the init that comes FIRST in
- * the chain takes r6" was drawn from a sample of two and is not causal.
- *
- * AND THE CORRECTED ARITHMETIC CLOSES (A) FROM THE OTHER SIDE, so this is a
- * tightening of the park rather than a new opening.  Take the park's own
- * correction 1 (weighted counts nine for the cursor, seven for the counter, so
- * the numerators are twenty-seven and fourteen) and flip the chain order, i.e.
- * make the cursor's live range the longer one by two: the condition for the
- * counter to be allocated first becomes 14/L > 27/(L + 2), i.e. L < 2.2, where
- * L is about thirty.  The chain order is worth nothing on its own.  Only the
- * WEIGHTED REFERENCE COUNTS can move this, exactly as the park says.
- *
- * WHY THE CHAIN ORDER IS WHAT IT IS, with the lines, because the next reader
- * should not have to find this again.  Both preheader inits are emitted by one
- * pass of `strength_reduce`, both with `emit_insn_before (..., loop_start)`,
- * which inserts immediately ahead of the loop -- so WHICHEVER IS EMITTED LATER
- * ENDS UP LATER IN THE CHAIN.  `check_dbra_loop` is called at loop.c:4408 and
- * emits the down-counter init itself (loop.c:8153-8155 for the
- * `initial_value == const0_rtx`, non-constant-comparison case, and :8168-8174
- * for the `INTVAL (initial_value)` case that this loop actually takes, giving
- * `mov rX, r0`); the giv's init is emitted afterwards by
- * `emit_iv_add_mult (bl->initial_value, v->mult_val, v->add_val, v->new_reg,
- * loop_start)` at loop.c:4778-4779.  4408 is before 4778, so WITHIN ONE LOOP
- * PASS the counter init is UNCONDITIONALLY earlier in the chain than the giv
- * init.  Ours is.  THE ROM'S IS NOT -- it emits `add r6, r3, r2` (cursor)
- * before `mov r5, r0` (counter).
- *
- * THAT ASYMMETRY IS NOT REACHABLE THROUGH THE SCHEDULER EITHER, which is worth
- * recording because it is where a reader would look next.  `rank_for_schedule`
- * (haifa-sched.c:4029-4116) has exactly six rungs in this build and four of
- * them are dead here: priority (:4041-4043); `INSN_REG_WEIGHT` (:4046-4048),
- * gated on `! reload_completed` and therefore dead post-reload; three
- * interblock rungs (:4051-4067), gated on `INSN_BB (tmp) != INSN_BB (tmp2)` and
- * therefore dead in basic-block scheduling; the last-scheduled-insn CLASS rung
- * (:4069-4095), where class 3 is `link == 0 || insn_cost (...) == 1`; the
- * dependent-count rung (:4097-4110), counting `INSN_DEPEND`; and finally
- * `INSN_LUID` at :4115.  At the contested slot the last scheduled insn is the
- * `lsl` that finishes the 0xfc*2 constant.  The CURSOR init reads that result,
- * so it is class 1 unless its cost is one; the COUNTER init reads only the
- * GetPartySize result, which is set in a PREVIOUS block, so it has no in-block
- * dependence and is class 3 unconditionally.  The rung prefers the HIGHER class,
- * so the counter wins it; and if the cursor's cost were one, both are class 3,
- * both have no in-block dependents, and :4115 hands it to the counter anyway on
- * the smaller LUID.  There is no rung on which the cursor can be issued first
- * while its LUID is the larger.
- *
- * SO THE ROM'S COUNTER INIT IS GENUINELY LATER IN ITS CHAIN THAN ITS GIV INIT,
- * which given loop.c:4408 against loop.c:4778 means the reversal and the
- * reduction happened in DIFFERENT loop passes in the original build -- the giv
- * in an earlier pass, the reversal in a later one.  This build has two loop
- * passes (the park already measured that suppressing the second changes the
- * SIZE), so that is a reachable state, and it is the one unswept structural
- * question left on this function: A SOURCE SHAPE WHERE `check_dbra_loop` FAILS
- * ON THE FIRST PASS AND SUCCEEDS ON THE SECOND.  Recorded as a question, not a
- * recommendation, and with its price attached: by the arithmetic three
- * paragraphs up, winning it would move the emitted order and NOT the registers,
- * so it is worth at most two of the seven and only in combination with a change
- * to the weighted counts.  The gate to read first is loop.c:7884,
- * `if (bl->giv_count == 0 && ! loop->exit_count)` -- `no_use_except_counting`
- * is only ever computed when the biv has NO givs, so the park's "check_dbra_loop
- * requires no_use_except_counting whenever the comparison value is not a
- * constant" is at best imprecise: with a giv present that variable stays zero
- * and the comment at loop.c:7886-7890 says the condition met instead is "there
- * is only one biv".
- *
- * MEASURED THIS BATCH, all at the park's figure and all byte-identical to the
- * park's own body, so none of them reached the allocator:
- *   `bestIdx` assigned BEFORE `best` inside the `if`
- *   the subscript written `i + base` in BOTH cursor reads
- *   the subscript written `i + base` in ONLY the first read
- *   the subscript written `i + base` in ONLY the second read
- *     (the last two deliberately, per the do-not-search-the-diagonal rule)
- *   `o = 0x8c * 2` hoisted above the GetUnit call
- * WORSE: the unit id saved in a local before GetUnit and the second read left
- *   in place -- nine of eighty-eight, still 79 instructions.
- *
- * `allocno_compare` RE-VERIFIED VERBATIM for the park's corrections 2 and 3:
- * global.c:597-621, the formula at :607-614 with the `(double)` cast on the
- * numerator and the truncation after `* 10000 * size`, higher priority
- * allocated first, and the tie-break `return v1 - v2` on ALLOCNO INDEX at :620.
- * Both corrections stand.
- 
- *
-
- * ===== BATCH 337, BRIEF E: THE CENTRAL ARITHMETIC IS WRONG, AND CORRECTING IT
- * ===== RE-OPENS THE ONE LEVER TWO BATCHES SPENT THEMSELVES RULING OUT.
- *
- * RE-MEASURED: 7 of 88, 79/79 instructions, first diff index 32, ref 189e against
- * ours 1c06; --whole clean.  (The old header's "92 lines against 92" is a tryc
- * LINE count, not an instruction count.)
- *
- * THE ALLOCATOR INPUTS, READ STRAIGHT OUT OF .17.lreg -- NOT inferred from the
- * .19.flow2 chain order, which is where the error came from:
- *   Register 40 used 7 times across 24 insns; set 2 times; dies in 0 places;
- *                 crosses 1 call; pref LO_REGS.                  <- the counter
- *   Register 79 used 9 times across 46 insns; set 2 times; dies in 0 places;
- *                 crosses 1 call; pref BASE_REGS; pointer.       <- the cursor
- * The WEIGHTED counts 9 and 7 (batch 325's correction 1) are CONFIRMED.  THE
- * LIVE LENGTHS ARE 46 AND 24: the cursor's range is nearly TWICE the counter's,
- * not two insns shorter.
- *
- * I VERIFIED THESE ARE THE NUMBERS global_alloc ACTUALLY USES by running
- * allocno_compare over ALL TWELVE allocnos and reproducing the printed order:
- *   38 11/9 -> 36666 | 37 6/5 -> 24000 | 42 11/14 -> 23571 | 41 12/20 -> 18000
- *   39 3/4  ->  7500 | 79 9/46 -> 5869 | 40  7/24 ->  5833 | 32  7/47 ->  2978
- *   36 6/66 ->  1818 | 33 4/47 ->  1702 | 35 7/88 ->  1590 | 34  3/44 ->   681
- * descending = 38 37 42 41 39 79 40 32 36 33 35 34, which is
- *   ;; 12 regs to allocate: 38 37 42 41 39 79 40 32 36 33 35 34
- * TWELVE FOR TWELVE.  The formula at global.c:607-614 and these inputs are the
- * whole decision.
- *
- * CONSEQUENCE -- ONE INSN CLOSES IT.  pri(79) = 5869 against pri(40) = 5833.  In
- * integer products the counter is allocated first iff 14*L79 > 27*L40, i.e.
- *     644 against 648 -- SHORT BY FOUR.
- *   L79=46 L40=24  5869 / 5833   current, cursor first
- *   L79=47 L40=24  5744 / 5833   FLIP
- *   L79=46 L40=23  5869 / 6086   FLIP
- * 46/24 = 1.917 is already within 0.6% of 27/14 = 1.9286, so the park's
- * "len79 > 1.93 * len40 ... not reachable by moving one init" is wrong by one
- * instruction, not by a factor.
- *
- * **AND THAT MAKES (A) -- TRANSPOSING THE TWO PREHEADER INITS -- SUFFICIENT ON
- * ITS OWN.**  The counter init (insn 275) sits immediately before the cursor init
- * (insn 286) in the chain.  Transposing them gives L79 = 47 AND L40 = 23 at the
- * same time: pri(79) = 5744 against pri(40) = 6086.  Batch 331 devalued exactly
- * this purchase as "worth at most two of the seven".  On the measured live
- * lengths it is worth all seven.
- *
- * THE LIVE LENGTHS DO MOVE -- MEASURED, so the dial is real.  Screened with
- * scratch_elev/b337/E/e_screen.sh, which reports the figure, BOTH allocno inputs
- * and .18.greg's order in one pass (figure | R40 refs/live | R79 refs/live):
- *   base                                       7 of 88 | 7/24 | 9/46
- *   drop the `t' temp (`sum += *q; q++;')       9 of 88 | 7/24 | cursor renumbered
- *   `t = *q++;'                                 7 of 88 | 7/24 | 9/46
- *   inner loop counted up (k = 0; k < 4)        7 of 88 | 7/24 | renumbered
- *   inner loop as do {...} while (--k >= 0)     7 of 88 | 7/24 | 9/46
- *   extra lexical scope round the OUTER body    7 of 88 | 7/24 | 9/46
- *   extra lexical scope round the INNER loop    7 of 88 | 7/24 | 9/46
- *   `u[id+o] < 10' for `<= 9'                   7 of 88 | 7/24 | 9/46
- *   `sum < best' for `best > sum'               9 of 88 | 7/24 | 9/46
- *   `q = &u[o]'                                 7 of 88 | 7/24 | 9/46
- *   `*(u + id + o)' for `u[id + o]'            54 of 88 | 7/25 | 9/48  +1 insn
- *   `o = 0x8c*2' hoisted OUT of the loop       80 of 88 | 7/**23** | -  +6 insns
- *   `sum = 0' hoisted above the guard          11 of 88 | 7/24 | 9/46
- *   second biv `j' carrying the subscript       7 of 88 | 7/24 | renumbered 70
- *   `for (i = size; i != 0; i--)' + base+size-i 12 of 88 | 8/26 | -
- *   `t = base + i' named, used by both reads   75 of 88 | 7/50 STACK_REG | -  +4
- *
- * TWO ROWS ARE POSITIVES, not dead ends:
- *  - `o' HOISTED OUT OF THE LOOP REACHES L40 = 23, the exact flip value.  It
- *    costs six instructions so it is not the answer, but it is the first
- *    measured proof that the counter's live length moves AT ALL, which the old
- *    arithmetic implied was pointless to try.
- *  - AN EXTRA LEXICAL SCOPE IS EXACTLY INERT on both inputs, inner and outer.
- *    So NOTE_INSN_BLOCK_BEG/END do NOT count toward REG_LIVE_LENGTH here and the
- *    "insert a free note inside one range" idea is closed.  It was the wrong sign
- *    anyway: adding n to BOTH lengths costs the counter more than the cursor,
- *    because d(C/L)/dL = -C/L^2 and 14/24^2 > 27/46^2.
- *
- * THE CHAIN ORDER, CONFIRMED WITH LINES.  check_dbra_loop is called from inside
- * strength_reduce at loop.c:4408 and the giv's preheader init is emitted by
- * emit_iv_add_mult (bl->initial_value, ..., loop_start) at loop.c:4778, inside
- * the iv-class loop that begins at :4416.  Both use emit_insn_before (...,
- * loop_start), so whichever is emitted LATER lands later in the chain and WITHIN
- * ONE LOOP PASS the counter init is unconditionally first.  Ours is.  The ROM's
- * is not -- so the ROM's build reduced the giv in one loop pass and reversed the
- * counter in a LATER one.
- *
- * THE GATE THAT MAKES THAT REACHABLE is loop.c:7884,
- *     if (bl->giv_count == 0 && ! loop->exit_count)
- * -- no_use_except_counting is only ever computed when the biv has NO givs.  On
- * pass 1 the cursor is still a giv of `i', so giv_count == 1, that branch is
- * skipped, and the reversal must be justified by the other disjunct the comment
- * at :7886-7890 names, "there is only one biv".  On pass 2 the cursor has become
- * its own biv, i's giv_count is 0, the no_use_except_counting branch is available
- * and satisfied, and the counter init is emitted AFTER the cursor init that pass
- * 1 already placed.
- *
- * ==> SO THE WHOLE PARK IS NOW ONE QUESTION: A SOURCE SHAPE WITH A **SECOND BIV**
- *     IN THE OUTER LOOP ON PASS 1.  Two bivs plus giv_count != 0 fails
- *     check_dbra_loop on pass 1; pass 2 then carries it on the
- *     no_use_except_counting disjunct and emits the init in the ROM's position.
- *     I tried the obvious spelling -- `j' walking the subscript beside `i' -- and
- *     it is INERT AT 7, because `i' is then used only for counting on pass 1 as
- *     well, so the reversal still succeeds on pass 1.  The missing ingredient is
- *     the SECOND BIV, not the use: this body's `i' already stops being used after
- *     pass 1's reduction.
- * -- scratch_elev/b337/E
- * BOTH MECHANICAL AXES ARE CLOSED -- measured batch 347 harvest pass, no agent.
- *   base 7 of 88, instruction counts EQUAL, byte size and pool
- *   count equal too (this park is in phase on all three length dimensions, so
- *   its figure IS a real distance).
- *   FLAG AXIS: all eight per-file groups measured, none improves the aligned
- *   residue.  ANCHOR AXIS: 20 placements swept, but 11 WERE BIT-IDENTICAL to
- *   the base, so only 9 DISTINCT PROGRAMS were actually tested.
- *   Those 9 are inert; the other 11 measured nothing.  No variant was capped and none failed to
- *   compile.
- *
- *   SO DO NOT RE-SCREEN THESE.  Every brief so far has spent part of a round on
- *   exactly that.  The residue here is NOT a placement or flag question; it is a
- *   register choice, a tie, or a pass-level effect, and it needs a hypothesis.
- *
- *   Read as "inert against THIS body".  A recorded negative expires silently
- *   when the body changes -- six batches running, the decisive lever has turned
- *   up inside a park's own negative list.
+ * DO NOT RE-SWEEP: the anchor axis (20 placements, 9 distinct programs, b347),
+ * the flag axis (all eight groups, b347), the declaration lever (b325), or any
+ * spelling of the comparison or the inner loop (b337's fifteen rows).  The
+ * residue is a loop-pass-ordering effect, not a spelling.
  */
 typedef struct { unsigned char _b[704]; } GlobalState;
 extern GlobalState gState;

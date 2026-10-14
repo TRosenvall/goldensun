@@ -1,121 +1,111 @@
-/* Field_Douse  --  0x080999f0, was asm/rom_8a000/rom_97b54_c_c_a.s (this
- * function alone; tools/datacheck.py reports NO data section), so it converts
- * whole with NO split and no extra exports.
- *
- * NON-MATCHING, 330 of 365 encodings differ.
+/* Field_Douse -- 0x080999f0.  PARK, 330 of 365 encodings differ (ours 369).
+ * ref: asm/rom_8a000/rom_97b54_c_c_a.s -- ONE function, tools/datacheck.py
+ * reports NO data section, so this converts WHOLE with NO split and no exports.
  *
  * Verify with:
  *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
- *     goldensun-build python3 tools/objcmp.py src/non_matching/rom_8a000/80999f0.c \
- *     asm/rom_8a000/rom_97b54_c_c_a.s --func Field_Douse
- *   -> XX SIZE  ref 808 bytes, ours 816
- *      XX ENCODINGS differ in 330 place(s) (ref 365, ours 369)
+ *     goldensun-build python3 tools/objcmp.py \
+ *     src/non_matching/rom_8a000/Field_Douse.c \
+ *     asm/rom_8a000/rom_97b54_c_c_a.s --whole
+ *   -> XX Field_Douse  330 of 365 differ (ours 369), first at index 7
+ *      XX SIZE  ref 808 bytes, ours 816
  *
- * Shims: NONE (tools/shimcount.py reports 0).
+ * batch 350, brief E.  THE PROGRAM IS UNCHANGED FROM THE PRIOR PARK -- every
+ * variant measured this pass was inert or worse.  What changed is the header.
+ * Pins/shims: 0 (tools/shimcount.py reports nothing).
  *
- * READ src/rom_8a000/rom_9a44c_c_c_a_a.c FIRST -- Field_Whirlwind is an EXACT
- * structural twin of this function and its header is the template: same
- * [iwram_3001f30] read, same from/to vec3 pair on the stack, same
- * `from[k] + i * (to[k] - from[k]) / 10` interpolation over 11 frames through
- * __divsi3, same `vec3_translate(Random() * 5 + (0xc0 << 10), Random(), v)`.
- * Four of its five levers transfer to this draft unchanged; the fifth (its
- * union / alias-set-0 scheduling dependence) has no counterpart here.
+ * FOUR NUMBERS, re-derived this pass (not inherited):
+ *   encodings  ref 365   ours 369     (+4, so NOT a true distance)
+ *   bytes      ref 808   ours 816     (+8)
+ *   relocations  37 / 37, same symbols, all offsets shifted
+ *   aligncmp   aligned-equal 241 (66.0%), differing/ins/del 147 in 53 hunks
  *
- * WHAT CLOSED, and the measurement for each (ref is 365 instructions):
+ * ================ THE BRIEF'S MECHANISM DOES NOT APPLY HERE ================
+ * Batch 350 sent this park the Field_Halt switch-case-run mechanism
+ * (src/rom_8a000/rom_9a44c_c_c_c_b.c; stmt.c:6346-6369's pure-leaf arm of
+ * emit_case_nodes, the compiler's only producer of `(lt X (const_int 11))`),
+ * on the strength of a corpus scan that found two hand-written backward
+ * `cmp r1,#0xb / blt` sites in this reference, at
+ * asm/rom_8a000/rom_97b54_c_c_a.s:146 (-> .L99aa4, line 96) and
+ * :369 (-> .L99c7e, line 323).  Both ARE backward, so the shape fits.
  *
- * 1. `int *o = iwram_3001f30;` INDEXED AS WORDS, not `unsigned char *` with
- *    `*(int *)(m + 0x10)` casts -- o[1]..o[5] for the struct's word fields and
- *    `*(signed char *)((char *)o + 0x20)` for its byte flags.  Field_Whirlwind's
- *    spelling.  [331 -> 330 differing]
+ * BUT BOTH SITES ALREADY MATCH IN THIS BODY, by a DIFFERENT route.  Compiled at
+ * production flags this park emits
+ *     cmp r2, #11 / blt .L6      (its .s line 154)
+ *     cmp r3, #11 / blt .L25     (its .s line 376)
+ * i.e. the ROM's encodings, from the park's OWN lever 3 -- the NAMED BOUND
+ * `n = 0xb;` with `if (i < n)`.  There was nothing here for the case run to fix.
  *
- * 2. `i = 0;` AND `n = 0xb;` AT THE TOP OF THE FUNCTION, before
- *    CreateParticleActor.  The ROM sets r8 = 0 in the FIRST basic block, reusing
- *    the `mov r1, #0` it already needs for the call's second argument, so `i` is
- *    live across the whole body -- which is what drives `t` out of r8 into r10
- *    and stops the v1 pointer being spilled to sp+0.  [375 -> 368, and the
- *    disagreeing region falls from 360 lines to 320]
+ * WHY THE NAMED BOUND WORKS HERE AND COSTS FOUR INSTRUCTIONS ON Field_Halt.
+ * Field_Halt's header states the rule and this park is the confirming case:
+ * the bound reaches `cmp` as an immediate only when the bound pseudo gets NO
+ * HARD REGISTER, so that reload substitutes its `reg_equiv_constant` into
+ * cbranchsi4's "rI" operand.  That needs r11 ALREADY TAKEN by another
+ * call-crossing allocno (find_reg takes r11 whenever it is free --
+ * global.c:1010-1050, with r11 last in REG_ALLOC_ORDER at arm.h:989-995).
+ * This function's ROM prologue saves r5-r7 AND r8-r11, so r11 is occupied and
+ * the bound spills into the immediate for free.  Field_Halt's r11 is free, which
+ * is why the same construct taxed it four instructions there.
+ * THIRD CONFIRMATION of this rule (Field_Whirlwind, Field_Halt, here).
  *
- * 3. THE LOOP BOUND MUST ARRIVE THROUGH A LOCAL (`n`), NOT AS A LITERAL.
- *    Field_Whirlwind's lever 3, confirmed here: combine.c's simplify_comparison
- *    rewrites `LT C` (C > 0) to `LE C-1` for a comparison whose constant it can
- *    see, so a literal `i < 0xb` gives `cmp #0xa / ble` where the ROM has
- *    `cmp #0xb / blt`.  A bound reaching the compare through a local escapes the
- *    rewrite and reload rematerialises it as the immediate.
- *    (CAUTION -- an earlier note here claimed a sweep of the tree found `blt`
- *    after `cmp #imm` ONLY with the immediate 0.  That was a sampling error: the
- *    sweep had covered 400 of the 4,339 gcc-generated `.s` files.  The full
- *    sweep finds `blt` against #1, #4, #9, #11, #15, #193 and #201.  The
- *    mechanism above is the real one and is the one Field_Whirlwind documents.)
+ * MEASURED THIS PASS AND WORSE -- the case run is a REGRESSION here:
+ *   switch case run on loop A only        330 of 365, ours 373 (+16 bytes)
+ *   switch case run on BOTH loops         332 of 365, ours 375 (+20 bytes)
+ * Both keep the right `cmp #11 / blt`, because both routes reach it; the case
+ * run just adds structure the named bound did not need.  DO NOT RETRY IT.
  *
- * 4. THE SCALE MULTIPLICAND MUST ALSO ARRIVE THROUGH A LOCAL.  The ROM has a
- *    register multiply, `mov r3, #0xc0 / lsl r3, #8 / mov r0, r8 / mul r0, r3`.
- *    A literal `i * (0xc0 << 8)` never produces it: 0xc000 == 3 << 14, so
- *    expand_mult SYNTHESISES the multiply as `lsl r0, r3, #1 / add r0, r8 /
- *    lsl r0, #14` and creates a giv for it as well, which costs r9 and forces
- *    the v1 pointer into memory.  `sa = 0xc0 << 8; h = i * sa / 10 + (0x80 << 7)`
- *    keeps the `mul`; reload then rematerialises the constant at the use site,
- *    which is why the ROM materialises it INSIDE the loop.  Note
- *    Field_Whirlwind needs NO local for its own scale -- its constant is
- *    0x10ccc, which expand_mult cannot synthesise cheaply, so a literal already
- *    gives `mul`.  The local is needed exactly when the constant is
- *    shift-and-add cheap.  [fixes the whole rom[120..133] block]
+ * ===================== FLAG AXIS, swept this pass =====================
+ * The park's recorded flag list held only -fno-gcse.  All four groups the tree
+ * actually carries are now measured, as (objcmp ndiff / ours encodings / bytes /
+ * aligncmp differing):
+ *   production            330 / 369 / 816 / 147 in 53 hunks   <- shipped
+ *   -fno-strength-reduce  330 / 369 / 816 / 147  BIT-IDENTICAL to production
+ *   -fno-strict-aliasing  330 / 369 / 816 / 147  BIT-IDENTICAL to production
+ *   -fno-schedule-insns2  325 / 367 / 812 / 178 in 67 hunks   AMBIGUOUS
+ *   -fno-gcse             337 / 355 / 788 / 179 in 57 hunks   worse
+ * -fno-strength-reduce measuring NOTHING is expected and is a positive result:
+ * this body already emits 8 `mul`s, exactly the ROM's 8, because the park's
+ * lever 4 (both scale constants through locals `sa`/`sb`) already defeated the
+ * giv.  There is no strength-reduction defect left to fix here.
  *
- * 5. `i * (v1[k] - v2[k])`, NOT the reverse -- *thumb_mulsi3 ties operand 0 to
- *    operand 1, so the ROM's `mov r0, r8 / mul r0, r3` names `i` first.
- *    (Field_Whirlwind lever 2, third confirmation.)
+ * -fno-schedule-insns2 IS LEFT UNRESOLVED ON PURPOSE.  It moves the raw figure
+ * DOWN (330 -> 325) and the length TOWARD the ref (+4 -> +2 encodings), while
+ * moving the aligned residue sharply UP (147 -> 178, 53 -> 67 hunks).  The two
+ * instruments disagree and neither is obviously the misleading one here, so it
+ * is recorded with both numbers rather than filed as a lever or a negative.
+ * Whoever takes the next pass should read the sched2 dump before spending a
+ * round on it -- note -fsched-verbose=6 writes to the .23.sched2 FILE, not
+ * stderr.  A SCHED2_CFLAGS group already exists in the Makefile (line 469), so
+ * if it IS the lever the install cost is one rule.
  *
- * 6. THE TWO INTERPOLATION LOOPS MUST BE `goto`, NOT `for`.  Unlike
- *    Field_Whirlwind, here the `for (; i < n; i++)` spelling is 8 instructions
- *    WORSE (377 vs 369): loop.c spills both vec3 pointers and reloads them per
- *    access.  Both spellings were measured on the same body.
+ * ============== WHAT THE REMAINING 330 IS, and what it is NOT ==============
+ * NOT a frame-layout question, which rules out the cheapest class.  Measured:
+ * the ROM's frame is `sub sp, #0x2c` and ours is `sub sp, sp, #44` -- THE SAME
+ * 44 BYTES -- and both the ROM and this body build THREE sp-relative address
+ * pseudos (`add rN, sp, #K`, three each).  So the park's lever 7 (declaration
+ * order, FRAME_GROWS_DOWNWARD at arm.h:1297) is fully landed and the vec3
+ * offsets are right.
  *
- * 7. THE FRAME.  `sub sp, #0x2c`, with v3 at sp+0x20, v2 at sp+0x14, v1 at sp+8
- *    and reload spills at sp+0 and sp+4.  gcc-2.96 lays locals out DOWNWARD in
- *    declaration order, so they must be declared v3, v2, v1 -- last-declared
- *    lowest, the Field_Whirlwind lever-1 rule.
+ * The residue is the REGISTER ASSIGNMENT of those pointer allocnos, exactly as
+ * the park says: the ROM holds &v2 spilled at sp+4 as a master reloaded once per
+ * block, where ours keeps &v2 in a HIGH register and pays `mov r2, r9` before
+ * every store.  That diagnosis REPRODUCED this pass and is retained.
  *
- * 8. `mp = o; h = *mp++; vec3_translate(0x80 << 13, h, mp);` is what produces
- *    the ROM's single-register `ldmia r5!, {r1}`.  Do NOT write the
- *    post-increment inside the argument list -- the ROM passes the pointer
- *    AFTER the increment, which an argument list does not guarantee.
+ * NOTE FOR THE NEXT PASS -- this park's blocker is NOT the same as its brief-mate
+ * Field_Catch's, and the two should stop being treated as one problem.
+ * Field_Catch (src/non_matching/rom_8a000/809ad70.c) is still SHORT A STACK SLOT
+ * (0x24 against the ROM's 0x28) because its eighth long-lived pseudo never
+ * spills; this function's frame is already right and only the assignment is
+ * wrong.  Same bank and same animation shape, different pass.
  *
- * BLOCKER, by pass: global.c / reload -- ONE SPILL DECISION.
- *
- *   ROM   sp+4 = &v2 (master, reloaded ONCE into r1 per block)
- *         r11  = &v1 (master)   r10 = &v1 loop copy   r9 = cnt, then &v2 copy
- *   ours  r9   = &v2            r10 = &v1             r11 = n / cnt
- *
- * The ROM carries FOUR pointer allocnos for the two arrays -- a master for the
- * straight-line fill plus a fresh copy per loop (`mov r10, r11`, `mov r9, r2`) --
- * so all seven call-preserved registers (r5,r6,r7 + r8..r11; r4 is call-used
- * under -fcall-used-r4) are full and &v2 spills.  A spilled master is CHEAPER
- * here, not dearer: one `ldr r1, [sp, #4]` serves three `str r3, [r1, #k]`,
- * where ours pays `mov r2, r9` before every single store because &v2 sits in a
- * HIGH register.  That is most of the 330.
- *
- * Ours has only TWO pointer allocnos: cse1 unifies the loop's `sp + N` address
- * with the pre-loop fill's, so loop.c has no movable left to hoist into the
- * preheader and no copy is ever created.
- *
- * MEASURED and REJECTED (count of ref 365):
- *   369  this draft
- *   369  named pointers for the two FILLS, array names in the loops
- *   369  named pointers for the two LOOPS, array names in the fills
- *        -- both coalesced straight back by gcse's cprop_insn, the mechanism
- *        Field_Ply's one pin exists for
- *   375  `for` loops with literal scale and bound
- *   375  unsigned cast on the multiply; the product split into its own statement
- *   377  the Field_Whirlwind `for (; i < n; i++)` form with everything else kept
- *   387  the scale computed at the TOP of the loop body instead of after the
- *        three interpolated stores
- *   360  -fno-gcse (diverges at instruction 1 -- not the lever)
- *
- * WHAT WOULD MOVE IT.  A spelling that gives each array a separate address
- * pseudo for the fills and for each loop without the copy being coalescible.
- * Field_Whirlwind's lever 4 is the nearest precedent: there the knob was
- * move_movables' lifetime test at loop.c:1803, and a named pointer on ONE of
- * two stores (not both, not neither) put the copy where the ROM has it.  The
- * equivalent asymmetry has not been searched here.
+ * STILL UNSEARCHED, and still the nearest precedent: Field_Whirlwind's lever 4 --
+ * move_movables' lifetime test at loop.c:1803, where a named pointer on ONE of
+ * two stores (not both, not neither) put the loop copy where the ROM has it.
+ * The park already records that both-pointers and neither-pointer spellings
+ * coalesce straight back through gcse's cprop_insn; the ASYMMETRIC spelling is
+ * the untried one.  Brief E tested that asymmetry on Field_Catch and found all
+ * three pointer spellings there collapse to ONE PROGRAM, so expect the same here
+ * unless the asymmetry is placed inside the loop rather than at the fills.
  */
 extern int *iwram_3001f30;
 extern unsigned char *CreateParticleActor(int id, int x, int y, int z);

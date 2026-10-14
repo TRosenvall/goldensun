@@ -164,7 +164,15 @@ def resolve_s(arg):
     """Accept a park/landed .c or the .s itself; return the .s on disk."""
     if arg.endswith(".s"):
         return arg
-    t = open(os.path.join(ROOT, arg), errors="replace").read(9000)
+    # READ THE WHOLE FILE, not the first 9000 bytes.  A park's reference citation
+    # can sit behind a long carried-forward header: on
+    # src/non_matching/rom_a1000/80a8f40.c the first `asm/...s` is at BYTE 9783,
+    # so this returned "could not resolve a reference .s that exists on disk" for
+    # a reference that exists and holds the function.  THREE parks are past the
+    # old window.  Same narrow-window shape as the six other silent defects this
+    # project has fixed in its own instruments; a reader cannot tell a truncated
+    # read from a missing file.
+    t = open(os.path.join(ROOT, arg), errors="replace").read()
     for m in re.finditer(r"(asm/[A-Za-z0-9_/]+\.s)", t):
         if os.path.exists(os.path.join(ROOT, m.group(1))):
             return m.group(1)

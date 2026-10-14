@@ -227,7 +227,91 @@
  *
  *   Read as "inert against THIS body" -- a recorded negative expires silently
  *   when the body changes.
-*/
+
+ * ===== BATCH 350 BRIEF A: 2 of 57 HELD.  THE "THIRTY-FOUR SPELLINGS" ARE
+ * ===== ONE PROGRAM -- AND ESCAPE (b) IS UPGRADED FROM NAMED TO VALIDATED.
+ *
+ * RE-DERIVED FIRST: **2 differing encodings of 57**, ref 57 / ours 57,
+ * instructions 47 / 47, first at index 35 (ref 1c30 `mov r0,r6`, ours 0392
+ * `lsl r2,#14`), no SIZE / INSTRUCTION COUNT / RELOCATIONS line.  The figure IS
+ * a distance.  BODY UNCHANGED.  Pin-free, device-free, flag-free.
+ *
+ * ---- THE CENSUS: 20 OF THE 34 CLAIMED-INERT ROWS REBUILT, ALL 20 ARE THE
+ * ---- BASE OBJECT.  THE CALL'S SPELLING IS CLOSED BY A BIT-IDENTICAL SET.
+ *
+ * Swept with tools/sweep_variants.py's object fingerprint: naming z; naming x
+ * and z; naming z then x; naming y alone; `z = 0x80; z <<= 14;`; all three
+ * coordinates forward and reverse; a copy of the actor pointer; `a + 0`;
+ * `(0x80 << 7) << 7`; the literal `0x200000`; `0x1fffff + 1`; `0x80 * 0x4000`;
+ * an unused extra `int z`; no prototype; `()`; a varargs prototype; `int`
+ * return; `void *` first parameter; all-`int` parameters with a cast at the
+ * call -- **every single one BIT-IDENTICAL TO THE BASE.**  Twenty recorded
+ * rows, ONE program.  No spelling of this call reaches the back end, which is
+ * the strongest form of the park's own "do not re-sweep the call".
+ *
+ * ---- THE GATE RE-READ ON DISK, WITH THE TWO CONSTANTS THE PARK ASSERTED
+ *
+ * `calls.c:848-856` (in `precompute_register_parameters`) copies an argument
+ * value to a pseudo when it is not a REG, is not BLKmode,
+ * `rtx_cost (value, SET) > 2`, and `(SMALL_REGISTER_CLASSES && *reg_parm_seen)`.
+ * Both of the park's constants CHECK OUT:
+ *   * `SMALL_REGISTER_CLASSES` is `TARGET_THUMB` -- **arm.h:1061** -- so 1 here.
+ *   * `*reg_parm_seen` is set by the preliminary loop at **calls.c:812-818**
+ *     for ANY argument that has a register, so 1 for any call with register
+ *     arguments.
+ *   * `arm_rtx_costs`' CONST_INT-under-SET branch (**arm.c:2077-2085**) returns
+ *     0 below 256, `COSTS_N_INSNS (2)` = 6 for a `thumb_shiftable_const`, 10
+ *     otherwise.  0x200000 is `0x80 << 14`, so 6 > 2.
+ * The copy therefore happens, its def insn lands in the argument-evaluation
+ * loop (which runs before `load_register_parameters`), and LUID(the 0x200000
+ * build) < LUID(`r0 = r6`) is forced.  **The park's gate is correct.**
+ *
+ * ---- ESCAPE (b) IS NOT JUST "THE ONE LEFT", IT WOULD ACTUALLY PRODUCE THE ROM
+ *
+ * The park named "spill pseudo62 with a `REG_EQUIV`, so reload rematerialises
+ * at the use" as the one escape, without checking that the rematerialisation
+ * emits the ROM's instructions rather than a pool load.  It does, and here is
+ * the chain:
+ *   * `THUMB_LEGITIMATE_CONSTANT_P` (**arm.h:1807-1809**) is true for ANY
+ *     `CONST_INT`, so reload's `reg_equiv_constant` path is open for 0x200000 --
+ *     it is NOT forced to memory.
+ *   * the rematerialised `(set (reg:SI) (const_int 2097152))` matches
+ *     alternative **`K`** of `*thumb_movsi_insn` (**arm.md:3838-3841**), where
+ *     `CONST_OK_FOR_THUMB_LETTER (VAL, 'K')` is `thumb_shiftable_const`
+ *     (**arm.h:1095-1098**) and the output template is `#` -- so it SPLITS into
+ *     `mov r2,#0x80 / lsl r2,#14`, exactly the ROM's pair, at the USE, i.e.
+ *     after `load_register_parameters` has already emitted `r0 = r6`.
+ * So escape (b) is the route, and the `ldr r2,=0x200000` pool-word worry that
+ * would have killed it does not arise.  **Recorded so the next round does not
+ * have to re-derive it before testing pressure.**
+ *
+ * ---- BUT WHY THE PSEUDO GETS r2 IS NO LONGER "AN OPEN PRESSURE QUESTION"
+ *
+ * It is local-alloc's copy suggestion, and the function's shape forces it:
+ *   * the reference function **HAS NO BRANCH AT ALL** (54 lines, four `bl`s and
+ *     a `bx`, zero conditional jumps), so the whole body is ONE basic block and
+ *     EVERY pseudo is single-block -- `global_alloc` owns none of them.
+ *   * the use of the constant pseudo is the copy `r2 = pseudo`, and a copy
+ *     between a pseudo and a hard register records that hard register as a
+ *     COPY SUGGESTION for the quantity (**local-alloc.c:1683-1692**).
+ *   * the suggested-register pass runs FIRST and, for a quantity with
+ *     suggestions, `find_free_reg` is called with `just_try_suggested = 1`
+ *     (**local-alloc.c:1341-1347**), which restricts the search to exactly those
+ *     registers (**:2005-2016**).
+ *   * at the constant's definition point r0-r3 are all dead: the mask's last use
+ *     is the `strb r2,[r1,#9]` two instructions earlier.
+ * So r2 is handed over on the suggested pass whatever the priority ratio, and
+ * denying it needs either a SECOND BASIC BLOCK or a value live across the
+ * definition point.  **Both are program changes in a function whose other 55
+ * encodings are exact.**  That is the bound: not "find the pressure", but
+ * "there is no pressure to find in a single-block, four-live-value function".
+ *
+ * NEXT: nothing in the call.  If this park is scheduled again, the only
+ * question worth a round is whether a construct exists that puts a second,
+ * zero-cost use on the arg-2 pseudo (which would defeat the copy suggestion
+ * without adding an instruction).  Do not re-sweep the twenty rows above: they
+ * are one object.
+ */
 extern unsigned char *__MapActor_GetActor(int slot);
 extern void __Actor_TravelTo(unsigned char *a, int x, int y, int z);
 extern void __MapActor_WaitMovement(int slot);
