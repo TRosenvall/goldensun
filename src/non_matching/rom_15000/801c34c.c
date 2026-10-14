@@ -1,3 +1,141 @@
+/* ===== BATCH 350 BRIEF B -- 3 of 69 RE-DERIVED AND HELD.  BODY CHANGED, AND
+ * ===== THE CHANGE IS BYTE-FOR-BYTE FREE: ONE OF THE TWO BARRIERS IS NOW AN
+ * ===== ANCHOR, SO THE PASS-3 DEVICE DEBT IS HALVED AT AN IDENTICAL OBJECT.
+ *
+ * NON-MATCHING, 3 differing encodings of 69  (MEASURED THIS BATCH).
+ * ref 69 / ours 69, 16-bit instructions 59 / 59, dsize 0, relocations
+ * IDENTICAL, first differing index 6 (ref 21e0 `mov r1,#0xe0`, ours 9304
+ * `str r3,[sp,#16]`).  All three length dimensions in phase, so the 3 IS A
+ * TRUE DISTANCE.
+ *
+ * ** THE DEVICE-FREE FIGURE IS 8 of 69 ** (re-measured this batch as a
+ * control: delete both the barrier and the anchor -> 8, first index 2).  The
+ * two figures are NOT comparable; give both whenever this park is quoted.
+ *
+ * Verify with:
+ *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
+ *     goldensun-build python3 tools/objcmp.py \
+ *     src/non_matching/rom_15000/801c34c.c \
+ *     asm/rom_15000/rom_1aeec_c_a_a_a_a_a_c_c_c_c.s --func Func_801c34c
+ *
+ * SPLIT SHAPE (tools/piece.py, verified this batch): the reference .s holds ONE
+ * function and it is the only parked member, so NO SPLIT is needed and none is
+ * in the manifest.  Install path when it lands:
+ * src/rom_15000/rom_1aeec_c_a_a_a_a_a_c_c_c_c.c.
+ *
+ * ===========================================================================
+ * 1.  THE EDIT: THE SECOND BARRIER WAS NEVER DOING BARRIER WORK
+ * ===========================================================================
+ * The park shipped TWO `__asm__ volatile ("")`.  Measured this batch, with
+ * object fingerprinting, every combination of the two sites:
+ *
+ *   site 1 (after `g = ...`)   site 2 (after `h = 8`)   figure
+ *   ------------------------   ----------------------   ------
+ *   barrier                    barrier                   3   <- the park's body
+ *   barrier                    do { } while (0);         3   BIT-IDENTICAL  *** THIS ***
+ *   barrier                    do{}while(0) x2           3   BIT-IDENTICAL
+ *   barrier                    (nothing)                 5
+ *   do { } while (0);          barrier                   5
+ *   (nothing)                  do { } while (0);         5
+ *   do { } while (0);          do { } while (0);         5
+ *   (nothing)                  (nothing)                 8   <- device-free
+ *
+ * >> SITE 1 NEEDS A REAL BARRIER; SITE 2 NEEDS ONLY A REGION BOUNDARY.  An
+ * >> anchor there is BIT-IDENTICAL to a barrier -- not merely equal in figure,
+ * >> the same object bytes and the same relocations.  So the body can carry
+ * >> ONE device instead of two for free, and reports/pass3-depin.md owes half
+ * >> as much on this function. <<
+ *
+ * WHY, and it is batch 341's rule read the other way round.  That batch found
+ * (on this batch's p4, Anim_CriticalHit) that "RAISING A PRIORITY COMPETES;
+ * ENDING A REGION DOES NOT", and that an anchor beats a barrier where the need
+ * is a region end.  Site 2's need IS a region end -- the park's own analysis
+ * says so: it wants R2 = {15, 57, 60} cut out so `sub sp,#20` and the gState
+ * pool load stop sharing a ready list.  An anchor's loop notes hang on the
+ * FOLLOWING insn (`haifa-sched.c:3735-3736`), which ends the region and is all
+ * that is required.  Site 1 is different: there the park needs every register
+ * to acquire a dependence so the ready list never forms at all, which is
+ * `haifa-sched.c:3568 case ASM_INPUT:` -> `:3583-3593` walking every register
+ * -> `:3595 reg_pending_sets_all = 1`.  An anchor does none of that, so site 1
+ * degrades to 5.
+ *
+ * ===========================================================================
+ * 2.  THE NEGATIVE-LIST RE-TEST: 21 SPELLINGS, 8 DISTINCT PROGRAMS
+ * ===========================================================================
+ * The park's barrier-POSITION axis is closed by 104 prior rows and was NOT
+ * re-swept (METHOD.md: believe a header that says a mechanical axis is
+ * closed).  What was swept is the axes the park never varied.  Rows, all at
+ * 69/69 and 59/59 unless noted (scratch_elev/b350/B/v2, v2c):
+ *
+ *   BIT-IDENTICAL TO THE BASE -- these rows measured NOTHING:
+ *     `w = 8, h = 8;` as a comma expression
+ *     `w = 8; h = w;`
+ *     `((short *)g)[0xe0]` / `[0xe1]` array indices  (the park's own inert row,
+ *         now shown to be literally one program with the base)
+ *     the `id += 0x99b` folded into the call's argument
+ *     gState read through a TYPED STRUCT at its real offsets, both as a typed
+ *         `g` and as a cast at the use (see below -- this is the big one)
+ *     an EXTRA anchor between `w = 8;` and `h = 8;`
+ *   DISTINCT PROGRAMS:
+ *     `int w = 8, h = 8;` at the declaration           8, first index 1
+ *     `w = h = 8;`                                     2  *** FALSE IMPROVEMENT,
+ *                                                         see section 3 ***
+ *
+ * >> THE STRUCT-MEMBER LEVER DOES NOT TRANSFER TO gState, AND THAT IS WORTH
+ * >> THE ROW.  This park's residue B was closed by giving `iwram_3001ebc` a
+ * >> type with its touched fields as members ("the stored constants come out as
+ * >> immediates").  The obvious next move is the same treatment for gState's
+ * >> two halfword reads.  Measured both ways -- `g` declared as the struct
+ * >> pointer, and the struct cast applied at the use -- and BOTH ARE
+ * >> BIT-IDENTICAL TO THE BASE.  A struct member at 0x1c0 and
+ * >> `*(short *)(g + (0xe0 << 1))` are one program, because Thumb LDRSH has no
+ * >> immediate-offset form and 0x1c0 is too large for an `add` immediate, so
+ * >> either spelling must materialise the offset in a register.  The ACCESS
+ * >> SPELLING IS NOT A LEVER ON THIS RESIDUE AT ALL. <<
+ *
+ * ===========================================================================
+ * 3.  `w = h = 8;` READS 2 AND IS A FALSE IMPROVEMENT.  DO NOT SHIP IT.
+ * ===========================================================================
+ * The chained assignment reads 2 of 69 at dsize 0 with clean relocations --
+ * better than this body -- and it is the park's OWN documented trap at a new
+ * figure.  `w = h = 8` is `w = (h = 8)`, so `h` is stored FIRST.  Compiled and
+ * read as output rather than scored:
+ *
+ *   ref        mov r3,#8 / mov r1,#0xe0 / str r3,[sp,#0x10] / str r3,[sp,#0xc]
+ *   this body  mov r3,#8 / str r3,[sp,#16] / str r3,[sp,#12] / mov r1,#224
+ *   w = h = 8  mov r3,#8 / str r3,[sp,#12] / str r3,[sp,#16] / mov r1,#224
+ *
+ * `&w` is sp+16 and `&h` is sp+12 (from the matching `add r1,sp,#16` /
+ * `add r2,sp,#12` argument block for `TextBox(id,&w,&h,&tw,&th)`), so the ROM
+ * stores w THEN h.  The chained form stores h then w and gains one encoding
+ * only because the mis-ordered second store happens to land on the ROM's first
+ * one inside the rotated window.  This is EXACTLY what the park recorded for
+ * its four 7s ("Every 7 has `h = 8` before `w = 8` ... they gain a line only
+ * because one of the two mis-ordered stores happens to land on the ROM's other
+ * store"), reproduced on the barrier body.  THE STRUCTURALLY CORRECT BODY IS
+ * THE 3.  Recorded here so the next reader does not re-find the 2 and ship it.
+ *
+ * ===========================================================================
+ * 4.  THE STANDING BOUND IS UNTOUCHED
+ * ===========================================================================
+ * The remaining 3 is one 3-cycle rotation and needs insn 200 (`mov r1,#0xe0`)
+ * issued between insn 15 (`mov r3,#8`) and insn 57 (the `str` of `w`), with
+ * prio(200) = prio(15) + 1 identically.  Nothing in this round touches that.
+ * WHAT WOULD RETIRE IT IS UNCHANGED: a way to materialise `0xe0 << 1` into a
+ * register BEFORE site 2's region boundary without letting cse fold
+ * gState + 0x1c0 -- and section 2 now also rules out reaching it by changing
+ * how the halfword reads are SPELLED.
+ *
+ * PINS: 1 empty `__asm__ volatile ("")` (was 2).  tools/shimcount.py does not
+ * treat an empty asm as a fakematch row in this tree, so the body is pin-free
+ * in the fakematch sense -- but the ONE remaining barrier is a matching
+ * ARTIFACT and belongs in reports/pass3-depin.md.  It is worth 5 of the 8, so
+ * removing it at pass 3 costs the figure, not the match.  The anchor is
+ * ordinary C and owes nothing.
+ *
+ * -- scratch_elev/b350/B
+ * ===========================================================================
+ */
 /* Func_801c34c -- PARK AT 3 differing encodings of 69.
  * Batch 329 brief B.  WAS 8.  ref 69, ours 69; SIZE EQUAL (156 bytes);
  * RELOCATIONS IDENTICAL; first differing index 6 (ref 21e0 `mov r1,#0xe0`,
@@ -403,7 +541,7 @@ void Func_801c34c(void)
     __asm__ volatile ("");
     w = 8;
     h = 8;
-    __asm__ volatile ("");
+    do { } while (0);
     id = _GetLocationName(*(short *)(g + (0xe0 << 1)), *(short *)(g + (0xe1 << 1)));
     id += 0x99b;
     TextBox(id, &w, &h, &tw, &th);

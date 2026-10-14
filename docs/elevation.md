@@ -36536,3 +36536,72 @@ a `static const` variant whose code stream matched while the object grew by four
 bytes was reported **BIT-IDENTICAL**. Two different objects called one program —
 the exact error the check exists to prevent, inside the check. Size is now part
 of the hash. Found by brief D reading a `dsize=4` next to a bit-identical flag.
+
+# A VOID CALL CARRIES A TRAILING `(use (const_int 0))`. A NON-VOID CALL DOES NOT.
+
+One mechanism, and batch 350 brief B used it to land a park and to close a
+different park's only open question. Worth reading before any residue described
+as "scheduling around a call" or "a tail that should cross-jump".
+
+## It landed `Anim_CriticalHit` on a ONE-WORD EDIT
+
+2 of 707 → **0**, pin-free, device-free: `ClearFn`'s typedef returns **`int`**
+instead of `void`. Measured apart, the typedef alone is byte-identical and
+changing only the *callee's* declaration is bit-identical to the old body — **the
+lever is the function POINTER's return type**, nothing else.
+
+Typing the pointer `int` drops those trailing USEs and re-shapes the block's
+dependence graph, satisfying a dependent-count bound
+(`haifa-sched.c:4097-4110`, with the fifth dependent arriving from the
+pending-read flush at `:3553-3556` → `:3955` → `:3217-3223`) **without moving a
+statement.**
+
+## The same asymmetry explains why `find_cross_jump` refuses a tail
+
+On a different park, a six-insn tail that plainly should merge does not: the else
+arm keeps its call's `(use (const_int 0))`, the then arm's is where the `b` sits,
+and **neither `jump.c:1445` (`prev_nonnote_insn`) nor `:1448` skips a USE** — so
+`:1468` breaks on CALL_INSN-against-INSN at the first iteration with
+`last1 == 0`. Both tail statements being void, no duplication depth escapes it.
+
+That closed the park's one named open route and merged its two remaining routes
+into one.
+
+## Relation to the batch-344 `flow.c` finding
+
+They are the same RTL object reached two ways, and both are worth knowing:
+
+* **`flow.c:645-665`** appends a `(use (const_int 0))` to any basic block that
+  **ends in a CALL and is closed by a label**.
+* **A void call** carries one regardless.
+
+So a USE can appear from the call's *type* or from the block's *shape*, and in
+both cases the passes that walk back over insns — `find_cross_jump` above,
+`sched_analyze_insn`'s dependence construction — do not skip it.
+
+# ROUTE 3 HAS TWO QUALIFICATIONS, BOTH LEARNED THE HARD WAY
+
+The route reads *add a definition so the range splits and the value leaves the
+`allocno_compare` race*. It landed `Func_80b6d30` in batch 349. It needs both of:
+
+1. **A BACK EDGE.** On a function with none, nine of ten dead-store spellings are
+   **bit-identical** — with no loop the store is deleted outright, so there is no
+   second definition for the allocator to see. (Batch 350 brief D.)
+2. **THE TWO DEFINITIONS MUST CARRY DIFFERENT VALUES.** A duplicate definition of
+   the *same* constant is cse'd back and the program is the one you started with.
+   (Batch 350 brief B.)
+
+The original write-up had neither qualification and would have sent readers at
+straight-line functions and at duplicate constants.
+
+# AND A NEW FALSE-IMPROVEMENT SHAPE: THE CHAINED ASSIGNMENT
+
+`w = h = 8;` measured **2 of 69** against a park at 3 — and it is a regression.
+`w = h = 8` is `w = (h = 8)`, so **`h` stores first**, writing the pair in the
+*opposite* order from the reference. It gains an encoding purely by accidental
+alignment.
+
+This is the fourth distinct way a lower figure has turned out not to be progress:
+a phase artifact across a length change; a wrong program that compiles clean; a
+lower count on the wrong codegen shape; and now an accidental alignment from a
+reversed store order. **Read the change as source, and read the order.**

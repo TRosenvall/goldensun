@@ -1,3 +1,164 @@
+/* ===== BATCH 350 BRIEF B -- 3 of 48 RE-DERIVED AND HELD.  THE PARK'S ONE
+ * ===== NAMED OPEN QUESTION (jump.c) IS ANSWERED, AND IT CLOSES ROUTE (a).
+ *
+ * NON-MATCHING, 3 differing encodings of 48  (MEASURED THIS BATCH, not
+ * inherited).  ref 48 / ours 48, 16-bit instructions 37 / 37, dsize 0,
+ * relocations IDENTICAL, first differing index 29 (ref 2105 `mov r1,#5`,
+ * ours 1c05 `mov r5,r0`).  All three length dimensions in phase, so the 3 IS
+ * A TRUE DISTANCE.  PINS 0.  DEVICE-FREE.  NO FLAG GROUP.  BODY UNCHANGED.
+ *
+ * Verify with:
+ *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
+ *     goldensun-build python3 tools/objcmp.py \
+ *     src/non_matching/rom_b0000/80b2ed8.c \
+ *     asm/rom_b0000/rom_b0070_c_c_a_c_c_a_d.s --func Func_80b2ed8
+ *
+ * SPLIT SHAPE (tools/piece.py, verified this batch): the reference .s holds ONE
+ * function, Func_80b2ed8, and it is the only parked member -- so NO SPLIT is
+ * needed and none is in the manifest.  tools/datacheck.py prints nothing for
+ * this .s.  Install path when it lands: src/rom_b0000/rom_b0070_c_c_a_c_c_a_d.c.
+ *
+ * ===========================================================================
+ * 1.  THE NEGATIVE-LIST RE-TEST: 12 SPELLINGS, 6 DISTINCT PROGRAMS
+ * ===========================================================================
+ * tools/sweep_variants.py with object fingerprinting
+ * (scratch_elev/b350/B/v1, the generator is in that directory):
+ *
+ *   installed body (control)                              3  BIT-IDENTICAL base
+ *   the condition named in its own statement              3  BIT-IDENTICAL base
+ *   `n = 5;` duplicated into BOTH arms                    3  BIT-IDENTICAL base
+ *   `s = cond ? 0xd2c : 0xd2d;`                          27  dsize -4 RELOCDIFF
+ *   an explicit `goto` diamond                           27  bit-identical to the ternary
+ *   `s = 0xd2c; s = s;` in each arm                       27  bit-identical to the ternary
+ *   `id = 0xd2c; s = id;` in each arm                     27  bit-identical to the ternary
+ *   the condition's result IS `s`                         25  RELOCDIFF
+ *   `switch`, the call inside each case                   30  dsize +4 RELOCDIFF
+ *   `switch`, the call at the join                       32  RELOCDIFF
+ *   `_Func_8019908(h,5)` in both arms                    39  dsize +16 (park's row, reproduced)
+ *   the whole tail in both arms                          39  dsize +28
+ *
+ * >> THE CONSTRUCT-KIND AXIS IS CLOSED.  Batch 349's `Field_Halt` lesson is
+ * >> "ask what KIND of construct every recorded row has in common and try a
+ * >> different kind".  Applied here: the ternary, an explicit `goto` diamond,
+ * >> a second `s = s;` statement per arm and a two-variable `id`/`s` arm are
+ * >> ONE PROGRAM -- four rows, one fingerprint.  `jump.c` normalises the CFG
+ * >> and the extra statements fold before `.14.ce` runs.  A `switch` IS a
+ * >> distinct program (unlike the other three) and is worse. <<
+ *
+ * >> AND THE ifcvt `last_active_insn_p` GATE IS UNREACHABLE FROM C.
+ * >> `ifcvt.c:609-615` bails when the THEN block holds more than one active
+ * >> insn -- that is why the park's call-in-the-arms works.  But a second
+ * >> NON-call statement never reaches the gate: both `s = s;` and the
+ * >> two-variable form are folded to a single set first, so
+ * >> `first_active_insn` sees one insn either way.  Re-read and confirmed:
+ * >> `noce_try_store_flag_constants` (`ifcvt.c:591-601`) needs
+ * >> `! no_new_pseudos && GET_CODE (a) == CONST_INT && GET_CODE (b) == CONST_INT`,
+ * >> and with `diff == STORE_FLAG_VALUE` it sets `normalize = 0` and fires
+ * >> regardless of BRANCH_COST.  The park's reading of this is exact. <<
+ *
+ * ===========================================================================
+ * 2.  WHY `find_cross_jump` DECLINES THE SIX-INSN TAIL -- SOLVED, WITH LINES
+ * ===========================================================================
+ * The park left this as its one open question: "By the letter of
+ * `find_cross_jump` it should merge ... That gap is the one open question on
+ * this function, and it is a question about jump.c, not about C."
+ * IT IS NOT A GAP IN THE LETTER.  The park's walk omitted one insn.
+ *
+ * `.23.sched2` on the duplicated-tail variant (v1/g01_dup8019908.c):
+ *
+ *   ;; basic block 2 (THEN arm)  56 r5=0xd2c / 59 r0=r5 / 60 call Func_80b2884
+ *                                / 67 r1=0x5 / 62 r5=r0 / 65 r0=r8
+ *                                / 68 call _Func_8019908 / 70 pc=L91
+ *   (barrier 71)
+ *   ;; basic block 3 (ELSE arm)  ... / 89 call _Func_8019908
+ *                                / 112 (use (const_int 0))
+ *   ;; basic block 4 (JOIN)      (code_label 91) ...
+ *
+ * A VOID CALL CARRIES A TRAILING `(use (const_int 0))` INSN.  THE ELSE ARM
+ * KEEPS ITS COPY AND THE THEN ARM DOES NOT, because the then arm's `b` sits
+ * where that USE would be.  Verified across the whole dump: the two
+ * `Func_80b2884` calls (insns 60 and 81) RETURN A VALUE and have no trailing
+ * USE; every void call has one -- insn 112 after `_Func_8019908` in the else
+ * arm, insn 114 after `_DrawSmallText` in the join.
+ *
+ * Now walk `find_cross_jump (e1 = jump_insn 70, e2 = code_label 91,
+ * minimum = 1)`; the simplejump call site is `jump.c:660`:
+ *
+ *   jump.c:1445  i1 = prev_nonnote_insn (i1);              -> call_insn 68
+ *   jump.c:1447  i2 = PREV_INSN (i2);
+ *   jump.c:1448  while (i2 && (GET_CODE (i2) == NOTE
+ *                              || GET_CODE (i2) == CODE_LABEL))
+ *                  i2 = PREV_INSN (i2);                    -> insn 112, an INSN
+ *   jump.c:1468  if (i2 == 0 || GET_CODE (i1) != GET_CODE (i2))
+ *                  break;        <-- CALL_INSN vs INSN: BREAKS ON ITERATION ONE
+ *   jump.c:1607  if (minimum <= 0 && last1 != 0 && last1 != e1)
+ *                  *f1 = last1, *f2 = last2;   <-- last1 == 0, so *f1 stays 0
+ *
+ * NEITHER WALK SKIPS A `USE` INSN: `prev_nonnote_insn` skips only NOTEs, and
+ * `:1448` skips NOTEs and CODE_LABELs.  So the asymmetric trailing USE is
+ * compared against the then arm's CALL_INSN and the walk dies before recording
+ * a single matching pair.  `last1` is only ever assigned at `jump.c:1599`,
+ * inside the `win:` arm and gated `GET_CODE (p1) != USE && GET_CODE (p1) !=
+ * CLOBBER`, so even a SYMMETRIC USE could never have been absorbed.  Hence no
+ * merge at all -- which is exactly the park's own observation that the call
+ * count is 12 in `.23.sched2` and still 12 in `.25.jump2`.
+ *
+ * Contrast the BASE body, which does merge three insns at the same site: there
+ * each arm's last statement is `s = (int)Func_80b2884(s)` and that call
+ * RETURNS A VALUE, so neither arm carries a trailing USE and both walks start
+ * on `mov r5, r0`, an ordinary INSN.  That is why cross-jumping is not
+ * disabled and does not refuse calls as such -- the park was right about that
+ * and the explanation is the USE, not the call.
+ *
+ *   >> ROUTE (a) OF THE PARK'S "NEXT" IS CLOSED, WITH A MECHANISM.  The
+ *   >> six-insn tail CANNOT cross-jump while the duplicated tail ends in a
+ *   >> VOID call: the else arm keeps that call's `(use (const_int 0))`, the
+ *   >> then arm does not, and `jump.c:1468` breaks on the GET_CODE mismatch at
+ *   >> iteration one.  BOTH statements this park could duplicate
+ *   >> (`_Func_8019908`, `_DrawSmallText`) are void, so NO duplication depth
+ *   >> escapes it -- `g11_dup_all` duplicating both reads 39 as well.
+ *   >> WHAT WOULD RETIRE IT: a tail whose LAST statement is a non-void call or
+ *   >> an ordinary assignment, which this function does not have and which
+ *   >> cannot be added without emitting an instruction. <<
+ *
+ * ===========================================================================
+ * 3.  THE GOOD NEWS INSIDE IT, AND WHERE THE NEXT READER SHOULD GO
+ * ===========================================================================
+ * Block 2 above is the REFERENCE'S ORDER VERBATIM -- `mov r0,r5 /
+ * bl Func_80b2884 / mov r1,#5 / mov r5,r0 / mov r0,r8 / bl _Func_8019908` --
+ * so the park is right that the ordering is not the blocker and sched2 will
+ * produce it for free once the three movs share a block.
+ *
+ *   ref   mov r0,r5 / bl Func_80b2884 / mov r1,#5 / mov r5,r0 / mov r0,r8 / bl
+ *   ours  mov r0,r5 / bl Func_80b2884 / mov r5,r0 / mov r0,r8 / mov r1,#5 / bl
+ *
+ * THE REFERENCE PUTS `bl Func_80b2884` IN THE JOIN BLOCK: its arms hold only
+ * `ldr r5,=0xd2c` and `ldr r5,=0xd2d` (read off the reference .s this batch).
+ * So in the original the three movs shared a block for nothing.  Getting there
+ * needs `.14.ce` not to convert a ONE-INSN-PER-ARM diamond of two CONST_INTs
+ * differing by 1, and `ifcvt.c:591-601` fires on exactly that.
+ *
+ *   >> THE PARK'S TWO ROUTES HAVE BECOME ONE.  The open question is the ifcvt
+ *   >> bail, NOT the cross-jump.  Everything that defeats ifcvt by adding an
+ *   >> arm statement either folds away (measured above) or emits an
+ *   >> instruction.  The remaining untested gates in `noce_process_if_block`
+ *   >> are `ifcvt.c:646-648` ("X may not be mentioned in the range
+ *   >> (cond_earliest, jump]") and `:651-654` ("A and B may not be modified in
+ *   >> [cond_earliest, jump)"); A and B are CONST_INTs so `:651` is dead, and
+ *   >> `:646` needs `s`'s pseudo mentioned in the condition's setup, which the
+ *   >> reference forbids -- it has `cmp r0,#0` against the call's result while
+ *   >> the arms write r5, i.e. two pseudos.  Measured: making the condition's
+ *   >> result BE `s` reads 25 with dirty relocations. <<
+ *
+ * `precompute_register_parameters` re-read this batch (`calls.c:805-854`): the
+ * park's reading is exact.  The gate is `rtx_cost (args[i].value, SET) > 2` at
+ * `:850`, with the value not already a REG at `:846-849`; `arm_rtx_costs`
+ * returns 0 for a CONST_INT under 256 with `outer == SET`, so a literal `5`
+ * can never be precomputed.  DO NOT RE-PROPOSE IT.
+ *
+ * -- scratch_elev/b350/B
+ * ===========================================================================
+ */
 /* Func_80b2ed8 -- NOT MATCHING
  *
  * NON-MATCHING, 3 of 48 encodings  (MEASURED, batch 333).

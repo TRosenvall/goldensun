@@ -1,3 +1,175 @@
+/* ===== BATCH 350 BRIEF B -- 2 of 29 RE-DERIVED AND HELD.  BODY UNCHANGED.
+ * ===== THREE AXES CLOSED WITH MECHANISM, AND THE PARK'S RELOAD EVIDENCE IS
+ * ===== CORRECTED (its CONCLUSION survives; the dump it cites does not show it).
+ *
+ * NON-MATCHING, 2 differing encodings of 29  (MEASURED THIS BATCH).
+ * ref 29 / ours 29, 16-bit instructions 26 / 26, dsize 0, relocations
+ * IDENTICAL, no SIZE line, no POOL WORD line, first differing index 9.
+ * All three length dimensions in phase, so the 2 IS A TRUE DISTANCE.
+ * PINS 0.  DEVICE-FREE.  NO FLAG GROUP.
+ *
+ * Verify with:
+ *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
+ *     goldensun-build python3 tools/objcmp.py \
+ *     src/non_matching/rom_f2000/80f3858.c \
+ *     asm/rom_f2000/rom_f2028_c_c_c_a_a.s --func Func_80f3858
+ *
+ * SPLIT SHAPE (tools/piece.py, verified this batch): the reference .s holds ONE
+ * function and it is the only parked member, so NO SPLIT is needed and none is
+ * in the manifest.  Install path when it lands:
+ * src/rom_f2000/rom_f2028_c_c_c_a_a.c.
+ *
+ * THE RESIDUE, for the record -- one adjacent swap at indices 9/10:
+ *   ref   ... add r1,#1 / mov r2,#0    / strb r5,[r3] / add r3,r4,r1 / strb r2,[r3]
+ *   ours  ... add r1,#1 / strb r5,[r3] / mov r2,#0    / add r3,r4,r1 / strb r2,[r3]
+ *
+ * ===========================================================================
+ * 1.  THE NEGATIVE-LIST RE-TEST: 36 SPELLINGS, 9 DISTINCT PROGRAMS (75% FLAT)
+ * ===========================================================================
+ * tools/sweep_variants.py with object fingerprinting, two rounds
+ * (scratch_elev/b350/B/v3 and v3b; generators in that directory).
+ *
+ * ROUND 1, zero-BETWEEN (this body): 20 rows, 5 DISTINCT PROGRAMS.
+ *   BIT-IDENTICAL TO THE BASE -- these 16 rows measured NOTHING:
+ *     `register int zero`; `zero` declared before `p`; `zero` in an inner
+ *     scope; the three offsets as `(0x80<<3)/(0x80<<5)/(0xe0<<5)`;
+ *     `zero` as `char` / `unsigned char` / `short` / `unsigned int` / `long`
+ *     (the park only ever crossed TYPE with zero-BEFORE -- TYPE x zero-BETWEEN
+ *     was an uncrossed dimension and it is a NON-AXIS, all five are one
+ *     program); a dead `zero = 0;` AFTER the second store; the three
+ *     statements as one comma expression; an early-`return` guard instead of
+ *     the `if`; a one-trip `while (p != 0) { ...; break; }`.
+ *   DISTINCT:
+ *     `zero = 0;` before the first store AND between  7, first index 14
+ *     `int zero = 0;` at the declaration + between    8, dsize +4
+ *     the SECOND store's address named                13, first index 7
+ *     the same named outside the `if`                 25, first index 0
+ *
+ * ROUND 2, zero-BEFORE: 16 rows, and 11 ARE BIT-IDENTICAL TO EACH OTHER.
+ *   ONE PROGRAM at 7, first index 14:  the plain zero-before control;
+ *     `zero` as `short` / `unsigned short` / `unsigned int` / `long`;
+ *     the first store's address as `p[0x3000+1]`, `(p+0x3000)[1]`,
+ *     `*(p + 0x3001)` and `p[(0x600<<3)+1]`; `unsigned char *p`;
+ *     the FIRST store's address named; arg `a` named.
+ *   DISTINCT:  both store addresses named 9; arg `b` named 6 (reproduces the
+ *     park's `bac`/`b` row); a third store 24 RELOCDIFF (wrong program);
+ *     `zero = 0` above `p = ...` 8 and one instruction long.
+ *
+ * >> THE ZERO-BEFORE FAMILY IS AN ABSORBING STATE.  Eleven of sixteen rows are
+ * >> one program, and the five that are not include the only two the park had
+ * >> already found.  METHOD.md's rule applies: when variants go flat in bulk,
+ * >> stop looking for a lever in that family.  The park's whole "INERT at 7"
+ * >> list is ONE PROGRAM, so its length was never evidence of coverage. <<
+ *
+ * ===========================================================================
+ * 2.  THREE AXES CLOSED, EACH WITH A MECHANISM
+ * ===========================================================================
+ * (a) THE STATEMENT-FORM AXIS IS CLOSED.  This is batch 349's `Field_Halt`
+ *     escape -- vary the KIND of construct, not the spelling -- and it does
+ *     not apply here.  Comma-sequencing the three statements, an early-`return`
+ *     guard and a one-trip `while` are ALL BIT-IDENTICAL to the base: `jump.c`
+ *     normalises the three CFGs and the comma's sequence point does not change
+ *     expand order.
+ *
+ * (b) ROUTE 3 (add a definition so the live range splits) COLLAPSES INTO
+ *     zero-BEFORE.  `zero = 0;` before the first store AND between them reads
+ *     7 of 29 at first index 14 -- the park's own zero-BEFORE figure and
+ *     shape.  Both definitions are the same constant, so cse keeps the EARLIER
+ *     one and the program simply IS zero-before.  And a dead `zero = 0;` AFTER
+ *     the live one is bit-identical to the base.
+ *       >> ROUTE 3 NEEDS THE TWO DEFINITIONS TO CARRY DIFFERENT VALUES.  It
+ *       >> paid on Func_80b6d30 because there the second definition was
+ *       >> `j = ret` against a first `j = 0`; a DUPLICATE definition of one
+ *       >> constant is not a second definition once cse has run.  Worth
+ *       >> carrying: METHOD.md states route 3 as "the compiler reacts to the
+ *       >> existence of a second definition, nothing else", and that is too
+ *       >> strong -- it reacts to a second definition that SURVIVES cse. <<
+ *
+ * (c) TYPE x zero-BETWEEN is a non-axis (five widths, one program).
+ *
+ * ===========================================================================
+ * 3.  THE PARK'S RELOAD DIAGNOSIS: CONCLUSION RIGHT, EVIDENCE WRONG
+ * ===========================================================================
+ * The park says the zero-BEFORE argument block breaks because
+ * `allocate_reload_reg` (`reload1.c:4995-5064`) hands the `0x400` temp r3
+ * instead of r2.  THE CONCLUSION IS CORRECT.  The dump it points at does not
+ * show it, and a reader who checks there will conclude the park is wrong.
+ *
+ * `.18.greg` prints the SAME choices for the three constant adds in BOTH
+ * bodies -- `Spilling for insn 46/50/54.  Using reg 3` three times each.  Read
+ * there, the two bodies are indistinguishable.  The divergence is in
+ * `.19.flow2`, in the reload-GENERATED insns:
+ *
+ *   insns 110/111, the 0x400 = 0x80<<3 temp feeding insn 46:
+ *     zero-BETWEEN (fig 2):  (set (reg:SI 2 r2) (const_int 128)) / ashift 3
+ *     zero-BEFORE  (fig 7):  (set (reg:SI 3 r3) (const_int 128)) / ashift 3
+ *   insns 112/113 (0x1000) and 114/115 (0x1c00): r3 in BOTH bodies.
+ *
+ * EXACTLY ONE RELOAD REGISTER DIFFERS, and it is the 0x400 temp's.  With two
+ * registers sched2 has two independent chains and interleaves them into the
+ * reference's `mov r3 / lsl r3 / mov r2 / add r1 / mov r3 / lsl r2 / lsl r3 /
+ * add r0 / add r2`; with one register the three sequences are a chain and no
+ * scheduling can interleave them.  The park's reading of the CONSEQUENCE is
+ * exact; only its citation is not.
+ *   >> This is METHOD.md's "find_reg's printed choice is nearly
+ *   >> information-free" (`reload1.c:3611-3623`) in its worst form: here it
+ *   >> prints `reg 3` for the very reload that comes out r2.  READ `.19.flow2`,
+ *   >> NOT `.18.greg`'s "Using reg" LINES. <<
+ * The one greg print that DOES differ is the FIRST STORE's address reload:
+ *   zero-BETWEEN: `Spilling for insn 25.  Using reg 2`
+ *   zero-BEFORE:  `Spilling for insn 28.  Using reg 1`
+ * so if a handle exists it is on which register is made spillable for
+ * `p + 0x3001`, not on anything in the argument block.  Measured: eight
+ * spellings of that address are one program with the zero-before control.
+ *
+ * AND NO ALLOCATION-PRIORITY LEVER CAN REACH THIS RESIDUE.  `.17.lreg` is
+ * IDENTICAL in the two bodies across the whole argument block: pseudos 45, 47
+ * and 49 are `p+0x400`, `p+0x1000` and `p+0x1c00`, expanded in source order
+ * a,b,c and copied to r0/r1/r2 at insns 56/58/60, with dispositions
+ * `45 in 0  47 in 1  49 in 2` on both sides.  `.18.greg` has only "2 regs to
+ * allocate: 33 32", so every argument pseudo is local-alloc's and is already
+ * in its final hard register before reload.
+ *   >> THERE IS NO PSEUDO TO RE-RANK, so METHOD.md's routes 1-5 (delete a
+ *   >> reused local, move a definition earlier or later, split a range, cross
+ *   >> a block boundary, lengthen a range to prune a preference) ALL have
+ *   >> nothing to act on here.  The only free variable is a reload register
+ *   >> choice, and the source space above does not reach it. <<
+ *
+ * ===========================================================================
+ * 4.  THE SCHEDULER RUNGS, RE-READ FROM SOURCE THIS BATCH
+ * ===========================================================================
+ * `rank_for_schedule` (`haifa-sched.c:4040-4116`) in full, against insn 28
+ * (`strb r5,[r3]`) and insn 31 (`r2 = 0`):
+ *   :4042-4044  priority -- TIES.
+ *   :4047-4049  INSN_REG_WEIGHT -- gated `!reload_completed`, and sched2 runs
+ *               AFTER reload, so THIS RUNG IS UNREACHABLE IN sched2 AT ALL.
+ *   :4052-4068  the three interblock rungs -- gated
+ *               `INSN_BB (tmp) != INSN_BB (tmp2)`; both insns are in block 1.
+ *   :4069-4094  class vs the last-scheduled insn -- both class 3, because the
+ *               rung assigns class 3 whenever `insn_cost (...) == 1` and a
+ *               Thumb mov is `core_cycles single`, latency 1.
+ *   :4097-4110  dependent count -- TIES AT 2 EACH.  28's are insn 38
+ *               (`r3=r4+r1`, ANTI on r3) and insn 41 (memory); 31's are insn
+ *               41 (true, r2) and insn 110 (`r2=0x80`, OUTPUT on r2).  Both
+ *               counts are forced by the reference's own text.
+ *   :4113-4116  INSN_LUID, lowest first -- DECIDES.
+ * So the figure needs LUID(`mov r2,#0`) < LUID(`strb r5`), i.e. zero-BEFORE,
+ * which costs the 0x400 temp's reload register.  The park's rung walk is
+ * CONFIRMED; note it had skipped the reg-weight and interblock rungs, which is
+ * harmless here because both are structurally unreachable -- but say so, since
+ * batch 329 was burned by a park that omitted a rung it needed.
+ *
+ *   >> PARK HOLDS AT 2 of 29.  THE FLOOR FOR zero-BETWEEN IS 2 AND FOR
+ *   >> zero-BEFORE IS 6, and both are now backed by bit-identity sets rather
+ *   >> than by "nothing we tried worked".  WHAT WOULD RETIRE IT: a
+ *   >> count-neutral way to change which register `allocate_reload_reg` hands
+ *   >> insn 46's constant under zero-BEFORE.  DO NOT re-screen placement,
+ *   >> type, offset spelling, statement form or a duplicate zero definition --
+ *   >> all five are measured bit-identical sets. <<
+ *
+ * -- scratch_elev/b350/B
+ * ===========================================================================
+ */
 /* Func_80f3858 (BeginPaletteFade) -- NON-MATCHING.
  *
  * NON-MATCHING, 2 differing encodings of 29  (MEASURED, batch 329 brief J;
